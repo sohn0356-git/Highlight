@@ -4,7 +4,12 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store-context";
 import { Calendar } from "lucide-react";
 
-const MOCK_LOGIN = { name: "홍길동", birthDate: "2009-03-15" };
+const DEMO_ACCOUNTS = [
+  { name: "홍길동", birthDate: "2009-03-15" },
+  { name: "김민준", birthDate: "2008-11-22" },
+  { name: "이서연", birthDate: "2009-07-04" },
+  { name: "박지호", birthDate: "2008-02-10" },
+];
 
 export default function LoginPage() {
   const { login, isLoggedIn } = useApp();
@@ -79,9 +84,21 @@ export default function LoginPage() {
           데모 계정 보기
         </button>
         {showHint && (
-          <p className="rounded-xl bg-neutral-100 px-4 py-3 text-center text-xs text-neutral-500">
-            데모 계정: <b>{MOCK_LOGIN.name}</b> · {MOCK_LOGIN.birthDate}
-          </p>
+          <div className="rounded-xl bg-neutral-100 px-4 py-3 text-center">
+            <p className="text-xs font-semibold text-neutral-600">로그인 가능한 데모 계정</p>
+            <div className="mt-2 space-y-1.5">
+              {DEMO_ACCOUNTS.map(acc => (
+                <button
+                  key={acc.name}
+                  type="button"
+                  onClick={() => { setName(acc.name); setBirthDate(acc.birthDate); setError(false); }}
+                  className="w-full rounded-lg bg-white px-3 py-2 text-xs text-neutral-500 transition active:scale-[0.98]"
+                >
+                  {acc.name} · {acc.birthDate}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </form>
 

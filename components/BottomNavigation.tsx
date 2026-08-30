@@ -12,7 +12,10 @@ const tabs: { id: TabId; label: string; icon: typeof Home }[] = [
 
 export default function BottomNavigation({ active, onNavigate }: { active: TabId; onNavigate: (t: TabId) => void }) {
   return (
-    <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur px-1 pb-[env(safe-area-inset-bottom)]">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 mx-auto w-full max-w-md border-t border-neutral-200/80 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
+      style={{ boxShadow: "0 -4px 20px rgba(0,0,0,0.04)" }}
+    >
       <div className="grid grid-cols-5">
         {tabs.map(t => {
           const Icon = t.icon;
@@ -21,11 +24,27 @@ export default function BottomNavigation({ active, onNavigate }: { active: TabId
             <button
               key={t.id}
               onClick={() => onNavigate(t.id)}
-              className="flex flex-col items-center gap-0.5 py-2.5 active:scale-95 transition"
+              className={`group relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 transition-all duration-200 active:scale-90 ${
+                isActive ? "text-indigo-600" : "text-neutral-400"
+              }`}
               aria-label={t.label}
+              aria-current={isActive ? "page" : undefined}
             >
-              <Icon size={22} className={isActive ? "text-indigo-600" : "text-neutral-400"} strokeWidth={isActive ? 2.4 : 2} />
-              <span className={`text-[11px] font-medium ${isActive ? "text-indigo-600" : "text-neutral-400"}`}>{t.label}</span>
+              {isActive && (
+                <span className="absolute -top-0.5 h-1 w-8 rounded-full bg-indigo-500 transition-all" />
+              )}
+              <Icon
+                size={23}
+                strokeWidth={isActive ? 2.6 : 2}
+                className={`transition-transform duration-200 ${isActive ? "scale-105" : ""}`}
+              />
+              <span
+                className={`text-[10.5px] font-semibold leading-none ${
+                  isActive ? "text-indigo-600" : "text-neutral-400"
+                }`}
+              >
+                {t.label}
+              </span>
             </button>
           );
         })}
