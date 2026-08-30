@@ -2,8 +2,8 @@
   "name": "고등부 마일리지",
   "short_name": "마일리지",
   "description": "교회 고등부 마일리지 앱",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/Highlight/",
+  "scope": "/Highlight/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#faf9f7",
@@ -11,17 +11,7 @@
   "lang": "ko",
   "categories": ["lifestyle", "education", "social"],
   "icons": [
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/Highlight/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/Highlight/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

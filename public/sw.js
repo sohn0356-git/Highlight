@@ -1,5 +1,6 @@
 const CACHE = "mileage-app-v1";
-const ASSETS = ["/", "/login/", "/home/", "/qt/", "/missions/", "/urinae/", "/my/"];
+const BASE = "/Highlight";
+const ASSETS = [BASE + "/", BASE + "/login/", BASE + "/home/", BASE + "/qt/", BASE + "/missions/", BASE + "/urinae/", BASE + "/my/"];
 
 self.addEventListener("install", function (event) {
   event.waitUntil(
@@ -23,7 +24,6 @@ self.addEventListener("fetch", function (event) {
   const url = new URL(event.request.url);
   if (url.origin !== location.origin) return;
   if (event.request.method !== "GET") return;
-  // App shell pages: network first, then cache fallback (works offline once visited)
   event.respondWith(
     fetch(event.request)
       .then(function (res) {
@@ -33,7 +33,7 @@ self.addEventListener("fetch", function (event) {
       })
       .catch(function () {
         return caches.match(event.request).then(function (cached) {
-          return cached || caches.match("/");
+          return cached || caches.match(BASE + "/");
         });
       })
   );
