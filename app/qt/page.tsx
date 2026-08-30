@@ -1,20 +1,19 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { BookOpen, CheckCircle, Calendar } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import { useApp } from "@/lib/store-context";
+import { go } from "@/lib/nav";
 
 export default function QTPage() {
-  const router = useRouter();
   const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, qtRecords } = useApp();
   const [remembered, setRemembered] = useState("");
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
 
-  useEffect(() => { if (!isLoggedIn) router.replace("/login"); }, [isLoggedIn, router]);
+  useEffect(() => { if (!isLoggedIn) go("/login"); }, [isLoggedIn]);
   if (!student || !isLoggedIn) return null;
 
   const today = new Date().toISOString().slice(0, 10);

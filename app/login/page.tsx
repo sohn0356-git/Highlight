@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store-context";
+import { go } from "@/lib/nav";
 import { Calendar } from "lucide-react";
 
 const DEMO_ACCOUNTS = [
@@ -13,34 +13,33 @@ const DEMO_ACCOUNTS = [
 
 export default function LoginPage() {
   const { login, isLoggedIn } = useApp();
-  const router = useRouter();
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [error, setError] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) router.replace("/home");
-  }, [isLoggedIn, router]);
+    if (isLoggedIn) go("/home");
+  }, [isLoggedIn]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const ok = await login(name, birthDate);
-    if (ok) router.replace("/home");
+    if (ok) go("/home");
     else setError(true);
   };
 
   return (
-    <div className="flex min-h-dvh flex-col justify-between px-6 pb-10 pt-16">
-      <div className="flex flex-col items-center text-center">
+    <div className="flex min-h-dvh flex-col px-6 pb-6 pt-[max(env(safe-area-inset-top),16px)] sm:pt-10">
+      <div className="mt-8 flex flex-col items-center text-center sm:mt-12">
         <div className="grid h-20 w-20 place-items-center rounded-3xl bg-indigo-500 text-3xl shadow-lg shadow-indigo-200">
           <span className="text-white font-black">⛪</span>
         </div>
-        <h1 className="mt-8 text-3xl font-extrabold text-neutral-900">반가워요!</h1>
+        <h1 className="mt-6 text-3xl font-extrabold text-neutral-900">반가워요!</h1>
         <p className="mt-2 text-sm text-neutral-500">이름과 생년월일을 입력해주세요.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3 sm:mt-10">
         {error && (
           <p className="rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-600">
             이름이나 생년월일이 일치하지 않아요. 다시 확인해주세요.
@@ -91,7 +90,13 @@ export default function LoginPage() {
                 <button
                   key={acc.name}
                   type="button"
-                  onClick={() => { setName(acc.name); setBirthDate(acc.birthDate); setError(false); }}
+                  onClick={async () => {
+                    setName(acc.name);
+                    setBirthDate(acc.birthDate);
+                    const ok = await login(acc.name, acc.birthDate);
+                    if (ok) go("/home");
+                    else setError(true);
+                  }}
                   className="w-full rounded-lg bg-white px-3 py-2 text-xs text-neutral-500 transition active:scale-[0.98]"
                 >
                   {acc.name} · {acc.birthDate}
@@ -102,7 +107,7 @@ export default function LoginPage() {
         )}
       </form>
 
-      <p className="mt-8 text-center text-[11px] leading-relaxed text-neutral-300">
+      <p className="mt-6 text-center text-[11px] leading-relaxed text-neutral-300">
         고등부 마일리지 · 2026 FALL SEASON
       </p>
     </div>

@@ -13,7 +13,7 @@ const tabs: { id: TabId; label: string; icon: typeof Home }[] = [
 export default function BottomNavigation({ active, onNavigate }: { active: TabId; onNavigate: (t: TabId) => void }) {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 mx-auto w-full max-w-md border-t border-neutral-200/80 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
+      className="fixed bottom-0 left-0 right-0 z-40 w-full border-t border-neutral-200/80 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:mx-auto sm:max-w-md"
       style={{ boxShadow: "0 -4px 20px rgba(0,0,0,0.04)" }}
     >
       <div className="grid grid-cols-5">

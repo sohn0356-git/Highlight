@@ -1,7 +1,7 @@
 "use client";
-import { ReactNode, useState } from "react";
-import { useRouter } from "next/navigation";
+import { ReactNode } from "react";
 import BottomNavigation from "./BottomNavigation";
+import { go } from "@/lib/nav";
 import type { TabId } from "@/lib/types";
 
 const routes: Record<TabId, string> = {
@@ -13,9 +13,8 @@ const routes: Record<TabId, string> = {
 };
 
 export default function AppShell({ active, children }: { active: TabId; children: ReactNode }) {
-  const router = useRouter();
   const handleNavigate = (t: TabId) => {
-    if (t !== active) router.push(routes[t]);
+    if (t !== active) go(routes[t]);
   };
   return (
     <div className="min-h-dvh pb-[calc(4.5rem+env(safe-area-inset-bottom))]">

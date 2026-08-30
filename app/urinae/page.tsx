@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { MessageCirclePlus, Users } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import PageHeader from "@/components/PageHeader";
@@ -9,15 +8,15 @@ import ProgressBar from "@/components/ProgressBar";
 import StatCard from "@/components/StatCard";
 import PrayerCard from "@/components/PrayerCard";
 import { useApp } from "@/lib/store-context";
+import { go } from "@/lib/nav";
 
 export default function WePage() {
-  const router = useRouter();
   const { student, isLoggedIn, classes, prayers, prayFor, addPrayerRequest } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState("");
   const [anonymous, setAnonymous] = useState(false);
 
-  useEffect(() => { if (!isLoggedIn) router.replace("/login"); }, [isLoggedIn, router]);
+  useEffect(() => { if (!isLoggedIn) go("/login"); }, [isLoggedIn]);
   if (!student || !isLoggedIn) return null;
 
   const myClass = classes.find(c => c.id === student.classId) as any;

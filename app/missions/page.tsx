@@ -1,6 +1,5 @@
 "use client";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Target } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import PageHeader from "@/components/PageHeader";
@@ -8,12 +7,12 @@ import MissionCard from "@/components/MissionCard";
 import BadgeCard from "@/components/BadgeCard";
 import Card from "@/components/Card";
 import { useApp } from "@/lib/store-context";
+import { go } from "@/lib/nav";
 
 export default function MissionsPage() {
-  const router = useRouter();
   const { student, isLoggedIn, missions, completedMissionIds, completeMission, badges } = useApp();
 
-  useEffect(() => { if (!isLoggedIn) router.replace("/login"); }, [isLoggedIn, router]);
+  useEffect(() => { if (!isLoggedIn) go("/login"); }, [isLoggedIn]);
   if (!student || !isLoggedIn) return null;
 
   const weekly = missions.filter(m => m.category === "weekly");

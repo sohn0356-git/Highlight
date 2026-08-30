@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh bg-[#faf9f7] antialiased overscroll-none">
         <ServiceWorkerRegister />
         <Providers>
-          <main className="relative mx-auto w-full max-w-md min-h-dvh pb-20">
+          <main className="relative w-full min-h-dvh pb-20 sm:mx-auto sm:max-w-md">
             {children}
           </main>
         </Providers>
