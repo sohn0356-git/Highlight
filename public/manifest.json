@@ -1,0 +1,11 @@
+{
+  "name": "고등부 마일리지",
+  "short_name": "마일리지",
+  "description": "교회 고등부 마일리지 앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf9f7",
+  "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "icons": []
+}

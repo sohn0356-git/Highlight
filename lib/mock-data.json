@@ -1,0 +1,438 @@
+{
+  "season": {
+    "id": "2026-fall",
+    "label": "2026 FALL SEASON",
+    "title": "함께 걸어가는 우리"
+  },
+  "classes": [
+    {
+      "id": "c1",
+      "name": "고2-3반",
+      "xp": 12450,
+      "weeklyXp": 620,
+      "level": 7,
+      "attendance": {
+        "attended": 11,
+        "total": 13
+      },
+      "qtCount": 37,
+      "missionCount": 21,
+      "prayerCount": 18,
+      "classMessage": "이번 주도 서로를 위해 기도해요 🙏"
+    },
+    {
+      "id": "c2",
+      "name": "고1-2반",
+      "xp": 11920,
+      "weeklyXp": 540,
+      "level": 6
+    },
+    {
+      "id": "c3",
+      "name": "고3-1반",
+      "xp": 10840,
+      "weeklyXp": 380,
+      "level": 5
+    },
+    {
+      "id": "c4",
+      "name": "고1-4반",
+      "xp": 10120,
+      "weeklyXp": 1420,
+      "level": 4
+    },
+    {
+      "id": "c5",
+      "name": "고2-1반",
+      "xp": 9720,
+      "weeklyXp": 490,
+      "level": 4
+    },
+    {
+      "id": "c6",
+      "name": "고3-2반",
+      "xp": 8950,
+      "weeklyXp": 310,
+      "level": 3
+    }
+  ],
+  "students": [
+    {
+      "id": "s1",
+      "name": "홍길동",
+      "birthDate": "2009-03-15",
+      "classId": "c1",
+      "mileage": 1420
+    },
+    {
+      "id": "s2",
+      "name": "김민준",
+      "birthDate": "2008-11-22",
+      "classId": "c1",
+      "mileage": 980
+    },
+    {
+      "id": "s3",
+      "name": "이서연",
+      "birthDate": "2009-07-04",
+      "classId": "c1",
+      "mileage": 1100
+    },
+    {
+      "id": "s4",
+      "name": "박지호",
+      "birthDate": "2008-02-10",
+      "classId": "c1",
+      "mileage": 870
+    },
+    {
+      "id": "s5",
+      "name": "최수진",
+      "birthDate": "2009-09-30",
+      "classId": "c1",
+      "mileage": 1350
+    },
+    {
+      "id": "s6",
+      "name": "정하은",
+      "birthDate": "2008-05-18",
+      "classId": "c1",
+      "mileage": 1020
+    },
+    {
+      "id": "s7",
+      "name": "강이준",
+      "birthDate": "2009-01-25",
+      "classId": "c2",
+      "mileage": 950
+    },
+    {
+      "id": "s8",
+      "name": "한지우",
+      "birthDate": "2009-06-12",
+      "classId": "c2",
+      "mileage": 1180
+    },
+    {
+      "id": "s9",
+      "name": "윤서준",
+      "birthDate": "2008-08-03",
+      "classId": "c3",
+      "mileage": 870
+    },
+    {
+      "id": "s10",
+      "name": "오다은",
+      "birthDate": "2009-12-19",
+      "classId": "c3",
+      "mileage": 1050
+    },
+    {
+      "id": "s11",
+      "name": "노현서",
+      "birthDate": "2009-04-22",
+      "classId": "c4",
+      "mileage": 1300
+    },
+    {
+      "id": "s12",
+      "name": "임도윤",
+      "birthDate": "2008-10-07",
+      "classId": "c5",
+      "mileage": 920
+    },
+    {
+      "id": "s13",
+      "name": "신예린",
+      "birthDate": "2009-08-28",
+      "classId": "c6",
+      "mileage": 1150
+    },
+    {
+      "id": "s14",
+      "name": "장도현",
+      "birthDate": "2008-12-14",
+      "classId": "c4",
+      "mileage": 1080
+    },
+    {
+      "id": "s15",
+      "name": "문시은",
+      "birthDate": "2009-03-09",
+      "classId": "c1",
+      "mileage": 1200
+    }
+  ],
+  "missions": [
+    {
+      "id": "m1",
+      "icon": "🤝",
+      "title": "처음 보는 친구에게 먼저 인사하기",
+      "description": "주변에 인사를 건넬 친구를 찾아보세요!",
+      "reward": 30,
+      "category": "weekly"
+    },
+    {
+      "id": "m2",
+      "icon": "🙏",
+      "title": "친구 한 명을 위해 기도하기",
+      "description": "하나님께 친구를 위해 간절히 기도해요.",
+      "reward": 20,
+      "category": "weekly"
+    },
+    {
+      "id": "m3",
+      "icon": "📖",
+      "title": "이번 주 설교에서 기억나는 말씀 남기기",
+      "description": "설교 후 가장 감동받은 말씀을 적어보세요.",
+      "reward": 30,
+      "category": "weekly"
+    },
+    {
+      "id": "m4",
+      "icon": "💝",
+      "title": "은혜를 나누는 말하기",
+      "description": "친구나 선생님에게 감사의 말을 건네세요.",
+      "reward": 20,
+      "category": "weekly"
+    },
+    {
+      "id": "m5",
+      "icon": "🌱",
+      "title": "함께 성경 읽기",
+      "description": "친구와 함께 성경 한 장을 읽어보세요.",
+      "reward": 25,
+      "category": "weekly"
+    },
+    {
+      "id": "ms1",
+      "icon": "🎪",
+      "title": "친구 초대하기",
+      "description": "교회에 처음 오는 친구를 초대해주세요!",
+      "reward": 100,
+      "category": "special"
+    },
+    {
+      "id": "ms2",
+      "icon": "🏕️",
+      "title": "수련회 특별 미션",
+      "description": "수련회期间 특별 미션을 완료하세요.",
+      "reward": 150,
+      "category": "special"
+    }
+  ],
+  "badges": [
+    {
+      "id": "b1",
+      "icon": "🌱",
+      "name": "첫 걸음",
+      "description": "첫 QT 완료",
+      "criteria": 1,
+      "progress": 1
+    },
+    {
+      "id": "b2",
+      "icon": "📖",
+      "name": "말씀 탐험가",
+      "description": "QT 10회 완료",
+      "criteria": 10,
+      "progress": 6
+    },
+    {
+      "id": "b3",
+      "icon": "⛪",
+      "name": "예배자",
+      "description": "예배 10회 참석",
+      "criteria": 10,
+      "progress": 4
+    },
+    {
+      "id": "b4",
+      "icon": "🙏",
+      "name": "중보자",
+      "description": "친구를 위해 30회 기도",
+      "criteria": 30,
+      "progress": 12
+    },
+    {
+      "id": "b5",
+      "icon": "🏆",
+      "name": "열정가",
+      "description": "미션 20개 완료",
+      "criteria": 20,
+      "progress": 8
+    },
+    {
+      "id": "b6",
+      "icon": "💎",
+      "name": " sparkle이별",
+      "description": "마일리지 2000M 달성",
+      "criteria": 2000,
+      "progress": 1420,
+      "locked": true
+    },
+    {
+      "id": "b7",
+      "icon": "🌟",
+      "name": "빛이된 사람",
+      "description": "기도 50회 완료",
+      "criteria": 50,
+      "progress": 0,
+      "locked": true
+    },
+    {
+      "id": "b8",
+      "icon": "🔥",
+      "name": "불꽃 열정",
+      "description": "연속 7일 QT",
+      "criteria": 7,
+      "progress": 3,
+      "locked": true
+    }
+  ],
+  "prayers": [
+    {
+      "id": "p1",
+      "authorName": "민준",
+      "anonymous": false,
+      "content": "이번 주 시험을 위해 기도해주세요.",
+      "prayerCount": 8,
+      "prayedBy": [
+        "s1",
+        "s3"
+      ]
+    },
+    {
+      "id": "p2",
+      "authorName": "서연",
+      "anonymous": false,
+      "content": "가족을 위해 기도해주세요.",
+      "prayerCount": 5,
+      "prayedBy": [
+        "s2"
+      ]
+    },
+    {
+      "id": "p3",
+      "authorName": null,
+      "anonymous": true,
+      "content": "진로에 대해 고민이 많습니다.",
+      "prayerCount": 12,
+      "prayedBy": [
+        "s1",
+        "s2",
+        "s3"
+      ]
+    },
+    {
+      "id": "p4",
+      "authorName": "지호",
+      "anonymous": false,
+      "content": "건강이 회복되길 기도해주세요.",
+      "prayerCount": 3,
+      "prayedBy": []
+    }
+  ],
+  "transactions": [
+    {
+      "id": "t1",
+      "studentId": "s1",
+      "type": "QT 완료",
+      "description": "오늘의 QT",
+      "amount": 20,
+      "date": "2026-08-30"
+    },
+    {
+      "id": "t2",
+      "studentId": "s1",
+      "type": "주일예배",
+      "description": "8월 4주 예배 참석",
+      "amount": 100,
+      "date": "2026-08-27"
+    },
+    {
+      "id": "t3",
+      "studentId": "s1",
+      "type": "Weekly Quest",
+      "description": "인사하기 미션",
+      "amount": 30,
+      "date": "2026-08-27"
+    },
+    {
+      "id": "t4",
+      "studentId": "s1",
+      "type": "기도 참여",
+      "description": "민준이 기도에 참여",
+      "amount": 5,
+      "date": "2026-08-26"
+    },
+    {
+      "id": "t5",
+      "studentId": "s1",
+      "type": "QT 완료",
+      "description": "어제의 QT",
+      "amount": 20,
+      "date": "2026-08-29"
+    },
+    {
+      "id": "t6",
+      "studentId": "s1",
+      "type": "주일예배",
+      "description": "8월 3주 예배 참석",
+      "amount": 100,
+      "date": "2026-08-20"
+    },
+    {
+      "id": "t7",
+      "studentId": "s1",
+      "type": "Special Quest",
+      "description": "친구 초대하기",
+      "amount": 100,
+      "date": "2026-08-18"
+    }
+  ],
+  "activities": [
+    {
+      "id": "a1",
+      "type": "level",
+      "message": "🎉 고2-3반이 LV.8에 도달했어요!",
+      "timestamp": "2026-08-28"
+    },
+    {
+      "id": "a2",
+      "type": "prayer",
+      "message": "🙏 이번 주 고등부에서 128번의 기도가 있었어요.",
+      "timestamp": "2026-08-29"
+    },
+    {
+      "id": "a3",
+      "type": "qt",
+      "message": "📖 이번 주 QT 200회를 달성했어요!",
+      "timestamp": "2026-08-30"
+    },
+    {
+      "id": "a4",
+      "type": "xp",
+      "message": "🔥 고1-4반이 이번 주 1,000XP를 돌파했어요!",
+      "timestamp": "2026-08-30"
+    },
+    {
+      "id": "a5",
+      "type": "milestone",
+      "message": "🎊 고등부 마일리지 총합 50,000M을 넘었어요!",
+      "timestamp": "2026-08-29"
+    }
+  ],
+  "qt_today": {
+    "date": "2026-08-30",
+    "passage": "빌립보서 4:6-7",
+    "verse": "아무 것도 염려하지 말고 다만 모든 일에 기도와 간구로, 너희 구할 것을 감사함으로 하나님께 아뢰라.",
+    "content": "바울은 빌립보 교회에 염려를 내려놓고 기도하라고 권면합니다. 염려는 우리를 사로잡지만, 기도는 하나님이 함께하신다는 사실을 상기시켜줍니다. 오늘 하루, 염려가 밀려올 때 기도로 바꿔보세요."
+  },
+  "shared_goal": {
+    "label": "고등부 공동 목표",
+    "current": 48350,
+    "target": 60000,
+    "reward": "60,000 XP 달성하면 예배 후 전체 아이스크림 🍦"
+  }
+}
