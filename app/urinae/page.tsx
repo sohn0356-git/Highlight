@@ -1,22 +1,19 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MessageCirclePlus, Users } from "lucide-react";
-import AppShell from "@/components/AppShell";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
 import StatCard from "@/components/StatCard";
 import PrayerCard from "@/components/PrayerCard";
 import { useApp } from "@/lib/store-context";
-import { go } from "@/lib/nav";
 
-export default function WePage() {
+export default function WeContent() {
   const { student, isLoggedIn, classes, prayers, prayFor, addPrayerRequest } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState("");
   const [anonymous, setAnonymous] = useState(false);
 
-  useEffect(() => { if (!isLoggedIn) go("/login"); }, [isLoggedIn]);
   if (!student || !isLoggedIn) return null;
 
   const myClass = classes.find(c => c.id === student.classId) as any;
@@ -31,7 +28,7 @@ export default function WePage() {
   };
 
   return (
-    <AppShell active="we">
+    <div>
       <div className="px-5 pt-7">
         <PageHeader title="우리 반" subtitle="서로를 위해, 함께 걸어요" right={<Users size={18} className="text-indigo-400" />} />
       </div>
@@ -108,6 +105,6 @@ export default function WePage() {
           ))}
         </div>
       </section>
-    </AppShell>
+    </div>
   );
 }

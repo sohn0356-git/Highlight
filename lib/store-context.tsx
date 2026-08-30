@@ -78,40 +78,49 @@ export function useApp() {
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [student, setStudent] = useState<Student | null>(null);
-  const [qtDoneToday, setQtDoneToday] = useState(false);
-  const [qtRecords, setQtRecords] = useState<QTRecord[]>([]);
-  const [completedMissionIds, setCompletedMissionIds] = useState<string[]>([]);
+  // 동기 복원: 첫 렌더링부터 세션 반영 → 점멸/리다이렉트 루프 방지
+  const [student, setStudent] = useState<Student | null>(() => {
+    const s = getSession();
+    return s;
+  });
+  const [qtDoneToday, setQtDoneToday] = useState(() => isQTCompletedToday());
+  const [qtRecords, setQtRecords] = useState<QTRecord[]>(() => getQTRecords());
+  const [completedMissionIds, setCompletedMissionIds] = useState<string[]>(() =>
+    getCompletedMissions().map(m => m.missionId)
+  );
   const [prayers, setPrayers] = useState<PrayerRequest[]>(mockData.prayers);
   const [txns, setTxns] = useState<MileageTransaction[]>([]);
 
-  /* On mount: restore session + try load from Supabase */
+  /* On mount: init prayers + try load from Supabase */
   useEffect(() => {
-    (async () => {
-      // Try Supabase first
-      if (isSupabaseReady) {
+    initPrayers(mockData.prayers);
+    setPrayers(getPrayers());
+    setTxns(getTransactions());
+    if (isSupabaseReady) {
+      (async () => {
         try {
-          const [remoteStudents, remoteClasses, remoteQT, remoteMissions] = await Promise.all([
-            loadFromSupabase("students"),
-            loadFromSupabase("classes"),
-            loadFromSupabase("qt_records"),
-            loadFromSupabase("completed_missions"),
-          ]);
-          // If Supabase has data, we use it (but keep localStorage fallback)
-        } catch { /* fall through to localStorage */ }
-      }
-
-      const s = getSession();
-      if (s) {
-        setStudent(s);
-        setQtDoneToday(isQTCompletedToday());
-        setQtRecords(getQTRecords());
-        setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
-        initPrayers(mockData.prayers);
-        setPrayers(getPrayers());
-        setTxns(getTransactions());
-      }
-    })();
+          const mod = await import("./supabase");
+          const sb = mod.getSupabase();
+          if (!sb) return;
+          if (student) {
+            const { data } = await sb.from("qt_records").select("*").eq("student_id", student.id);
+            if (data && data.length) {
+              setQtRecords(data as QTRecord[]);
+              setQtDoneToday(data.some((r: any) => r.date === new Date().toISOString().slice(0, 10)));
+            }
+            const { data: missions } = await sb.from("completed_missions").select("mission_id").eq("student_id", student.id);
+            if (missions && missions.length) {
+              setCompletedMissionIds(missions.map((m: any) => m.mission_id));
+            }
+          }
+          const { data: prayersData } = await sb.from("prayer_requests").select("*").order("created_at", { ascending: false });
+          if (prayersData && prayersData.length) {
+            setPrayers(prayersData as unknown as PrayerRequest[]);
+          }
+        } catch { /* keep local */ }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ── LOGIN ── */

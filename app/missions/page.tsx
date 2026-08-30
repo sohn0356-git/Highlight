@@ -1,25 +1,19 @@
 "use client";
-import { useEffect } from "react";
 import { Target } from "lucide-react";
-import AppShell from "@/components/AppShell";
 import PageHeader from "@/components/PageHeader";
 import MissionCard from "@/components/MissionCard";
 import BadgeCard from "@/components/BadgeCard";
-import Card from "@/components/Card";
 import { useApp } from "@/lib/store-context";
-import { go } from "@/lib/nav";
 
-export default function MissionsPage() {
+export default function MissionsContent() {
   const { student, isLoggedIn, missions, completedMissionIds, completeMission, badges } = useApp();
-
-  useEffect(() => { if (!isLoggedIn) go("/login"); }, [isLoggedIn]);
   if (!student || !isLoggedIn) return null;
 
   const weekly = missions.filter(m => m.category === "weekly");
   const special = missions.filter(m => m.category === "special");
 
   return (
-    <AppShell active="missions">
+    <div>
       <div className="px-5 pt-7">
         <PageHeader title="이번 주 미션" subtitle="미션을 완료하고 마일리지를 받으세요!" right={<Target size={18} className="text-indigo-400" />} />
       </div>
@@ -65,6 +59,6 @@ export default function MissionsPage() {
           {badges.map(b => <BadgeCard key={b.id} badge={b} />)}
         </div>
       </section>
-    </AppShell>
+    </div>
   );
 }

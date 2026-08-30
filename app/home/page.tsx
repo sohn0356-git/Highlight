@@ -1,28 +1,19 @@
 "use client";
-import { useEffect } from "react";
 import { Flame, IceCream } from "lucide-react";
-import AppShell from "@/components/AppShell";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
 import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
-import { go } from "@/lib/nav";
 
-export default function HomePage() {
+export default function HomeContent() {
   const { student, isLoggedIn, classes, activities, sharedGoal, season } = useApp();
-
-  useEffect(() => {
-    if (!isLoggedIn) go("/login");
-  }, [isLoggedIn]);
-
   if (!student || !isLoggedIn) return null;
-
   const myClass = classes.find(c => c.id === student.classId);
 
   return (
-    <AppShell active="home">
+    <div>
       <div className="px-5 pt-7">
         <p className="text-xs font-bold tracking-widest text-indigo-500">{season.label}</p>
         <PageHeader title={season.title} />
@@ -81,6 +72,6 @@ export default function HomePage() {
           {activities.map(a => <ActivityCard key={a.id} activity={a} />)}
         </div>
       </section>
-    </AppShell>
+    </div>
   );
 }

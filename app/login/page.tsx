@@ -1,7 +1,6 @@
 "use client";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useApp } from "@/lib/store-context";
-import { go } from "@/lib/nav";
 import { Calendar } from "lucide-react";
 
 const DEMO_ACCOUNTS = [
@@ -18,15 +17,10 @@ export default function LoginPage() {
   const [error, setError] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
-  useEffect(() => {
-    if (isLoggedIn) go("/home");
-  }, [isLoggedIn]);
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const ok = await login(name, birthDate);
-    if (ok) go("/home");
-    else setError(true);
+    if (!ok) setError(true);
   };
 
   return (
@@ -94,8 +88,7 @@ export default function LoginPage() {
                     setName(acc.name);
                     setBirthDate(acc.birthDate);
                     const ok = await login(acc.name, acc.birthDate);
-                    if (ok) go("/home");
-                    else setError(true);
+                    if (!ok) setError(true);
                   }}
                   className="w-full rounded-lg bg-white px-3 py-2 text-xs text-neutral-500 transition active:scale-[0.98]"
                 >
