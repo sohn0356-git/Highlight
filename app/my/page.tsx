@@ -4,6 +4,8 @@ import Card from "@/components/Card";
 import MileageDisplay from "@/components/MileageDisplay";
 import StatCard from "@/components/StatCard";
 import { useApp } from "@/lib/store-context";
+import { requestTab } from "@/lib/tab";
+import type { TabId } from "@/lib/types";
 
 export default function MyContent() {
   const { student, isLoggedIn, logout, transactions } = useApp();
@@ -72,9 +74,14 @@ export default function MyContent() {
       <section className="mt-5 px-5">
         <h2 className="text-base font-bold text-neutral-900">내 기록</h2>
         <div className="mt-3 grid grid-cols-2 gap-2.5">
-          {["내 QT 기록", "출석 기록", "획득한 배지", "완료한 미션"].map(label => (
-            <button key={label} className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-white px-4 py-3.5 text-sm font-semibold text-neutral-700 shadow-sm active:scale-[0.98] transition">
-              {label} <ChevronRight size={16} className="text-neutral-300" />
+          {[
+            { label: "내 QT 기록", tab: "qt" as TabId },
+            { label: "출석 기록", tab: "home" as TabId },
+            { label: "획득한 배지", tab: "missions" as TabId },
+            { label: "완료한 미션", tab: "missions" as TabId },
+          ].map(item => (
+            <button key={item.label} onClick={() => requestTab(item.tab)} className="flex items-center justify-between rounded-2xl border border-neutral-100 bg-white px-4 py-3.5 text-sm font-semibold text-neutral-700 shadow-sm active:scale-[0.98] transition">
+              {item.label} <ChevronRight size={16} className="text-neutral-300" />
             </button>
           ))}
         </div>

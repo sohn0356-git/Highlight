@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BottomNavigation from "./BottomNavigation";
+import { onTabChange } from "@/lib/tab";
 import HomeContent from "@/app/home/page";
 import QTContent from "@/app/qt/page";
 import MissionsContent from "@/app/missions/page";
@@ -18,6 +19,10 @@ const tabComponents: Record<TabId, React.ComponentType> = {
 
 export default function MainApp() {
   const [active, setActive] = useState<TabId>("home");
+  useEffect(() => {
+    const off = onTabChange(setActive);
+    return off;
+  }, []);
   const ActiveContent = tabComponents[active];
 
   return (

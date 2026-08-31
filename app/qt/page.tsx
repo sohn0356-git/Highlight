@@ -6,12 +6,32 @@ import Card from "@/components/Card";
 import { useApp } from "@/lib/store-context";
 
 export default function QTContent() {
-  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, qtRecords } = useApp();
+  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, qtRecords, sharedTodayQT, shareQT, sharedQTDates } = useApp();
   const [remembered, setRemembered] = useState("");
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
+  const [sharedMsg, setSharedMsg] = useState("");
 
   if (!student || !isLoggedIn) return null;
+
+  const handleShare = () => {
+    const ok = shareQT();
+    if (ok) {
+      setSharedMsg("친구와 공유했어요! +10M");
+      // Web Share API (Native 앱 feel)
+      if (navigator.share) {
+        navigator.share({
+          title: "오늘의 QT",
+          text: qtToday.passage + " — " + qtToday.verse,
+          url: window.location.href,
+        }).catch(() => {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(qtToday.passage + " — " + qtToday.verse).catch(() => {});
+      }
+    } else {
+      setSharedMsg("오늘은 이미 공유했어요.");
+    }
+  };
 
   const handleComplete = () => {
     if (!remembered.trim() || !application.trim()) return;
@@ -82,6 +102,18 @@ export default function QTContent() {
             </p>
             <div className="mt-4 rounded-xl bg-emerald-100/60 px-4 py-2 text-sm font-semibold text-emerald-700">+20M 적립 완료</div>
           </Card>
+          <div className="mt-3">
+            <button
+              onClick={handleShare}
+              disabled={sharedTodayQT}
+              className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold transition active:scale-[0.98] ${
+                sharedTodayQT ? "bg-neutral-100 text-neutral-400" : "bg-indigo-500 text-white shadow-lg shadow-indigo-200 active:bg-indigo-600"
+              }`}
+            >
+              {sharedTodayQT ? "오늘 QT 공유 완료 ✓" : "친구와 QT 공유하기 +10M"}
+            </button>
+            {sharedMsg && <p className="mt-2 text-center text-xs font-semibold text-indigo-600">{sharedMsg}</p>}
+          </div>
         </section>
       )}
 

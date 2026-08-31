@@ -55,6 +55,9 @@ interface AppState {
   isQTDoneToday: boolean;
   qtRecords: QTRecord[];
   completeQT: (remembered: string, application: string) => void;
+  sharedQTDates: string[];
+  sharedTodayQT: boolean;
+  shareQT: () => boolean;
   missions: typeof mockData.missions;
   completedMissionIds: string[];
   completeMission: (missionId: string) => void;
@@ -90,6 +93,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const [prayers, setPrayers] = useState<PrayerRequest[]>(mockData.prayers);
   const [txns, setTxns] = useState<MileageTransaction[]>([]);
+  const [sharedQTDates, setSharedQTDates] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("mileage_shared_qt") || "[]"); }
+    catch { return []; }
+  });
 
   /* On mount: init prayers + try load from Supabase */
   useEffect(() => {
@@ -247,23 +255,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const prayForHandler = useCallback(async (prayerId: string) => {
     if (!student) return;
     if (hasPrayed(prayerId, student.id)) return;
+    // 기도 참여 보상 +5M
+    const updated = updateStudentMileage(student.id, 5, student);
+    setStudent(updated);
     setPrayers(prev => {
       const next = togglePrayer(prayerId, student.id);
       if (typeof window !== "undefined")
         localStorage.setItem("mileage_prayers", JSON.stringify(next));
       return next;
     });
+    const tx: MileageTransaction = {
+      id: "tx_" + Date.now(),
+      studentId: student.id,
+      type: "기도 참여",
+      description: "친구 기도제목에 함께 기도",
+      amount: 5,
+      date: new Date().toISOString().slice(0, 10),
+    };
+    addTransaction(tx);
+    setTxns(prev => [...prev, tx]);
     // Supabase writes
-    if (isSupabaseReady) {
-      try {
-        const mod = await import("./supabase");
-        const sb = mod.getSupabase();
-        if (sb) {
-          await sb.from("prayer_requests").update({ prayer_count: { raw: "prayer_count + 1" } }).eq("id", prayerId);
-          await sb.from("prayer_participants").upsert([{ prayer_id: prayerId, student_id: student.id }]);
-        }
-      } catch { /* ignore */ }
-    }
+    const asyncWrite = async () => {
+      await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
+      await upsertSupabase("mileage_transactions", tx);
+      if (isSupabaseReady) {
+        try {
+          const mod = await import("./supabase");
+          const sb = mod.getSupabase();
+          if (sb) {
+            await sb.from("prayer_requests").update({ prayer_count: { raw: "prayer_count + 1" } }).eq("id", prayerId);
+            await sb.from("prayer_participants").upsert([{ prayer_id: prayerId, student_id: student.id }]);
+          }
+        } catch { /* ignore */ }
+      }
+    };
+    asyncWrite();
   }, [student]);
 
   const addPrayerRequest = useCallback(async (content: string, anonymous: boolean) => {
@@ -293,6 +319,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [student]);
 
+  const shareQT = useCallback((): boolean => {
+    if (!student) return false;
+    const today = new Date().toISOString().slice(0, 10);
+    if (sharedQTDates.includes(today)) return false;
+    // 보너스 마일리지 (+10M)
+    const updated = updateStudentMileage(student.id, 10, student);
+    setStudent(updated);
+    const newShared = [...sharedQTDates, today];
+    setSharedQTDates(newShared);
+    if (typeof window !== "undefined")
+      localStorage.setItem("mileage_shared_qt", JSON.stringify(newShared));
+    const tx: MileageTransaction = {
+      id: "tx_" + Date.now(),
+      studentId: student.id,
+      type: "QT 공유",
+      description: "오늘의 QT를 친구와 공유",
+      amount: 10,
+      date: today,
+    };
+    addTransaction(tx);
+    setTxns(prev => [...prev, tx]);
+    // Supabase
+    const asyncWrite = async () => {
+      await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
+      await upsertSupabase("mileage_transactions", tx);
+    };
+    asyncWrite();
+    return true;
+  }, [student, sharedQTDates]);
+
   return (
     <Ctx.Provider value={{
       student,
@@ -304,6 +360,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isQTDoneToday: qtDoneToday,
       qtRecords,
       completeQT: completeQTHandler,
+      sharedQTDates,
+      sharedTodayQT: sharedQTDates.includes(new Date().toISOString().slice(0, 10)),
+      shareQT,
       missions: mockData.missions,
       completedMissionIds,
       completeMission: completeMissionHandler,
