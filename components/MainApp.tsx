@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import BottomNavigation from "./BottomNavigation";
+import AdminApp from "./admin/AdminApp";
 import { onTabChange } from "@/lib/tab";
+import { useViewMode } from "@/lib/store-context";
 import HomeContent from "@/app/home/page";
 import QTContent from "@/app/qt/page";
 import MissionsContent from "@/app/missions/page";
@@ -19,10 +21,17 @@ const tabComponents: Record<TabId, React.ComponentType> = {
 
 export default function MainApp() {
   const [active, setActive] = useState<TabId>("home");
+  const { mode, setMode } = useViewMode();
+
   useEffect(() => {
     const off = onTabChange(setActive);
     return off;
   }, []);
+
+  if (mode === "admin") {
+    return <AdminApp onExit={() => setMode("student")} />;
+  }
+
   const ActiveContent = tabComponents[active];
 
   return (

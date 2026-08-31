@@ -5,6 +5,8 @@ export interface Student {
   classId: string;
   mileage: number;
   isTeacher?: boolean;
+  role?: "student" | "teacher" | "admin";
+  assignedClassIds?: string[];
 }
 
 export interface ClassRoom {

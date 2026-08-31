@@ -4,10 +4,12 @@ import { useApp } from "@/lib/store-context";
 import { Calendar } from "lucide-react";
 
 const DEMO_ACCOUNTS = [
-  { name: "홍길동", birthDate: "2009-03-15" },
-  { name: "김민준", birthDate: "2008-11-22" },
-  { name: "이서연", birthDate: "2009-07-04" },
-  { name: "박지호", birthDate: "2008-02-10" },
+  { name: "홍길동", birthDate: "2009-03-15", label: "관리자" },
+  { name: "김민준", birthDate: "2008-11-22", label: "학생" },
+  { name: "이서연", birthDate: "2009-07-04", label: "학생" },
+  { name: "박지호", birthDate: "2008-02-10", label: "학생" },
+  { name: "김선생", birthDate: "1985-03-20", label: "교사" },
+  { name: "이선생", birthDate: "1988-07-15", label: "교사" },
 ];
 
 export default function LoginPage() {
@@ -20,6 +22,14 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const ok = await login(name, birthDate);
+    if (!ok) setError(true);
+  };
+
+  const doLogin = async (accName: string, accBirth: string) => {
+    setName(accName);
+    setBirthDate(accBirth);
+    setError(false);
+    const ok = await login(accName, accBirth);
     if (!ok) setError(true);
   };
 
@@ -84,15 +94,15 @@ export default function LoginPage() {
                 <button
                   key={acc.name}
                   type="button"
-                  onClick={async () => {
-                    setName(acc.name);
-                    setBirthDate(acc.birthDate);
-                    const ok = await login(acc.name, acc.birthDate);
-                    if (!ok) setError(true);
-                  }}
-                  className="w-full rounded-lg bg-white px-3 py-2 text-xs text-neutral-500 transition active:scale-[0.98]"
+                  onClick={() => doLogin(acc.name, acc.birthDate)}
+                  className="flex w-full items-center justify-between rounded-lg bg-white px-3 py-2 text-xs transition active:scale-[0.98]"
                 >
-                  {acc.name} · {acc.birthDate}
+                  <span className="text-neutral-700 font-medium">{acc.name} · {acc.birthDate}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    acc.label === "관리자" ? "bg-indigo-100 text-indigo-600" :
+                    acc.label === "교사" ? "bg-amber-100 text-amber-600" :
+                    "bg-neutral-200 text-neutral-500"
+                  }`}>{acc.label}</span>
                 </button>
               ))}
             </div>

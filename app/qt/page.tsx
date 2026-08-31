@@ -1,23 +1,17 @@
 "use client";
 import { useState } from "react";
-import { BookOpen, CheckCircle, Calendar, Pencil, Trash2, X, Eye } from "lucide-react";
+import { BookOpen, CheckCircle, Calendar } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import SharedQTFeed from "@/components/SharedQTFeed";
 import { useApp } from "@/lib/store-context";
-import type { QTRecord } from "@/lib/types";
 
 export default function QTContent() {
-  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, qtRecords, sharedTodayQT, shareQT, sharedQTDates, updateQTRecord, deleteQTRecord } = useApp();
+  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, qtRecords, sharedTodayQT, shareQT, sharedQTDates } = useApp();
   const [remembered, setRemembered] = useState("");
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
   const [sharedMsg, setSharedMsg] = useState("");
-  const [viewing, setViewing] = useState<QTRecord | null>(null);
-  const [editing, setEditing] = useState<QTRecord | null>(null);
-  const [editRemembered, setEditRemembered] = useState("");
-  const [editApplication, setEditApplication] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!student || !isLoggedIn) return null;
 
@@ -25,6 +19,7 @@ export default function QTContent() {
     const ok = shareQT();
     if (ok) {
       setSharedMsg("친구와 공유했어요! +10M");
+      // Web Share API (Native 앱 feel)
       if (navigator.share) {
         navigator.share({
           title: "오늘의 QT",
@@ -43,33 +38,6 @@ export default function QTContent() {
     if (!remembered.trim() || !application.trim()) return;
     completeQT(remembered.trim(), application.trim());
     setJustCompleted(true);
-  };
-
-  const openView = (r: QTRecord) => {
-    setViewing(r);
-    setConfirmDelete(false);
-  };
-
-  const startEdit = () => {
-    if (!viewing) return;
-    setEditing(viewing);
-    setEditRemembered(viewing.remembered || "");
-    setEditApplication(viewing.application || "");
-  };
-
-  const saveEdit = async () => {
-    if (!editing) return;
-    await updateQTRecord(editing.id, editRemembered.trim(), editApplication.trim());
-    setViewing({ ...editing, remembered: editRemembered.trim(), application: editApplication.trim() });
-    setEditing(null);
-  };
-
-  const handleDelete = async () => {
-    if (!viewing) return;
-    await deleteQTRecord(viewing.id);
-    setViewing(null);
-    setEditing(null);
-    setConfirmDelete(false);
   };
 
   return (
@@ -150,7 +118,7 @@ export default function QTContent() {
         </section>
       )}
 
-      <section className="mt-5 px-5">
+      <section className="mt-5 px-5 pb-6">
         <div className="flex items-center gap-2">
           <Calendar size={16} className="text-neutral-400" />
           <h3 className="text-sm font-bold text-neutral-800">내 QT 기록</h3>
@@ -160,13 +128,10 @@ export default function QTContent() {
             <p className="py-6 text-center text-sm text-neutral-400">아직 QT 기록이 없어요.</p>
           )}
           {qtRecords.slice().reverse().map(r => (
-            <Card key={r.id} className="!p-3.5 cursor-pointer active:scale-[0.99] transition" onClick={() => openView(r)}>
+            <Card key={r.id} className="!p-3.5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <p className="text-xs font-bold text-neutral-700">{r.date}</p>
-                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">+{r.reward}M</span>
-                </div>
-                <Eye size={14} className="text-neutral-300" />
+                <p className="text-xs font-bold text-neutral-700">{r.date}</p>
+                <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">+{r.reward}M</span>
               </div>
               <p className="mt-1 text-xs text-neutral-500">{r.passage}</p>
             </Card>
@@ -177,102 +142,6 @@ export default function QTContent() {
       <div className="mt-2 pb-6">
         <SharedQTFeed />
       </div>
-
-      {/* 상세 보기 모달 */}
-      {viewing && !editing && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setViewing(null)}>
-          <div
-            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-neutral-300" />
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-lg font-bold text-neutral-900">{viewing.date}</p>
-                <p className="mt-0.5 text-sm font-semibold text-indigo-600">{viewing.passage}</p>
-              </div>
-              <button onClick={() => setViewing(null)} className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500">
-                <X size={18} />
-              </button>
-            </div>
-            <blockquote className="mt-3 border-l-2 border-indigo-200 pl-3.5 text-sm italic text-neutral-600">
-              &ldquo;{viewing.verse}&rdquo;
-            </blockquote>
-            <div className="mt-4 space-y-4">
-              <div>
-                <p className="text-xs font-bold text-neutral-500">가장 마음에 남은 말씀</p>
-                <p className="mt-1 text-sm leading-relaxed text-neutral-800">{viewing.remembered || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-neutral-500">오늘 어떻게 살아보고 싶나요?</p>
-                <p className="mt-1 text-sm leading-relaxed text-neutral-800">{viewing.application || "—"}</p>
-              </div>
-            </div>
-            <div className="mt-6 flex gap-2.5">
-              <button onClick={startEdit} className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-indigo-500 py-3.5 text-sm font-bold text-white shadow-sm active:scale-[0.98]">
-                <Pencil size={16} /> 편집
-              </button>
-              <button onClick={() => setConfirmDelete(true)} className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 py-3.5 text-sm font-bold text-rose-600 active:scale-[0.98]">
-                <Trash2 size={16} /> 삭제
-              </button>
-            </div>
-            {confirmDelete && (
-              <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-                <p className="text-sm font-semibold text-rose-700">이 QT 기록을 삭제할까요?</p>
-                <p className="mt-0.5 text-xs text-rose-500">삭제하면 되돌릴 수 없어요.</p>
-                <div className="mt-3 flex gap-2">
-                  <button onClick={() => setConfirmDelete(false)} className="flex-1 rounded-xl bg-white py-2.5 text-sm font-bold text-neutral-600 border border-neutral-200">취소</button>
-                  <button onClick={handleDelete} className="flex-1 rounded-xl bg-rose-500 py-2.5 text-sm font-bold text-white">삭제</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 편집 모달 */}
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setEditing(null)}>
-          <div
-            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-neutral-300" />
-            <div className="flex items-center justify-between">
-              <p className="text-lg font-bold text-neutral-900">QT 편집 · {editing.date}</p>
-              <button onClick={() => setEditing(null)} className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="mt-4 space-y-3">
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-neutral-600">가장 마음에 남은 말씀</span>
-                <textarea
-                  value={editRemembered}
-                  onChange={e => setEditRemembered(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-semibold text-neutral-600">오늘 어떻게 살아보고 싶나요?</span>
-                <textarea
-                  value={editApplication}
-                  onChange={e => setEditApplication(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none"
-                />
-              </label>
-            </div>
-            <div className="mt-4 flex gap-2.5">
-              <button onClick={() => setEditing(null)} className="flex-1 rounded-2xl border border-neutral-200 bg-white py-3.5 text-sm font-bold text-neutral-600">취소</button>
-              <button onClick={saveEdit} disabled={!editRemembered.trim() || !editApplication.trim()} className="flex-1 rounded-2xl bg-indigo-500 py-3.5 text-sm font-bold text-white disabled:opacity-40">
-                저장
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

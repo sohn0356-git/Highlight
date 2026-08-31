@@ -1,4 +1,4 @@
-const CACHE = "mileage-app-v1";
+const CACHE = "mileage-app-v2";
 const BASE = "/Highlight";
 const ASSETS = [BASE + "/", BASE + "/login/", BASE + "/home/", BASE + "/qt/", BASE + "/missions/", BASE + "/urinae/", BASE + "/my/"];
 
@@ -21,13 +21,13 @@ self.addEventListener("activate", function (event) {
 });
 
 self.addEventListener("fetch", function (event) {
-  const url = new URL(event.request.url);
+  var url = new URL(event.request.url);
   if (url.origin !== location.origin) return;
   if (event.request.method !== "GET") return;
   event.respondWith(
     fetch(event.request)
       .then(function (res) {
-        const copy = res.clone();
+        var copy = res.clone();
         caches.open(CACHE).then(function (cache) { cache.put(event.request, copy); });
         return res;
       })

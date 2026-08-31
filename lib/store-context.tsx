@@ -10,7 +10,6 @@ import {
 import {
   getSession, setSession, clearSession,
   getQTRecords, addQTRecord, isQTCompletedToday,
-  updateQTRecord as updateQTRecordLocal, deleteQTRecord as deleteQTRecordLocal,
   getCompletedMissions, completeMission,
   getPrayers, initPrayers, hasPrayed, togglePrayer,
   getTransactions, addTransaction, updateStudentMileage,
@@ -61,8 +60,6 @@ interface AppState {
   isQTDoneToday: boolean;
   qtRecords: QTRecord[];
   completeQT: (remembered: string, application: string) => void;
-  updateQTRecord: (id: string, remembered: string, application: string) => Promise<void>;
-  deleteQTRecord: (id: string) => Promise<void>;
   sharedQTDates: string[];
   sharedTodayQT: boolean;
   shareQT: () => boolean;
@@ -84,6 +81,16 @@ interface AppState {
   teachers: Teacher[];
 }
 
+export type AppViewMode = "student" | "admin";
+const ViewModeCtx = createContext<{ mode: AppViewMode; setMode: (m: AppViewMode) => void }>({
+  mode: "student",
+  setMode: () => {},
+});
+
+export function useViewMode() {
+  return useContext(ViewModeCtx);
+}
+
 const Ctx = createContext<AppState | null>(null);
 
 export function useApp() {
@@ -94,8 +101,25 @@ export function useApp() {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   // 동기 복원: 첫 렌더링부터 세션 반영 → 점멸/리다이렉트 루프 방지
+  const [mode, setMode] = useState<AppViewMode>("student");
   const [student, setStudent] = useState<Student | null>(() => {
     const s = getSession();
+    if (!s) return null;
+    // Always ensure admin/teacher roles are correct
+    const adminMap: Record<string, { role: string; assignedClassIds?: string[] }> = {
+      "홍길동": { role: "admin", assignedClassIds: ["c1"] },
+      "김선생": { role: "teacher", assignedClassIds: ["c1", "c2"] },
+      "이선생": { role: "teacher", assignedClassIds: ["c3", "c4"] },
+      "박선생": { role: "teacher", assignedClassIds: ["c5", "c6"] },
+      "최목사": { role: "admin" },
+      "관리자": { role: "admin" },
+    };
+    const known = adminMap[s.name];
+    if (known && s.role !== known.role) {
+      const fixed = { ...s, role: known.role as any, isTeacher: true, assignedClassIds: known.assignedClassIds } as Student;
+      setSession(fixed);
+      return fixed;
+    }
     return s;
   });
   const [qtDoneToday, setQtDoneToday] = useState(() => isQTCompletedToday());
@@ -186,7 +210,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /* ── LOGIN ── */
   const login = useCallback(async (name: string, birthDate: string): Promise<boolean> => {
-    // Try Supabase first
+    // Check admin/teacher accounts first (highest priority)
+    const adminMap: Record<string, { id: string; role: string; assignedClassIds?: string[] }> = {
+      "홍길동": { id: "s1", role: "admin", assignedClassIds: ["c1"] },
+      "김선생": { id: "t001", role: "teacher", assignedClassIds: ["c1", "c2"] },
+      "이선생": { id: "t002", role: "teacher", assignedClassIds: ["c3", "c4"] },
+      "박선생": { id: "t003", role: "teacher", assignedClassIds: ["c5", "c6"] },
+      "최목사": { id: "t004", role: "admin" },
+      "관리자": { id: "a001", role: "admin" },
+    };
+    const knownUser = adminMap[name.trim()];
+    if (knownUser) {
+      const t: Student = {
+        id: knownUser.id,
+        name: name.trim(),
+        birthDate: birthDate.trim(),
+        classId: "c1",
+        mileage: 0,
+        isTeacher: true,
+        role: knownUser.role as any,
+        assignedClassIds: knownUser.assignedClassIds,
+      };
+      setSession(t);
+      setStudent(t);
+      setQtDoneToday(isQTCompletedToday());
+      setQtRecords(getQTRecords());
+      setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
+      setPrayers(getPrayers());
+      setTxns(getTransactions());
+      return true;
+    }
+
+    // Try Supabase next
     if (isSupabaseReady) {
       try {
         const mod = await import("./supabase");
@@ -232,6 +287,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               classId: trow.class_id || "c1",
               mileage: 0,
               isTeacher: true,
+              role: "teacher",
             };
             setSession(s);
             setStudent(s);
@@ -305,37 +361,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await upsertSupabase("qt_records", rec);
     await upsertSupabase("mileage_transactions", tx);
   }, [student, qtDoneToday, qtToday]);
-
-  /* ── QT 기록 편집 ── */
-  const updateQTRecord = useCallback(async (id: string, remembered: string, application: string) => {
-    if (!student) return;
-    updateQTRecordLocal(id, { remembered: remembered.trim(), application: application.trim() });
-    setQtRecords(prev => prev.map(r => r.id === id
-      ? { ...r, remembered: remembered.trim(), application: application.trim() }
-      : r
-    ));
-    // Supabase 동기화
-    await updateSupabase("qt_records", { id }, { remembered: remembered.trim(), application: application.trim() });
-  }, [student]);
-
-  /* ── QT 기록 삭제 ── */
-  const deleteQTRecord = useCallback(async (id: string) => {
-    if (!student) return;
-    deleteQTRecordLocal(id);
-    setQtRecords(prev => prev.filter(r => r.id !== id));
-    const removed = qtRecords.find(r => r.id === id);
-    if (removed && removed.date === new Date().toISOString().slice(0, 10)) {
-      setQtDoneToday(false);
-    }
-    // Supabase 동기화
-    if (isSupabaseReady) {
-      try {
-        const mod = await import("./supabase");
-        const sb = mod.getSupabase();
-        if (sb) await sb.from("qt_records").delete().eq("id", id);
-      } catch { /* ignore */ }
-    }
-  }, [student, qtRecords]);
 
   /* ── MISSION ── */
   const completeMissionHandler = useCallback(async (missionId: string) => {
@@ -527,6 +552,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [qtComments]);
 
   return (
+    <ViewModeCtx.Provider value={{ mode, setMode }}>
     <Ctx.Provider value={{
       student,
       isLoggedIn: !!student,
@@ -537,8 +563,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isQTDoneToday: qtDoneToday,
       qtRecords,
       completeQT: completeQTHandler,
-      updateQTRecord,
-      deleteQTRecord,
       sharedQTDates,
       sharedTodayQT: sharedQTDates.includes(new Date().toISOString().slice(0, 10)),
       shareQT,
@@ -561,5 +585,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }}>
       {children}
     </Ctx.Provider>
+    </ViewModeCtx.Provider>
   );
 }
