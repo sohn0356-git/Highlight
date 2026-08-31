@@ -7,6 +7,7 @@ import ProgressBar from "@/components/ProgressBar";
 import StatCard from "@/components/StatCard";
 import PrayerCard from "@/components/PrayerCard";
 import { useApp } from "@/lib/store-context";
+import { mockData } from "@/lib/data";
 
 export default function WeContent() {
   const { student, isLoggedIn, classes, prayers, prayFor, addPrayerRequest } = useApp();
@@ -15,6 +16,10 @@ export default function WeContent() {
   const [anonymous, setAnonymous] = useState(false);
 
   if (!student || !isLoggedIn) return null;
+
+  const nameMap: Record<string, string> = Object.fromEntries(
+    mockData.students.map(s => [s.id, s.name])
+  );
 
   const myClass = classes.find(c => c.id === student.classId) as any;
   const nextLevelXp = 15000;
@@ -101,7 +106,7 @@ export default function WeContent() {
 
         <div className="mt-3 flex flex-col gap-2.5">
           {prayers.map(p => (
-            <PrayerCard key={p.id} prayer={p} studentId={student.id} onPray={() => prayFor(p.id)} />
+            <PrayerCard key={p.id} prayer={p} studentId={student.id} onPray={() => prayFor(p.id)} nameMap={nameMap} />
           ))}
         </div>
       </section>
