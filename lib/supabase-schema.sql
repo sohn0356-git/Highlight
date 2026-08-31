@@ -157,3 +157,30 @@ CREATE POLICY "allow_all" ON completed_missions FOR ALL USING (true) WITH CHECK 
 CREATE POLICY "allow_all" ON mileage_transactions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "allow_all" ON prayer_requests FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "allow_all" ON prayer_participants FOR ALL USING (true) WITH CHECK (true);
+
+-- 14. shared_qt_posts 테이블 (QT 공유 게시글)
+CREATE TABLE IF NOT EXISTS shared_qt_posts (
+  id TEXT PRIMARY KEY,
+  student_id TEXT REFERENCES students(id),
+  passage TEXT,
+  verse TEXT,
+  remembered TEXT,
+  application TEXT,
+  reward INT DEFAULT 10,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  date DATE DEFAULT CURRENT_DATE
+);
+
+-- 15. qt_comments 테이블 (QT 공유 댓글)
+CREATE TABLE IF NOT EXISTS qt_comments (
+  id TEXT PRIMARY KEY,
+  post_id TEXT REFERENCES shared_qt_posts(id),
+  student_id TEXT REFERENCES students(id),
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE shared_qt_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE qt_comments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON shared_qt_posts FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "allow_all" ON qt_comments FOR ALL USING (true) WITH CHECK (true);

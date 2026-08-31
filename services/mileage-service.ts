@@ -3,7 +3,7 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { mockData } from "@/lib/data";
 import type {
   Student, ClassRoom, Mission, Badge, PrayerRequest,
-  MileageTransaction, QTRecord, Season, CommunityActivity,
+  MileageTransaction, QTRecord, Season, CommunityActivity, SharedQTPost, QTComment,
 } from "@/lib/types";
 
 /**
@@ -86,3 +86,45 @@ export async function prayForRemote(prayerId: string, studentId: string) {
 }
 
 export const isSupabaseAvailable = () => isSupabaseConfigured();
+
+/* ── Shared QT Feed ── */
+export async function fetchSharedPosts(): Promise<SharedQTPost[]> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb
+      .from("shared_qt_posts")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (!error && data && data.length) return data as unknown as SharedQTPost[];
+  }
+  return [];
+}
+
+export async function createSharedPost(post: SharedQTPost) {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.from("shared_qt_posts").insert([post]);
+}
+
+export async function fetchComments(postId: string): Promise<QTComment[]> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb
+      .from("qt_comments")
+      .select("*")
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true });
+    if (data) return data as unknown as QTComment[];
+  }
+  return [];
+}
+
+export async function addCommentToPost(comment: QTComment) {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.from("qt_comments").insert([comment]);
+  await sb.from("shared_qt_posts")
+    .update({ comment_count: { raw: "comment_count + 1" } })
+    .eq("id", comment.postId);
+}

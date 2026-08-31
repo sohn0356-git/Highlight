@@ -432,5 +432,86 @@
     "current": 48350,
     "target": 60000,
     "reward": "60,000 XP 달성하면 예배 후 전체 아이스크림 🍦"
+  },
+  "shared_posts": [
+    {
+      "id": "qp_mock1",
+      "studentId": "s2",
+      "studentName": "김민준",
+      "classId": "c1",
+      "className": "고2-3반",
+      "passage": "빌립보서 4:6-7",
+      "verse": "아무 것도 염려하지 말고 다만 모든 일에 기도와 간구로...",
+      "remembered": "염려 대신 기도하라는 말씀이 마음에 남았어요.",
+      "application": "오늘 시험공부하면서 염려하면 기도로 바꾸려고 합니다.",
+      "reward": 10,
+      "date": "2026-08-30",
+      "commentCount": 2,
+      "likedBy": [
+        "s1"
+      ]
+    },
+    {
+      "id": "qp_mock2",
+      "studentId": "s3",
+      "studentName": "이서연",
+      "classId": "c1",
+      "className": "고2-3반",
+      "passage": "빌립보서 4:6-7",
+      "verse": "감사함으로 하나님께 아뢰라...",
+      "remembered": "감사함으로 기도하라는 말이 인상적이었어요.",
+      "application": "하루에 세 번 감사 기도를 해볼게요!",
+      "reward": 10,
+      "date": "2026-08-30",
+      "commentCount": 0,
+      "likedBy": []
+    },
+    {
+      "id": "qp_mock3",
+      "studentId": "s11",
+      "studentName": "노현서",
+      "classId": "c4",
+      "className": "고1-4반",
+      "passage": "빌립보서 4:6-7",
+      "verse": "하나님의 평강이 그리스도 예수 안에서...",
+      "application": "오늘부터 QT 일기를 꾸준히 써볼게요.",
+      "reward": 10,
+      "date": "2026-08-29",
+      "commentCount": 1,
+      "likedBy": [
+        "s2",
+        "s3"
+      ]
+    }
+  ],
+  "qt_comments": {
+    "qp_mock1": [
+      {
+        "id": "qc_m1",
+        "postId": "qp_mock1",
+        "studentId": "s3",
+        "studentName": "이서연",
+        "content": "나도 공감해요! 기도하면 마음이 편해져요.",
+        "createdAt": "2026-08-30T19:30:00Z"
+      },
+      {
+        "id": "qc_m2",
+        "postId": "qp_mock1",
+        "studentId": "s5",
+        "studentName": "최수진",
+        "content": "민준 화이팅! 💪",
+        "createdAt": "2026-08-30T20:00:00Z"
+      }
+    ],
+    "qp_mock3": [
+      {
+        "id": "qc_m3",
+        "postId": "qp_mock3",
+        "studentId": "s13",
+        "studentName": "신예린",
+        "content": "현서 QT 대단해요 🙏",
+        "createdAt": "2026-08-29T21:00:00Z"
+      }
+    ]
   }
 }

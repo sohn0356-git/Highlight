@@ -105,3 +105,28 @@ export interface CommunityActivity {
 }
 
 export type TabId = "home" | "qt" | "missions" | "we" | "my";
+
+export interface SharedQTPost {
+  id: string;
+  studentId: string;
+  studentName: string;
+  classId: string;
+  className?: string;
+  passage: string;
+  verse: string;
+  remembered?: string;
+  application?: string;
+  reward: number;
+  date: string;
+  commentCount: number;
+  likedBy: string[];
+}
+
+export interface QTComment {
+  id: string;
+  postId: string;
+  studentId: string;
+  studentName: string;
+  content: string;
+  createdAt: string;
+}

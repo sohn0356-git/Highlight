@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import type { Student, MileageTransaction, QTRecord, PrayerRequest, CompletedMission } from "./types";
+import type { Student, MileageTransaction, QTRecord, PrayerRequest, CompletedMission, SharedQTPost, QTComment } from "./types";
 import { mockData } from "./data";
 import {
   getSession, setSession, clearSession,
@@ -58,6 +58,9 @@ interface AppState {
   sharedQTDates: string[];
   sharedTodayQT: boolean;
   shareQT: () => boolean;
+  sharedPosts: SharedQTPost[];
+  addComment: (postId: string, content: string) => void;
+  fetchPostComments: (postId: string) => QTComment[];
   missions: typeof mockData.missions;
   completedMissionIds: string[];
   completeMission: (missionId: string) => void;
@@ -97,6 +100,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return [];
     try { return JSON.parse(localStorage.getItem("mileage_shared_qt") || "[]"); }
     catch { return []; }
+  });
+  const [sharedPosts, setSharedPosts] = useState<SharedQTPost[]>(() => {
+    if (typeof window === "undefined") return mockData.shared_posts || [];
+    try {
+      const local = JSON.parse(localStorage.getItem("mileage_shared_posts") || "[]");
+      return [...(mockData.shared_posts || []), ...local];
+    } catch { return mockData.shared_posts || []; }
+  });
+  const [qtComments, setQtComments] = useState<Record<string, QTComment[]>>(() => {
+    if (typeof window === "undefined") return mockData.qt_comments || {};
+    try {
+      const local = JSON.parse(localStorage.getItem("mileage_qt_comments") || "{}");
+      return { ...(mockData.qt_comments || {}), ...local };
+    } catch { return mockData.qt_comments || {}; }
   });
 
   /* On mount: init prayers + try load from Supabase */
@@ -330,6 +347,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSharedQTDates(newShared);
     if (typeof window !== "undefined")
       localStorage.setItem("mileage_shared_qt", JSON.stringify(newShared));
+
+    // 공유 피드에 게시글 등록 (앱 사용자 모두가 볼 수 있게)
+    const qtRec = getQTRecords().find(r => r.date === today) || null;
+    const myClass = mockData.classes.find(c => c.id === student.classId) as any;
+    const post: SharedQTPost = {
+      id: "qp_" + Date.now(),
+      studentId: student.id,
+      studentName: student.name,
+      classId: student.classId,
+      passage: mockData.qt_today.passage,
+      verse: mockData.qt_today.verse,
+      remembered: qtRec?.remembered,
+      application: qtRec?.application,
+      reward: 10,
+      date: today,
+      commentCount: 0,
+      likedBy: [],
+      ...(myClass ? { className: myClass.name } : {}),
+    };
+    setSharedPosts(prev => [post, ...prev]);
+    if (typeof window !== "undefined") {
+      const existing = JSON.parse(localStorage.getItem("mileage_shared_posts") || "[]");
+      localStorage.setItem("mileage_shared_posts", JSON.stringify([post, ...existing]));
+    }
+
     const tx: MileageTransaction = {
       id: "tx_" + Date.now(),
       studentId: student.id,
@@ -344,10 +386,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const asyncWrite = async () => {
       await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
       await upsertSupabase("mileage_transactions", tx);
+      await upsertSupabase("shared_qt_posts", post);
     };
     asyncWrite();
     return true;
   }, [student, sharedQTDates]);
+
+  /* ── QT 공유 댓글 ── */
+  const addComment = useCallback((postId: string, content: string) => {
+    if (!student) return;
+    const comment: QTComment = {
+      id: "qc_" + Date.now(),
+      postId,
+      studentId: student.id,
+      studentName: student.name,
+      content: content.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    setQtComments(prev => {
+      const next = { ...prev, [postId]: [...(prev[postId] || []), comment] };
+      if (typeof window !== "undefined")
+        localStorage.setItem("mileage_qt_comments", JSON.stringify(next));
+      return next;
+    });
+    setSharedPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p));
+    if (typeof window !== "undefined") {
+      const posts = JSON.parse(localStorage.getItem("mileage_shared_posts") || "[]")
+        .map((p: SharedQTPost) => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p);
+      localStorage.setItem("mileage_shared_posts", JSON.stringify(posts));
+    }
+    // Supabase
+    const asyncWrite = async () => {
+      await upsertSupabase("qt_comments", comment);
+    };
+    asyncWrite();
+  }, [student]);
+
+  const fetchPostComments = useCallback((postId: string): QTComment[] => {
+    return qtComments[postId] || [];
+  }, [qtComments]);
 
   return (
     <Ctx.Provider value={{
@@ -363,6 +440,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sharedQTDates,
       sharedTodayQT: sharedQTDates.includes(new Date().toISOString().slice(0, 10)),
       shareQT,
+      sharedPosts,
+      addComment,
+      fetchPostComments,
       missions: mockData.missions,
       completedMissionIds,
       completeMission: completeMissionHandler,
