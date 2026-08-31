@@ -131,20 +131,21 @@ export async function addCommentToPost(comment: QTComment) {
 
 /* ── QT 본문 ── */
 export async function fetchTodayQT(): Promise<{ date: string; passage: string; verse: string; content: string } | null> {
+  const today = new Date().toISOString().slice(0, 10);
   const sb = getSupabase();
   if (sb) {
-    const { data, error } = await sb.from("qt_today").select("*").limit(1);
+    const { data, error } = await sb.from("qt_today").select("*").eq("date", today).limit(1);
     if (!error && data && data.length) {
       const row = data[0] as any;
       return {
-        date: row.date || new Date().toISOString().slice(0, 10),
+        date: today,
         passage: row.passage || "",
         verse: row.verse || "",
         content: row.content || "",
       };
     }
   }
-  return mockData.qt_today;
+  return { ...mockData.qt_today, date: today };
 }
 
 /* ── 시즌 ── */

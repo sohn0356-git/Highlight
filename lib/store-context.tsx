@@ -163,6 +163,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
 
+  // qtToday 날짜를 오늘 날짜로 자동 갱신
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    setQtToday(prev => prev.date === today ? prev : { ...prev, date: today });
+  }, []);
+
   /* On mount: init prayers + try load from Supabase */
   useEffect(() => {
     initPrayers(mockData.prayers);

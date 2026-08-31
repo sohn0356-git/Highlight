@@ -47,6 +47,9 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     name: "", description: "", icon: "🏅", requirementType: "qt_count" as "qt_count" | "attendance_count" | "mission_count" | "prayer_count", requirementValue: 1, mileageReward: 10,
   });
 
+  // Transaction history open state
+  const [isTxOpen, setIsTxOpen] = useState(false);
+
   function handleAwardMileage() {
     if (!mileageReason) return;
     const target = mileageTarget as "student" | "class" | "grade" | "all";
@@ -127,24 +130,32 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
 
           {/* Transaction history */}
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
-            <div className="px-4 py-3 border-b border-neutral-100">
-              <h3 className="text-sm font-bold text-neutral-800">마일리지 내역</h3>
+            <div className="px-4 py-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-neutral-800">마일리지 내역</h3>
+                <p className="text-[11px] text-neutral-400 mt-0.5">전체 {allTransactions.length}건</p>
+              </div>
+              <button onClick={() => setIsTxOpen(prev => !prev)} className="rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600">
+                {isTxOpen ? "닫기" : "내역 보기"}
+              </button>
             </div>
-            <div className="max-h-72 overflow-y-auto divide-y divide-neutral-50">
-              {allTransactions.length === 0 && <p className="px-4 py-6 text-center text-xs text-neutral-400">내역이 없습니다.</p>}
-              {allTransactions.slice(-20).reverse().map(tx => (
-                <div key={tx.id} className="flex items-center justify-between px-4 py-2.5">
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-700">{tx.studentName}</p>
-                    <p className="text-[11px] text-neutral-400">{tx.description}</p>
+            {isTxOpen && (
+              <div className="max-h-72 overflow-y-auto divide-y divide-neutral-50 border-t border-neutral-100">
+                {allTransactions.length === 0 && <p className="px-4 py-6 text-center text-xs text-neutral-400">내역이 없습니다.</p>}
+                {allTransactions.slice(-20).reverse().map(tx => (
+                  <div key={tx.id} className="flex items-center justify-between px-4 py-2.5">
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-700">{tx.studentName}</p>
+                      <p className="text-[11px] text-neutral-400">{tx.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-sm font-bold ${tx.amount > 0 ? "text-indigo-600" : "text-rose-500"}`}>{tx.amount > 0 ? "+" : ""}{tx.amount}M</span>
+                      <p className="text-[10px] text-neutral-400">{tx.date}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`text-sm font-bold ${tx.amount > 0 ? "text-indigo-600" : "text-rose-500"}`}>{tx.amount > 0 ? "+" : ""}{tx.amount}M</span>
-                    <p className="text-[10px] text-neutral-400">{tx.date}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
