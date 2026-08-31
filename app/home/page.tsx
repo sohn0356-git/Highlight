@@ -5,7 +5,6 @@ import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
 import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
-import SharedQTFeed from "@/components/SharedQTFeed";
 import { useApp } from "@/lib/store-context";
 
 export default function HomeContent() {
@@ -74,9 +73,6 @@ export default function HomeContent() {
         </div>
       </section>
 
-      <div className="mt-5">
-        <SharedQTFeed />
-      </div>
     </div>
   );
 }

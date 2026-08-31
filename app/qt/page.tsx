@@ -3,6 +3,7 @@ import { useState } from "react";
 import { BookOpen, CheckCircle, Calendar } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
+import SharedQTFeed from "@/components/SharedQTFeed";
 import { useApp } from "@/lib/store-context";
 
 export default function QTContent() {
@@ -137,6 +138,10 @@ export default function QTContent() {
           ))}
         </div>
       </section>
+
+      <div className="mt-2 pb-6">
+        <SharedQTFeed />
+      </div>
     </div>
   );
 }
