@@ -30,7 +30,7 @@ export default function WeContent() {
   return (
     <div>
       <div className="px-5 pt-7">
-        <PageHeader title="우리 반" subtitle="서로를 위해, 함께 걸어요" right={<Users size={18} className="text-indigo-400" />} />
+        <PageHeader title="우리 반" showBack subtitle="서로를 위해, 함께 걸어요" right={<Users size={18} className="text-indigo-400" />} />
       </div>
 
       <section className="mt-3 px-5">

@@ -43,7 +43,7 @@ export default function QTContent() {
   return (
     <div>
       <div className="px-5 pt-7">
-        <PageHeader title="오늘의 QT" subtitle={qtToday.date} right={<BookOpen size={18} className="text-indigo-400" />} />
+        <PageHeader title="오늘의 QT" showBack subtitle={qtToday.date} right={<BookOpen size={18} className="text-indigo-400" />} />
       </div>
 
       <section className="mt-3 px-5">

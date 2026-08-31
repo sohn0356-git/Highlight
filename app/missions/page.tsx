@@ -15,7 +15,7 @@ export default function MissionsContent() {
   return (
     <div>
       <div className="px-5 pt-7">
-        <PageHeader title="이번 주 미션" subtitle="미션을 완료하고 마일리지를 받으세요!" right={<Target size={18} className="text-indigo-400" />} />
+        <PageHeader title="이번 주 미션" showBack subtitle="미션을 완료하고 마일리지를 받으세요!" right={<Target size={18} className="text-indigo-400" />} />
       </div>
 
       <section className="mt-3 px-5">
