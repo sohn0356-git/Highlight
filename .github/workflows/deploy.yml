@@ -32,6 +32,9 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://afrzmtwakfkujsnxwinb.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ztdDNXg__J7Kuli4tdImYA_KPH85waz
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
