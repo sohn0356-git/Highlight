@@ -58,6 +58,18 @@ export function addQTRecord(rec: QTRecord) {
   localStorage.setItem(QT_KEY, JSON.stringify(records));
 }
 
+export function updateQTRecord(id: string, patch: Partial<Pick<QTRecord, "remembered" | "application">>) {
+  if (typeof window === "undefined") return;
+  const records = getQTRecords().map(r => r.id === id ? { ...r, ...patch } : r);
+  localStorage.setItem(QT_KEY, JSON.stringify(records));
+}
+
+export function deleteQTRecord(id: string) {
+  if (typeof window === "undefined") return;
+  const records = getQTRecords().filter(r => r.id !== id);
+  localStorage.setItem(QT_KEY, JSON.stringify(records));
+}
+
 export function getCompletedMissions(): CompletedMission[] {
   if (typeof window === "undefined") return [];
   try {

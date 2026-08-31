@@ -10,6 +10,7 @@ import {
 import {
   getSession, setSession, clearSession,
   getQTRecords, addQTRecord, isQTCompletedToday,
+  updateQTRecord as updateQTRecordLocal, deleteQTRecord as deleteQTRecordLocal,
   getCompletedMissions, completeMission,
   getPrayers, initPrayers, hasPrayed, togglePrayer,
   getTransactions, addTransaction, updateStudentMileage,
@@ -60,6 +61,8 @@ interface AppState {
   isQTDoneToday: boolean;
   qtRecords: QTRecord[];
   completeQT: (remembered: string, application: string) => void;
+  updateQTRecord: (id: string, remembered: string, application: string) => Promise<void>;
+  deleteQTRecord: (id: string) => Promise<void>;
   sharedQTDates: string[];
   sharedTodayQT: boolean;
   shareQT: () => boolean;
@@ -303,6 +306,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await upsertSupabase("mileage_transactions", tx);
   }, [student, qtDoneToday, qtToday]);
 
+  /* ── QT 기록 편집 ── */
+  const updateQTRecord = useCallback(async (id: string, remembered: string, application: string) => {
+    if (!student) return;
+    updateQTRecordLocal(id, { remembered: remembered.trim(), application: application.trim() });
+    setQtRecords(prev => prev.map(r => r.id === id
+      ? { ...r, remembered: remembered.trim(), application: application.trim() }
+      : r
+    ));
+    // Supabase 동기화
+    await updateSupabase("qt_records", { id }, { remembered: remembered.trim(), application: application.trim() });
+  }, [student]);
+
+  /* ── QT 기록 삭제 ── */
+  const deleteQTRecord = useCallback(async (id: string) => {
+    if (!student) return;
+    deleteQTRecordLocal(id);
+    setQtRecords(prev => prev.filter(r => r.id !== id));
+    const removed = qtRecords.find(r => r.id === id);
+    if (removed && removed.date === new Date().toISOString().slice(0, 10)) {
+      setQtDoneToday(false);
+    }
+    // Supabase 동기화
+    if (isSupabaseReady) {
+      try {
+        const mod = await import("./supabase");
+        const sb = mod.getSupabase();
+        if (sb) await sb.from("qt_records").delete().eq("id", id);
+      } catch { /* ignore */ }
+    }
+  }, [student, qtRecords]);
+
   /* ── MISSION ── */
   const completeMissionHandler = useCallback(async (missionId: string) => {
     if (!student || completedMissionIds.includes(missionId)) return;
@@ -503,6 +537,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isQTDoneToday: qtDoneToday,
       qtRecords,
       completeQT: completeQTHandler,
+      updateQTRecord,
+      deleteQTRecord,
       sharedQTDates,
       sharedTodayQT: sharedQTDates.includes(new Date().toISOString().slice(0, 10)),
       shareQT,
