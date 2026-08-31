@@ -44,7 +44,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   // Badge form state
   const [showBadgeForm, setShowBadgeForm] = useState(false);
   const [badgeForm, setBadgeForm] = useState({
-    name: "", description: "", icon: "🏅", requirementType: "qt_count" as "qt_count" | "attendance_count" | "mission_count" | "prayer_count", requirementValue: 1,
+    name: "", description: "", icon: "🏅", requirementType: "qt_count" as "qt_count" | "attendance_count" | "mission_count" | "prayer_count", requirementValue: 1, mileageReward: 10,
   });
 
   function handleAwardMileage() {
@@ -64,9 +64,9 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
 
   function submitBadge() {
     if (!badgeForm.name) return;
-    addBadge({ id: "b_" + Date.now(), ...badgeForm, active: true });
+    addBadge({ id: "b_" + Date.now(), ...badgeForm, active: true, mileageReward: badgeForm.mileageReward });
     setShowBadgeForm(false);
-    setBadgeForm({ name: "", description: "", icon: "🏅", requirementType: "qt_count", requirementValue: 1 });
+    setBadgeForm({ name: "", description: "", icon: "🏅", requirementType: "qt_count", requirementValue: 1, mileageReward: 10 });
   }
 
   return (
@@ -319,6 +319,10 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                   <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={badgeForm.requirementValue} onChange={e => setBadgeForm({ ...badgeForm, requirementValue: +e.target.value })} />
                 </div>
               </div>
+              <div>
+                <label className="text-[11px] text-neutral-500">마일리지 보상</label>
+                <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={badgeForm.mileageReward} onChange={e => setBadgeForm({ ...badgeForm, mileageReward: +e.target.value })} />
+              </div>
               <button onClick={submitBadge} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">추가하기</button>
             </div>
           )}
@@ -438,7 +442,6 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
             {[
               { key: "anonymousPrayerEnabled", label: "익명 기도 활성화" },
               { key: "mileageShopEnabled", label: "마일리지 상점 활성화" },
-              { key: "qrAttendanceEnabled", label: "QR 출석 활성화" },
             ].map(item => (
               <div key={item.key} className="flex items-center justify-between">
                 <span className="text-sm text-neutral-700">{item.label}</span>

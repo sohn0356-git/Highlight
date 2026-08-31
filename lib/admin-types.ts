@@ -47,7 +47,7 @@ export interface AttendanceRecordAdmin {
   sessionId: string;
   state: AttendanceState;
   checkTime: string;
-  method: "QR" | "manual";
+  method: "manual";
 }
 
 /* ── QT Management ── */
@@ -135,7 +135,7 @@ export interface Announcement {
 }
 
 /* ── Mileage Management ── */
-export type MileageActionType = "attendance" | "qt" | "mission" | "prayer" | "manual_bonus" | "manual_deduction" | "reward_purchase" | "event";
+export type MileageActionType = "attendance" | "qt" | "mission" | "prayer" | "manual_bonus" | "manual_deduction" | "reward_purchase" | "event" | "badge";
 
 export interface MileageTransactionAdmin {
   id: string;
@@ -198,6 +198,7 @@ export interface BadgeAdmin {
   requirementType: BadgeRequirementType;
   requirementValue: number;
   active: boolean;
+  mileageReward: number;
 }
 
 /* ── Audit Log ── */
@@ -220,7 +221,6 @@ export interface AdminSettings {
   nameDisplayPolicy: "full" | "first";
   anonymousPrayerEnabled: boolean;
   mileageShopEnabled: boolean;
-  qrAttendanceEnabled: boolean;
 }
 
 /* ── Admin Tab Navigation ── */

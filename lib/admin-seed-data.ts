@@ -134,7 +134,6 @@ export const seedMissionAdmins: MissionAdmin[] = [
 /* ── Announcements ── */
 export const seedAnnouncements: Announcement[] = [
   { id: "an1", title: "9월 수련회 안내", content: "9월 13-14일 수련회가 있습니다. 참가비 30,000원을 9월 7일까지 납부해주세요.", target: "all", startDate: "2026-08-25", endDate: "2026-09-14", important: true, status: "published", createdAt: "2026-08-25T10:00:00Z" },
-  { id: "an2", title: "출석 체크 안내", content: "이번 주부터 QR 출석이 시작됩니다. 예배 시작 전에 QR을 스캔해주세요.", target: "all", startDate: "2026-08-24", endDate: "2026-09-30", important: false, status: "published", createdAt: "2026-08-24T09:00:00Z" },
 ];
 
 /* ── Rewards ── */
@@ -162,11 +161,11 @@ export const seedSeasonAdmin: SeasonAdmin = {
 
 /* ── Badge Management ── */
 export const seedBadgeAdmins: BadgeAdmin[] = [
-  { id: "b1", name: "첫 걸음", description: "첫 QT 완료", icon: "🌱", requirementType: "qt_count", requirementValue: 1, active: true },
-  { id: "b2", name: "말씀 탐험가", description: "QT 10회", icon: "📖", requirementType: "qt_count", requirementValue: 10, active: true },
-  { id: "b3", name: "예배자", description: "예배 10회 참석", icon: "⛪", requirementType: "attendance_count", requirementValue: 10, active: true },
-  { id: "b4", name: "중보자", description: "기도 30회", icon: "🙏", requirementType: "prayer_count", requirementValue: 30, active: true },
-  { id: "b5", name: "미션 헌터", description: "미션 10개 완료", icon: "🎯", requirementType: "mission_count", requirementValue: 10, active: true },
+  { id: "b1", name: "첫 걸음", description: "첫 QT 완료", icon: "🌱", requirementType: "qt_count", requirementValue: 1, active: true, mileageReward: 10 },
+  { id: "b2", name: "말씀 탐험가", description: "QT 10회", icon: "📖", requirementType: "qt_count", requirementValue: 10, active: true, mileageReward: 50 },
+  { id: "b3", name: "예배자", description: "예배 10회 참석", icon: "⛪", requirementType: "attendance_count", requirementValue: 10, active: true, mileageReward: 30 },
+  { id: "b4", name: "중보자", description: "기도 30회", icon: "🙏", requirementType: "prayer_count", requirementValue: 30, active: true, mileageReward: 50 },
+  { id: "b5", name: "미션 헌터", description: "미션 10개 완료", icon: "🎯", requirementType: "mission_count", requirementValue: 10, active: true, mileageReward: 40 },
 ];
 
 /* ── Audit Logs ── */
@@ -185,5 +184,4 @@ export const seedAdminSettings: AdminSettings = {
   nameDisplayPolicy: "full",
   anonymousPrayerEnabled: true,
   mileageShopEnabled: true,
-  qrAttendanceEnabled: true,
 };

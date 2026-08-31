@@ -1,7 +1,7 @@
 "use client";
 import {
   Users, CalendarCheck, BookOpen, Target, HandHeart, Coins, ArrowUpRight,
-  QrCode, PlusCircle, Send, FilePlus2, Megaphone, ChevronRight, TrendingUp,
+  PlusCircle, Send, FilePlus2, Megaphone, ChevronRight, TrendingUp,
 } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
@@ -22,7 +22,6 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
   const weekBonus = allTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
 
   const quickActions = [
-    { label: "출석 QR 생성", icon: QrCode, page: "attendance" as AdminPageId, tone: "bg-indigo-500" },
     { label: "출석 직접 입력", icon: CalendarCheck, page: "attendance" as AdminPageId, tone: "bg-emerald-500" },
     { label: "마일리지 지급", icon: Coins, page: "management" as AdminPageId, tone: "bg-amber-500" },
     { label: "QT 등록", icon: FilePlus2, page: "content" as AdminPageId, tone: "bg-rose-500" },

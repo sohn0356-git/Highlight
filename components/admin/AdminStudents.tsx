@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Search, Plus, ChevronRight, X, Edit3, UserX, ChevronDown } from "lucide-react";
+import { Search, Plus, ChevronRight, X, Edit3, UserX, ChevronDown, ArrowUpDown } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
 import type { AdminStudent, AdminTeacher } from "@/lib/admin-types";
@@ -17,6 +17,7 @@ export default function AdminStudents() {
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
   const [classFilter, setClassFilter] = useState("all");
+  const [mileageSort, setMileageSort] = useState<"none" | "asc" | "desc">("none");
   const [showForm, setShowForm] = useState<"student" | "teacher" | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -45,6 +46,8 @@ export default function AdminStudents() {
   });
 
   const sorted = [...filtered].sort((a, b) => {
+    if (mileageSort === "asc") return a.mileage - b.mileage;
+    if (mileageSort === "desc") return b.mileage - a.mileage;
     if (a.active !== b.active) return a.active ? -1 : 1;
     return a.name.localeCompare(b.name, "ko");
   });
@@ -172,6 +175,10 @@ export default function AdminStudents() {
                 {g === "all" ? "전체 학년" : `고${g}`}
               </button>
             ))}
+            <button onClick={() => setMileageSort(prev => prev === "asc" ? "desc" : prev === "desc" ? "none" : "asc")} className="shrink-0 flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-200 text-neutral-600">
+              <ArrowUpDown size={12} />
+              {mileageSort === "asc" ? "마일리지 ↑" : mileageSort === "desc" ? "마일리지 ↓" : "정렬"}
+            </button>
           </div>
 
           {/* Student list */}

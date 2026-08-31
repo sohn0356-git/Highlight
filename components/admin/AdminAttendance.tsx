@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { QrCode, Plus, CalendarDays, History, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Plus, CalendarDays, History, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
 import type { AttendanceRecordAdmin, AttendanceState } from "@/lib/admin-types";
@@ -12,7 +12,7 @@ function stateLabel(s: AttendanceState) {
 export default function AdminAttendance() {
   const { attendanceSessions, attendanceRecords, addAttendanceSession, closeAttendanceSession, addAttendanceRecord, bulkMarkAttendance, currentUser } = useAdmin();
   const { classes } = useApp();
-  const [view, setView] = useState<"today" | "history" | "qr">("today");
+  const [view, setView] = useState<"today" | "history">("today");
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedClass, setSelectedClass] = useState("all");
   const [showNewSession, setShowNewSession] = useState(false);
@@ -64,7 +64,6 @@ export default function AdminAttendance() {
         {[
           { id: "today" as const, label: "오늘 출석", icon: <CalendarDays size={14} /> },
           { id: "history" as const, label: "출석 기록", icon: <History size={14} /> },
-          { id: "qr" as const, label: "QR 출석", icon: <QrCode size={14} /> },
         ].map(t => (
           <button
             key={t.id}
@@ -86,13 +85,13 @@ export default function AdminAttendance() {
               onClick={() => setShowNewSession(true)}
               className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3.5 text-sm font-bold text-indigo-600"
             >
-              <Plus size={16} /> 오늘의 QR 출석 생성
+              <Plus size={16} /> 오늘의 출석 생성
             </button>
           )}
 
           {showNewSession && (
             <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
-              <h3 className="text-sm font-bold text-neutral-800">QR 출석 세션 생성</h3>
+              <h3 className="text-sm font-bold text-neutral-800">출석 세션 생성</h3>
               <input
                 className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"
                 value={newSession.eventName}
@@ -136,11 +135,11 @@ export default function AdminAttendance() {
                 </span>
               </div>
               <div className="mt-3 rounded-lg bg-white p-4 text-center text-sm text-neutral-500">
-                <QrCode size={80} className="mx-auto text-neutral-300" />
-                <p className="mt-2 text-xs text-neutral-400">QR 코드는 학생 앱에서 스캔됩니다 (프로토타입)</p>
+                <CalendarDays size={80} className="mx-auto text-neutral-300" />
+                <p className="mt-2 text-xs text-neutral-400">출석 체크 시스템 (프로토타입)</p>
               </div>
               <button onClick={() => { closeAttendanceSession(activeSession.id); }} className="mt-3 w-full rounded-lg bg-neutral-800 py-2.5 text-sm font-bold text-white">
-                QR 종료
+                세션 종료
               </button>
             </div>
           )}
@@ -263,36 +262,7 @@ export default function AdminAttendance() {
         </div>
       )}
 
-      {/* QR view */}
-      {view === "qr" && (
-        <div className="space-y-3">
-          <div className="rounded-xl border border-neutral-200 bg-white p-5 text-center shadow-sm">
-            <QrCode size={120} className="mx-auto text-neutral-400" />
-            <h3 className="mt-3 text-sm font-bold text-neutral-800">QR 출석 안내</h3>
-            <p className="mt-1 text-xs text-neutral-500">교사 화면에서 QR 세션을 생성하고,<br />학생 앱에서 QR을 스캔하여 출석을 체크합니다.</p>
-          </div>
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-            <h4 className="text-sm font-bold text-neutral-800 mb-2">QR 세션 내역</h4>
-            <div className="space-y-2">
-              {attendanceSessions.length === 0 && <p className="text-xs text-neutral-400">아직 세션이 없습니다.</p>}
-              {attendanceSessions.map(s => {
-                const count = attendanceRecords.filter(r => r.sessionId === s.id).length;
-                return (
-                  <div key={s.id} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2.5">
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-700">{s.eventName}</p>
-                      <p className="text-[11px] text-neutral-400">{s.date} · {count}명 체크</p>
-                    </div>
-                    <span className={`text-[11px] font-bold ${s.active ? "text-emerald-600" : "text-neutral-400"}`}>
-                      {s.active ? "진행 중" : "종료"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

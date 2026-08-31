@@ -21,6 +21,15 @@ function saveArray<T>(key: string, data: T[]) {
   }
 }
 
+function loadObject<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch { return fallback; }
+}
+
 interface AdminState {
   currentUser: { id: string; name: string; role: string; assignedClassIds?: string[] } | null;
   setCurrentUser: (user: { id: string; name: string; role: string; assignedClassIds?: string[] }) => void;
@@ -74,6 +83,8 @@ interface AdminState {
   badges: BadgeAdmin[];
   addBadge: (b: BadgeAdmin) => void;
   updateBadge: (id: string, patch: Partial<BadgeAdmin>) => void;
+  studentBadges: Record<string, string[]>;
+  earnBadge: (studentId: string, badgeId: string) => void;
 
   auditLogs: AuditLog[];
   addAuditLog: (log: Omit<AuditLog, "id" | "timestamp">) => void;
@@ -122,6 +133,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [redemptions, setRedemptions] = useState<RewardRedemption[]>(() => loadArray("admin_redemptions", seedRedemptions));
   const [season, setSeason] = useState<SeasonAdmin>(() => loadArray("admin_season", [seedSeasonAdmin])[0]);
   const [badges, setBadges] = useState<BadgeAdmin[]>(() => loadArray("admin_badges", seedBadgeAdmins));
+  const [studentBadges, setStudentBadges] = useState<Record<string, string[]>>(() => loadObject("admin_student_badges", {}));
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => loadArray("admin_audit_logs", seedAuditLogs));
   const [settings, setSettings] = useState<AdminSettings>(() => loadArray("admin_settings", [seedAdminSettings])[0]);
 
@@ -140,6 +152,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { saveArray("admin_redemptions", redemptions); }, [redemptions]);
   useEffect(() => { saveArray("admin_season", [season]); }, [season]);
   useEffect(() => { saveArray("admin_badges", badges); }, [badges]);
+  useEffect(() => { if (typeof window !== "undefined") localStorage.setItem("admin_student_badges", JSON.stringify(studentBadges)); }, [studentBadges]);
   useEffect(() => { saveArray("admin_audit_logs", auditLogs); }, [auditLogs]);
   useEffect(() => { saveArray("admin_settings", [settings]); }, [settings]);
 
@@ -262,6 +275,44 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setBadges(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
   }, []);
 
+  const earnBadge = useCallback((studentId: string, badgeId: string) => {
+    // 이미 획득한 배지인지 확인
+    const existing = studentBadges[studentId] || [];
+    if (existing.includes(badgeId)) return;
+
+    // 배지 정보 조회
+    const badge = badges.find(b => b.id === badgeId);
+    if (!badge) return;
+
+    // 배지 획득 기록 추가
+    setStudentBadges(prev => ({
+      ...prev,
+      [studentId]: [...(prev[studentId] || []), badgeId],
+    }));
+
+    // 마일리지 지급
+    if (badge.mileageReward > 0) {
+      setStudents(prev => prev.map(s =>
+        s.id === studentId ? { ...s, mileage: s.mileage + badge.mileageReward } : s
+      ));
+      const stu = students.find(s => s.id === studentId);
+      if (stu) {
+        const tx: MileageTransactionRecord = {
+          id: "atx_" + Date.now(),
+          studentId,
+          studentName: stu.name,
+          className: stu.classId,
+          type: "badge",
+          description: "배지 획득: " + badge.name,
+          amount: badge.mileageReward,
+          date: new Date().toISOString().slice(0, 10),
+          actorName: "시스템",
+        };
+        setAllTx(prev => [...prev, tx]);
+      }
+    }
+  }, [studentBadges, badges, students]);
+
   const addAuditLog = useCallback((log: Omit<AuditLog, "id" | "timestamp">) => {
     const entry: AuditLog = {
       ...log,
@@ -290,6 +341,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setRedemptions(seedRedemptions);
     setSeason(seedSeasonAdmin);
     setBadges(seedBadgeAdmins);
+    setStudentBadges({});
     setAuditLogs(seedAuditLogs);
     setSettings(seedAdminSettings);
     // Clear localStorage
@@ -314,7 +366,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       rewards, addReward, updateReward,
       redemptions, updateRedemption,
       season, updateSeason,
-      badges, addBadge, updateBadge,
+      badges, addBadge, updateBadge, studentBadges, earnBadge,
       auditLogs, addAuditLog,
       settings, updateSettings, resetToSeedData,
     }}>

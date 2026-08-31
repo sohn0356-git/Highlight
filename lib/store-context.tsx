@@ -101,7 +101,10 @@ export function useApp() {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   // 동기 복원: 첫 렌더링부터 세션 반영 → 점멸/리다이렉트 루프 방지
-  const [mode, setMode] = useState<AppViewMode>("student");
+  const [mode, setMode] = useState<AppViewMode>(() => {
+    if (typeof window === "undefined") return "student";
+    return (localStorage.getItem("app_view_mode") as AppViewMode) || "student";
+  });
   const [student, setStudent] = useState<Student | null>(() => {
     const s = getSession();
     if (!s) return null;
@@ -552,7 +555,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [qtComments]);
 
   return (
-    <ViewModeCtx.Provider value={{ mode, setMode }}>
+    <ViewModeCtx.Provider value={{ mode, setMode: (m) => { if (typeof window !== "undefined") localStorage.setItem("app_view_mode", m); setMode(m); } }}>
     <Ctx.Provider value={{
       student,
       isLoggedIn: !!student,
