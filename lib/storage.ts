@@ -9,7 +9,20 @@ export function getSession(): Student | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || typeof s !== "object") return null;
+    // Supabase 스키마(row) 형식으로 저장된 세션을 애플리케이션 형식으로 변환
+    if (s.birthDate === undefined && s.birth_date !== undefined) {
+      return {
+        id: s.id,
+        name: s.name,
+        birthDate: s.birth_date,
+        classId: s.class_id,
+        mileage: Number(s.mileage) || 0,
+      };
+    }
+    return s as Student;
   } catch { return null; }
 }
 

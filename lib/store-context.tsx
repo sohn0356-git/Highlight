@@ -163,7 +163,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .eq("birth_date", birthDate.trim())
             .limit(1);
           if (remoteStudents && remoteStudents.length) {
-            const s = remoteStudents[0] as unknown as Student;
+            const row = remoteStudents[0] as any;
+            const s: Student = {
+              id: row.id,
+              name: row.name,
+              birthDate: row.birth_date,
+              classId: row.class_id,
+              mileage: Number(row.mileage) || 0,
+            };
             setSession(s);
             setStudent(s);
             setQtDoneToday(isQTCompletedToday());
