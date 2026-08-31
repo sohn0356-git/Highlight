@@ -1,5 +1,6 @@
 "use client";
-import { Flame, IceCream } from "lucide-react";
+import { useState } from "react";
+import { Bell, Flame, IceCream, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
@@ -9,6 +10,7 @@ import { useApp } from "@/lib/store-context";
 
 export default function HomeContent() {
   const { student, isLoggedIn, classes, activities, sharedGoal, season } = useApp();
+  const [feedOpen, setFeedOpen] = useState(false);
   if (!student || !isLoggedIn) return null;
   const myClass = classes.find(c => c.id === student.classId);
 
@@ -16,7 +18,23 @@ export default function HomeContent() {
     <div>
       <div className="px-5 pt-7">
         <p className="text-xs font-bold tracking-widest text-indigo-500">{season.label}</p>
-        <PageHeader title={season.title} />
+        <PageHeader
+          title={season.title}
+          right={
+            <button
+              onClick={() => setFeedOpen(true)}
+              className="relative grid h-10 w-10 place-items-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-sm transition active:scale-95 active:bg-neutral-50"
+              aria-label="고등부 소식"
+            >
+              <Bell size={20} />
+              {activities.length > 0 && (
+                <span className="absolute right-2 top-2 grid h-2.5 w-2.5 place-items-center rounded-full bg-rose-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                </span>
+              )}
+            </button>
+          }
+        />
       </div>
 
       <section className="mt-2 px-5">
@@ -63,16 +81,34 @@ export default function HomeContent() {
         </Card>
       </section>
 
-      <section className="mt-5 px-5 pb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-base">💬</span>
-          <h2 className="text-base font-bold text-neutral-900">고등부 소식</h2>
-        </div>
-        <div className="mt-3 flex flex-col gap-2.5">
-          {activities.map(a => <ActivityCard key={a.id} activity={a} />)}
-        </div>
-      </section>
+      <div className="h-6" />
 
+      {feedOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={() => setFeedOpen(false)}>
+          <div
+            className="max-h-[75vh] w-full max-w-md mx-auto overflow-y-auto rounded-t-3xl bg-neutral-50 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-neutral-300" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">💬</span>
+                <h2 className="text-lg font-bold text-neutral-900">고등부 소식</h2>
+              </div>
+              <button
+                onClick={() => setFeedOpen(false)}
+                className="grid h-9 w-9 place-items-center rounded-full bg-neutral-200 text-neutral-600 active:bg-neutral-300"
+                aria-label="닫기"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="mt-4 flex flex-col gap-2.5">
+              {activities.map(a => <ActivityCard key={a.id} activity={a} />)}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
