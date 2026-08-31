@@ -3,7 +3,7 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { mockData } from "@/lib/data";
 import type {
   Student, ClassRoom, Mission, Badge, PrayerRequest,
-  MileageTransaction, QTRecord, Season, CommunityActivity, SharedQTPost, QTComment,
+  MileageTransaction, QTRecord, Season, CommunityActivity, SharedQTPost, QTComment, Teacher,
 } from "@/lib/types";
 
 /**
@@ -127,4 +127,102 @@ export async function addCommentToPost(comment: QTComment) {
   await sb.from("shared_qt_posts")
     .update({ comment_count: { raw: "comment_count + 1" } })
     .eq("id", comment.postId);
+}
+
+/* ── QT 본문 ── */
+export async function fetchTodayQT(): Promise<{ date: string; passage: string; verse: string; content: string } | null> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb.from("qt_today").select("*").limit(1);
+    if (!error && data && data.length) {
+      const row = data[0] as any;
+      return {
+        date: row.date || new Date().toISOString().slice(0, 10),
+        passage: row.passage || "",
+        verse: row.verse || "",
+        content: row.content || "",
+      };
+    }
+  }
+  return mockData.qt_today;
+}
+
+/* ── 시즌 ── */
+export async function fetchSeason(): Promise<typeof mockData.season> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb.from("seasons").select("*").eq("active", true).limit(1);
+    if (!error && data && data.length) {
+      const row = data[0] as any;
+      return { id: row.id, label: row.label, title: row.title };
+    }
+  }
+  return mockData.season;
+}
+
+/* ── 공동 목표 ── */
+export async function fetchSharedGoal(): Promise<typeof mockData.shared_goal> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb.from("shared_goal").select("*").limit(1);
+    if (!error && data && data.length) {
+      const row = data[0] as any;
+      return { label: row.label, current: row.current_xp, target: row.target_xp, reward: row.reward };
+    }
+  }
+  return mockData.shared_goal;
+}
+
+/* ── 커뮤니티 활동 ── */
+export async function fetchActivities(): Promise<typeof mockData.activities> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb.from("community_activities").select("*").order("created_at", { ascending: false }).limit(20);
+    if (!error && data && data.length) {
+      return data.map((r: any) => ({
+        id: r.id,
+        type: r.type,
+        message: r.message,
+        timestamp: r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : "",
+      }));
+    }
+  }
+  return mockData.activities;
+}
+
+/* ── 선생님 ── */
+export async function fetchTeachers(): Promise<Teacher[]> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb.from("teachers").select("*");
+    if (!error && data && data.length) {
+      return data.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        birthDate: r.birth_date,
+        classId: r.class_id,
+      }));
+    }
+  }
+  return [];
+}
+
+/* ── 배지 ── */
+export async function fetchBadgesRemote(): Promise<typeof mockData.badges> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb.from("badges").select("*");
+    if (!error && data && data.length) {
+      return data.map((r: any) => ({
+        id: r.id,
+        icon: r.icon,
+        name: r.name,
+        description: r.description,
+        criteria: r.criteria,
+        progress: r.progress,
+        locked: !r.unlocked,
+      }));
+    }
+  }
+  return mockData.badges;
 }

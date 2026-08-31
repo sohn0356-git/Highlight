@@ -1,7 +1,12 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { Student, MileageTransaction, QTRecord, PrayerRequest, CompletedMission, SharedQTPost, QTComment } from "./types";
+import type { Teacher } from "./types";
 import { mockData } from "./data";
+import {
+  fetchStudents, fetchClasses, fetchMissions, fetchBadges, fetchPrayers,
+  fetchTodayQT, fetchSeason, fetchSharedGoal, fetchActivities, fetchTeachers,
+} from "@/services/mileage-service";
 import {
   getSession, setSession, clearSession,
   getQTRecords, addQTRecord, isQTCompletedToday,
@@ -73,6 +78,7 @@ interface AppState {
   classes: typeof mockData.classes;
   activities: typeof mockData.activities;
   sharedGoal: typeof mockData.shared_goal;
+  teachers: Teacher[];
 }
 
 const Ctx = createContext<AppState | null>(null);
@@ -116,6 +122,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch { return mockData.qt_comments || {}; }
   });
 
+  // Supabase에서 관리되는 데이터 (mock 폴백)
+  const [qtToday, setQtToday] = useState(mockData.qt_today);
+  const [missions, setMissions] = useState(mockData.missions);
+  const [season, setSeason] = useState(mockData.season);
+  const [sharedGoal, setSharedGoal] = useState(mockData.shared_goal);
+  const [activities, setActivities] = useState(mockData.activities);
+  const [badges, setBadges] = useState(mockData.badges);
+  const [classes, setClasses] = useState(mockData.classes as any[]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
   /* On mount: init prayers + try load from Supabase */
   useEffect(() => {
     initPrayers(mockData.prayers);
@@ -123,6 +140,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTxns(getTransactions());
     if (isSupabaseReady) {
       (async () => {
+        // 정적 데이터를 Supabase에서 우선 로드
+        try {
+          const [q, m, s, sg, a, b, cls, tch] = await Promise.all([
+            fetchTodayQT(), fetchMissions(), fetchSeason(), fetchSharedGoal(),
+            fetchActivities(), fetchBadges(), fetchClasses(), fetchTeachers(),
+          ]);
+          setQtToday(q || mockData.qt_today);
+          setMissions(m as any);
+          setSeason(s);
+          setSharedGoal(sg);
+          setActivities(a);
+          setBadges(b);
+          if (cls && cls.length) setClasses(cls as any[]);
+          setTeachers(tch);
+          setDataLoaded(true);
+        } catch { /* keep mock fallback */ }
         try {
           const mod = await import("./supabase");
           const sb = mod.getSupabase();
@@ -180,6 +213,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setTxns(getTransactions());
             return true;
           }
+          // 선생님 계정 확인
+          const { data: remoteTeachers } = await sb
+            .from("teachers")
+            .select("*")
+            .eq("name", name.trim())
+            .eq("birth_date", birthDate.trim())
+            .limit(1);
+          if (remoteTeachers && remoteTeachers.length) {
+            const trow = remoteTeachers[0] as any;
+            const s: Student = {
+              id: trow.id,
+              name: trow.name,
+              birthDate: trow.birth_date,
+              classId: trow.class_id || "c1",
+              mileage: 0,
+              isTeacher: true,
+            };
+            setSession(s);
+            setStudent(s);
+            setQtDoneToday(isQTCompletedToday());
+            setQtRecords(getQTRecords());
+            setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
+            setPrayers(getPrayers());
+            setTxns(getTransactions());
+            return true;
+          }
         }
       } catch { /* fall through to local mock */ }
     }
@@ -219,8 +278,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: "qt_" + Date.now(),
       studentId: student.id,
       date: new Date().toISOString().slice(0, 10),
-      passage: mockData.qt_today.passage,
-      verse: mockData.qt_today.verse,
+      passage: qtToday.passage,
+      verse: qtToday.verse,
       remembered,
       application,
       reward: 20,
@@ -242,12 +301,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
     await upsertSupabase("qt_records", rec);
     await upsertSupabase("mileage_transactions", tx);
-  }, [student, qtDoneToday]);
+  }, [student, qtDoneToday, qtToday]);
 
   /* ── MISSION ── */
   const completeMissionHandler = useCallback(async (missionId: string) => {
     if (!student || completedMissionIds.includes(missionId)) return;
-    const mission = mockData.missions.find(m => m.id === missionId);
+    const mission = missions.find(m => m.id === missionId);
     if (!mission) return;
     const updated = updateStudentMileage(student.id, mission.reward, student);
     setStudent(updated);
@@ -273,7 +332,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
     await upsertSupabase("completed_missions", { mission_id: missionId, student_id: student.id, reward: mission.reward, completed_at: completed.completedAt });
     await upsertSupabase("mileage_transactions", tx);
-  }, [student, completedMissionIds]);
+  }, [student, completedMissionIds, missions]);
 
   /* ── PRAYER ── */
   const prayForHandler = useCallback(async (prayerId: string) => {
@@ -357,14 +416,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // 공유 피드에 게시글 등록 (앱 사용자 모두가 볼 수 있게)
     const qtRec = getQTRecords().find(r => r.date === today) || null;
-    const myClass = mockData.classes.find(c => c.id === student.classId) as any;
+    const myClass = classes.find(c => c.id === student.classId) as any;
     const post: SharedQTPost = {
       id: "qp_" + Date.now(),
       studentId: student.id,
       studentName: student.name,
       classId: student.classId,
-      passage: mockData.qt_today.passage,
-      verse: mockData.qt_today.verse,
+      passage: qtToday.passage,
+      verse: qtToday.verse,
       remembered: qtRec?.remembered,
       application: qtRec?.application,
       reward: 10,
@@ -397,7 +456,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     asyncWrite();
     return true;
-  }, [student, sharedQTDates]);
+  }, [student, sharedQTDates, qtToday, classes]);
 
   /* ── QT 공유 댓글 ── */
   const addComment = useCallback((postId: string, content: string) => {
@@ -440,7 +499,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       supabaseReady: isSupabaseReady,
       login,
       logout,
-      qtToday: mockData.qt_today,
+      qtToday,
       isQTDoneToday: qtDoneToday,
       qtRecords,
       completeQT: completeQTHandler,
@@ -450,18 +509,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sharedPosts,
       addComment,
       fetchPostComments,
-      missions: mockData.missions,
+      missions,
       completedMissionIds,
       completeMission: completeMissionHandler,
       prayers,
       prayFor: prayForHandler,
       addPrayerRequest,
       transactions: txns,
-      badges: mockData.badges,
-      season: mockData.season,
-      classes: mockData.classes,
-      activities: mockData.activities,
-      sharedGoal: mockData.shared_goal,
+      badges,
+      season,
+      classes,
+      activities,
+      sharedGoal,
+      teachers,
     }}>
       {children}
     </Ctx.Provider>

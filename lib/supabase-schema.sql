@@ -184,3 +184,128 @@ ALTER TABLE shared_qt_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE qt_comments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "allow_all" ON shared_qt_posts FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "allow_all" ON qt_comments FOR ALL USING (true) WITH CHECK (true);
+
+-- ═══════════════════════════════════════════════════════════
+-- 아래는 app에서 Supabase로 관리할 테이블들을 추가하는 SQL입니다.
+-- (위 기존 테이블들이 이미 만들어졌다면 아래만 추가로 실행하세요.)
+-- ═══════════════════════════════════════════════════════════
+
+-- 16. teachers 테이블 (선생님 이름/생년월일)
+CREATE TABLE IF NOT EXISTS teachers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  birth_date DATE NOT NULL,
+  class_id TEXT REFERENCES classes(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 17. qt_today? 이미 있는지 — 없으면 생성
+CREATE TABLE IF NOT EXISTS qt_today (
+  id TEXT PRIMARY KEY DEFAULT 'current',
+  date DATE NOT NULL,
+  passage TEXT NOT NULL,
+  verse TEXT NOT NULL,
+  content TEXT NOT NULL
+);
+
+-- 18. seasons 테이블
+CREATE TABLE IF NOT EXISTS seasons (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  title TEXT NOT NULL,
+  active BOOLEAN DEFAULT TRUE
+);
+
+-- 19. shared_goal 테이블
+CREATE TABLE IF NOT EXISTS shared_goal (
+  id TEXT PRIMARY KEY DEFAULT 'current',
+  label TEXT NOT NULL,
+  current_xp INT DEFAULT 0,
+  target_xp INT DEFAULT 60000,
+  reward TEXT NOT NULL
+);
+
+-- 20. community_activities 테이블
+CREATE TABLE IF NOT EXISTS community_activities (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 21. badges 테이블
+CREATE TABLE IF NOT EXISTS badges (
+  id TEXT PRIMARY KEY,
+  icon TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  criteria INT DEFAULT 1,
+  progress INT DEFAULT 0,
+  unlocked BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE teachers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON teachers FOR ALL USING (true) WITH CHECK (true);
+ALTER TABLE qt_today ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON qt_today FOR ALL USING (true) WITH CHECK (true);
+ALTER TABLE seasons ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON seasons FOR ALL USING (true) WITH CHECK (true);
+ALTER TABLE shared_goal ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON shared_goal FOR ALL USING (true) WITH CHECK (true);
+ALTER TABLE community_activities ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON community_activities FOR ALL USING (true) WITH CHECK (true);
+ALTER TABLE badges ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON badges FOR ALL USING (true) WITH CHECK (true);
+
+-- 시드 데이터 (없는 경우에만 삽입)
+INSERT INTO classes (id, name, level, xp, weekly_xp, attendance_attended, attendance_total, qt_count, mission_count, prayer_count, class_message)
+SELECT * FROM (VALUES
+  ('c1','고2-3반',7,12450,620,11,13,37,21,18,'이번 주도 서로를 위해 기도해요 🙏'),
+  ('c2','고1-2반',6,11920,540,9,13,28,15,10,'서로 돕고 성장하는 반!'),
+  ('c3','고3-1반',5,10840,380,8,13,24,12,9,'주님 안에서 하나 되는 반!'),
+  ('c4','고1-4반',4,10120,1420,10,13,30,17,11,'함께 배우고 함께 자라요!'),
+  ('c5','고2-1반',4,9720,490,7,13,22,13,8,'믿음의 동역자들!'),
+  ('c6','고3-2반',3,8950,310,9,13,26,15,10,'은혜와 감사의 반!')
+) AS v(id,name,level,xp,weekly_xp,attendance_attended,attendance_total,qt_count,mission_count,prayer_count,class_message)
+WHERE NOT EXISTS (SELECT 1 FROM classes);
+
+INSERT INTO teachers (id, name, birth_date, class_id)
+SELECT * FROM (VALUES
+  ('t1','김선생','1985-03-12','c1'),
+  ('t2','이선생','1988-07-25','c2'),
+  ('t3','박선생','1990-01-05','c3'),
+  ('t4','최선생','1987-11-19','c4')
+) AS v(id,name,birth_date,class_id)
+WHERE NOT EXISTS (SELECT 1 FROM teachers);
+
+INSERT INTO qt_today (id, date, passage, verse, content)
+SELECT * FROM (VALUES
+  ('current', CURRENT_DATE, '빌립보서 4:6-7', '아무 것도 염려하지 말고 다만 모든 일에 기도와 간구로, 너희 구할 것을 감사함으로 하나님께 아뢰라. 그리하면 모든 지각에 뛰어난 하나님의 평강이 그리스도 예수 안에서 너희 마음과 생각을 지키시리라.', '바울은 빌립보 교회에 염려를 내려놓고 기도하라고 권면합니다. 염려는 우리를 사로잡지만, 기도는 하나님이 함께하신다는 사실을 상기시켜줍니다. 오늘 하루, 염려가 밀려올 때 기도로 바꿔보세요.')
+) AS v(id,date,passage,verse,content)
+WHERE NOT EXISTS (SELECT 1 FROM qt_today);
+
+INSERT INTO seasons (id, label, title, active)
+SELECT * FROM (VALUES ('2026-fall','2026 FALL SEASON','함께 걸어가는 우리',TRUE))
+AS v(id,label,title,active) WHERE NOT EXISTS (SELECT 1 FROM seasons);
+
+INSERT INTO shared_goal (id, label, current_xp, target_xp, reward)
+SELECT * FROM (VALUES ('current','고등부 공동 목표',48350,60000,'60,000 XP 달성하면 예배 후 전체 아이스크림 🍦'))
+AS v(id,label,current_xp,target_xp,reward) WHERE NOT EXISTS (SELECT 1 FROM shared_goal);
+
+INSERT INTO community_activities (id, type, message, created_at)
+SELECT * FROM (VALUES
+  ('a1','level','🎉 고2-3반이 LV.8에 도달했어요!',NOW() - INTERVAL '3 days'),
+  ('a2','prayer','🙏 이번 주 고등부에서 128번의 기도가 있었어요.',NOW() - INTERVAL '2 days'),
+  ('a3','qt','📖 이번 주 QT 200회를 달성했어요!',NOW() - INTERVAL '1 day'),
+  ('a4','xp','🔥 고1-4반이 이번 주 1,000XP를 돌파했어요!',NOW()),
+  ('a5','milestone','🎊 고등부 마일리지 총합 50,000M을 넘었어요!',NOW() - INTERVAL '2 days')
+) AS v(id,type,message,created_at) WHERE NOT EXISTS (SELECT 1 FROM community_activities);
+
+INSERT INTO badges (id, icon, name, description, criteria, progress, unlocked)
+SELECT * FROM (VALUES
+  ('b1','🌱','첫 걸음','첫 QT 완료',1,1,TRUE),
+  ('b2','📖','말씀 탐험가','QT 10회',10,0,FALSE),
+  ('b3','⛪','예배자','예배 10회 참석',10,0,FALSE),
+  ('b4','🙏','중보자','친구를 위해 30회 기도',30,0,FALSE)
+) AS v(id,icon,name,description,criteria,progress,unlocked) WHERE NOT EXISTS (SELECT 1 FROM badges);

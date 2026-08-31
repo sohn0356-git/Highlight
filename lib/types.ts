@@ -4,6 +4,7 @@ export interface Student {
   birthDate: string; // YYYY-MM-DD
   classId: string;
   mileage: number;
+  isTeacher?: boolean;
 }
 
 export interface ClassRoom {
@@ -129,4 +130,27 @@ export interface QTComment {
   studentName: string;
   content: string;
   createdAt: string;
+}
+
+export interface Teacher {
+  id: string;
+  name: string;
+  birthDate: string;
+  classId?: string;
+}
+
+export interface TodayQT {
+  id?: string;
+  date: string;
+  passage: string;
+  verse: string;
+  content: string;
+}
+
+export interface SharedGoalRow {
+  id?: string;
+  label: string;
+  current_xp: number;
+  target_xp: number;
+  reward: string;
 }
