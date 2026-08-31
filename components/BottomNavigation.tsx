@@ -1,13 +1,13 @@
 "use client";
-import { Home, BookOpen, Target, Users, User } from "lucide-react";
+import { Home, BookOpen, Target, HandHeart, Users } from "lucide-react";
 import type { TabId } from "@/lib/types";
 
 const tabs: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: "home", label: "홈", icon: Home },
   { id: "qt", label: "QT", icon: BookOpen },
   { id: "missions", label: "미션", icon: Target },
-  { id: "we", label: "우리", icon: Users },
-  { id: "my", label: "MY", icon: User },
+  { id: "we", label: "기도", icon: HandHeart },
+  { id: "my", label: "우리반", icon: Users },
 ];
 
 export default function BottomNavigation({ active, onNavigate }: { active: TabId; onNavigate: (t: TabId) => void }) {
