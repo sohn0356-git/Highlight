@@ -3,13 +3,20 @@ import {
   Users, CalendarCheck, BookOpen, Target, HandHeart, Coins, ArrowUpRight,
   PlusCircle, Send, FilePlus2, Megaphone, ChevronRight, TrendingUp,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
+import { fetchRecentActivities, type RecentActivity } from "@/lib/admin-activity-service";
 import type { AdminPageId } from "@/lib/admin-types";
 
 export default function AdminDashboard({ onNavigate }: { onNavigate: (page: AdminPageId) => void }) {
   const { students, teachers, attendanceSessions, attendanceRecords, qtContents, missions, missionCompletions, prayers, allTransactions, season } = useAdmin();
   const { classes } = useApp();
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+
+  useEffect(() => {
+    fetchRecentActivities().then(setRecentActivities);
+  }, []);
 
   const activeSessions = attendanceSessions.filter(s => s.active);
   const todayRecords = attendanceRecords.filter(r => {
@@ -131,17 +138,13 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
       <section>
         <h3 className="mb-2 text-sm font-bold text-neutral-800">최근 활동</h3>
         <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-100">
-          {[
-            { icon: "🎉", text: "노현서가 Mystery Box를 신청했어요.", time: "10:24" },
-            { icon: "📖", text: "이서연이 오늘의 QT를 완료했어요.", time: "09:58" },
-            { icon: "✅", text: "김선생이 8월 4주 출석을 마감했어요.", time: "09:12" },
-            { icon: "🙏", text: "새로운 기도제목이 올라왔어요.", time: "08:45" },
-            { icon: "🏆", text: "고2-3반이 LV.8에 도달했어요!", time: "어제" },
-          ].map((a, i) => (
+          {recentActivities.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-neutral-400">아직 활동 내역이 없어요.</div>
+          ) : recentActivities.map((a, i) => (
             <div key={i} className="flex items-center gap-3 px-4 py-3">
               <span className="text-base">{a.icon}</span>
               <p className="flex-1 text-sm text-neutral-700">{a.text}</p>
-              <span className="text-[11px] text-neutral-400">{a.time}</span>
+              <span className="text-[11px] text-neutral-400 shrink-0">{a.time}</span>
             </div>
           ))}
         </div>
