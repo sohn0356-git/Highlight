@@ -199,6 +199,7 @@ export interface BadgeAdmin {
   requirementValue: number;
   active: boolean;
   mileageReward: number;
+  levelThresholds?: number[];
 }
 
 /* ── Audit Log ── */

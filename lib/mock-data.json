@@ -1063,7 +1063,10 @@
       "name": "첫 걸음",
       "description": "첫 QT 완료",
       "criteria": 1,
-      "progress": 1
+      "progress": 1,
+      "levelThresholds": [
+        1
+      ]
     },
     {
       "id": "b2",
@@ -1071,7 +1074,13 @@
       "name": "말씀 탐험가",
       "description": "QT 10회 완료",
       "criteria": 10,
-      "progress": 6
+      "progress": 6,
+      "levelThresholds": [
+        10,
+        30,
+        60,
+        100
+      ]
     },
     {
       "id": "b3",
@@ -1079,7 +1088,12 @@
       "name": "예배자",
       "description": "예배 10회 참석",
       "criteria": 10,
-      "progress": 4
+      "progress": 4,
+      "levelThresholds": [
+        10,
+        30,
+        50
+      ]
     },
     {
       "id": "b4",
@@ -1087,7 +1101,12 @@
       "name": "중보자",
       "description": "친구를 위해 30회 기도",
       "criteria": 30,
-      "progress": 12
+      "progress": 12,
+      "levelThresholds": [
+        30,
+        60,
+        100
+      ]
     },
     {
       "id": "b5",
@@ -1095,7 +1114,12 @@
       "name": "열정가",
       "description": "미션 20개 완료",
       "criteria": 20,
-      "progress": 8
+      "progress": 8,
+      "levelThresholds": [
+        20,
+        50,
+        100
+      ]
     },
     {
       "id": "b6",
@@ -1104,7 +1128,12 @@
       "description": "마일리지 2000M 달성",
       "criteria": 2000,
       "progress": 1420,
-      "locked": true
+      "locked": true,
+      "levelThresholds": [
+        2000,
+        5000,
+        10000
+      ]
     },
     {
       "id": "b7",
@@ -1113,7 +1142,12 @@
       "description": "기도 50회 완료",
       "criteria": 50,
       "progress": 0,
-      "locked": true
+      "locked": true,
+      "levelThresholds": [
+        50,
+        100,
+        200
+      ]
     },
     {
       "id": "b8",
@@ -1122,7 +1156,12 @@
       "description": "연속 7일 QT",
       "criteria": 7,
       "progress": 3,
-      "locked": true
+      "locked": true,
+      "levelThresholds": [
+        7,
+        14,
+        30
+      ]
     }
   ],
   "prayers": [

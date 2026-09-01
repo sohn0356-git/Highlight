@@ -82,6 +82,7 @@ export interface Badge {
   criteria: number;
   progress: number;
   locked?: boolean;
+  levelThresholds?: number[];
 }
 
 export interface PrayerRequest {

@@ -84,29 +84,28 @@ export default function MissionsContent() {
           </h2>
           <p className="mt-1 text-xs text-neutral-500">특별한 이벤트 미션에 도전하세요.</p>
           <div className="mt-3 flex flex-col gap-3">
-            {special.map(m => (
-              <div key={m.id} className={`rounded-2xl border p-4 transition ${completedMissionIds.includes(m.id) ? "border-emerald-200 bg-emerald-50/60" : "border-neutral-100 bg-white shadow-sm"}`}>
-                <div className="flex items-start gap-3">
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neutral-50 text-xl">{m.icon}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-sm font-bold text-neutral-900">{m.title}</h3>
-                      <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-600">+{m.reward}M</span>
+            {special.map(m => {
+              const done = completedMissionIds.includes(m.id);
+              return (
+                <div key={m.id} className={`rounded-2xl border p-4 transition ${done ? "border-emerald-200 bg-emerald-50/60" : "border-neutral-100 bg-white shadow-sm"}`}>
+                  <div className="flex items-start gap-3">
+                    <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl ${done ? "bg-emerald-100" : "bg-neutral-50"}`}>{m.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className={`text-sm font-bold ${done ? "text-emerald-700" : "text-neutral-900"}`}>{m.title}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-600">+{m.reward}M</span>
+                          {done && <CheckCircle2 size={18} className="text-emerald-500" />}
+                        </div>
+                      </div>
+                      <p className={`mt-1 text-xs leading-relaxed ${done ? "text-emerald-600" : "text-neutral-500"}`}>{m.description}</p>
+                      {done && <p className="mt-1.5 text-[11px] font-bold text-emerald-600">✅ 완료!</p>}
+                      {!done && <p className="mt-1.5 text-[11px] font-semibold text-neutral-400">⏳ 진행 중</p>}
                     </div>
-                    <p className="mt-1 text-xs leading-relaxed text-neutral-500">{m.description}</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => completeMission(m.id)}
-                  disabled={completedMissionIds.includes(m.id)}
-                  className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold transition active:scale-[0.98] ${
-                    completedMissionIds.includes(m.id) ? "bg-emerald-100 text-emerald-600" : "bg-amber-500 text-white active:bg-amber-600"
-                  }`}
-                >
-                  {completedMissionIds.includes(m.id) ? (<><CheckCircle2 size={16} /> 완료했어요</>) : ("완료하기")}
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
