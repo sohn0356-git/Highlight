@@ -233,7 +233,21 @@ export default function AdminStudents() {
                       {t.assignedClassIds.map(id => classes.find((c: any) => c.id === id)?.name || id).join(", ") || "미배정"} · {t.birthDate}
                     </p>
                   </div>
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-bold text-neutral-500">{t.role === "admin" ? "관리자" : "교사"}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-bold text-neutral-500">{t.role === "admin" ? "관리자" : "교사"}</span>
+                    <button
+                      onClick={() => {
+                        setEditId(t.id);
+                        setListTab("teachers");
+                        setShowForm("teacher");
+                        setTeacherForm({ name: t.name, birthDate: t.birthDate, assignedClassIds: t.assignedClassIds, role: t.role });
+                      }}
+                      className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-600 active:bg-indigo-100"
+                      aria-label="교사 수정"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
               {teachers.filter(t => !search || t.name.includes(search)).length === 0 && <p className="py-6 text-center text-xs text-neutral-400">검색 결과가 없습니다.</p>}
