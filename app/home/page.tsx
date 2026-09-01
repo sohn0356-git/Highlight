@@ -9,7 +9,7 @@ import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
 
 export default function HomeContent() {
-  const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest } = useApp();
+  const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest, allStudents } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
 
   // 홈 확인 일일 퀘스트 자동 달성
@@ -65,7 +65,7 @@ export default function HomeContent() {
       </section>
 
       <section className="mt-5 px-5">
-        <ClassRankingCard classes={classes as any} myClassId={student.classId} />
+        <ClassRankingCard classes={classes as any} myClassId={student.classId} students={allStudents as any} myStudentId={student.id} />
       </section>
 
       <section className="mt-5 px-5">

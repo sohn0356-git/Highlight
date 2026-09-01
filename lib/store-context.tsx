@@ -83,6 +83,7 @@ interface AppState {
   badges: typeof mockData.badges;
   season: typeof mockData.season;
   classes: typeof mockData.classes;
+  allStudents: typeof mockData.students;
   activities: typeof mockData.activities;
   sharedGoal: typeof mockData.shared_goal;
   teachers: Teacher[];
@@ -696,6 +697,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       badges,
       season,
       classes,
+      allStudents: mockData.students,
       activities,
       sharedGoal,
       teachers,
