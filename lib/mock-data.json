@@ -44,7 +44,7 @@
     {
       "id": "c_g2_1",
       "name": "고2-1반",
-      "xp": 0,
+      "xp": 12900,
       "weeklyXp": 0,
       "level": 1,
       "teacher": "박주형",
@@ -53,7 +53,7 @@
     {
       "id": "c_g2_2",
       "name": "고2-2반",
-      "xp": 0,
+      "xp": 9250,
       "weeklyXp": 0,
       "level": 1,
       "teacher": "김성학",
@@ -62,7 +62,7 @@
     {
       "id": "c_g2_3",
       "name": "고2-3반",
-      "xp": 0,
+      "xp": 17800,
       "weeklyXp": 0,
       "level": 1,
       "teacher": "김채림",
@@ -71,7 +71,7 @@
     {
       "id": "c_g2_4",
       "name": "고2-4반",
-      "xp": 0,
+      "xp": 10100,
       "weeklyXp": 0,
       "level": 1,
       "teacher": "이수연",
@@ -89,7 +89,7 @@
     {
       "id": "c_g3_1",
       "name": "고3-1반",
-      "xp": 0,
+      "xp": 12550,
       "weeklyXp": 0,
       "level": 1,
       "teacher": "김기광·이수아",
@@ -107,7 +107,7 @@
     {
       "id": "c_g3_3",
       "name": "고3-3반",
-      "xp": 0,
+      "xp": 11400,
       "weeklyXp": 0,
       "level": 1,
       "teacher": "송현이·이주형",
@@ -165,7 +165,7 @@
       "name": "강은율",
       "birthDate": "2009-01-06",
       "classId": "c_g2_1",
-      "mileage": 0,
+      "mileage": 2900,
       "active": true,
       "phone": "010-9534-1290"
     },
@@ -192,7 +192,7 @@
       "name": "전진민",
       "birthDate": "2010-01-11",
       "classId": "c_g2_3",
-      "mileage": 0,
+      "mileage": 3100,
       "active": true,
       "phone": "010-7190-9728"
     },
@@ -210,7 +210,7 @@
       "name": "한혜윤",
       "birthDate": "2009-01-30",
       "classId": "c_g2_4",
-      "mileage": 0,
+      "mileage": 1900,
       "active": true,
       "phone": "010-5695-7909"
     },
@@ -219,7 +219,7 @@
       "name": "김희찬",
       "birthDate": "2009-01-31",
       "classId": "c_g2_3",
-      "mileage": 0,
+      "mileage": 1900,
       "active": true,
       "phone": "010-3775-3348"
     },
@@ -237,7 +237,7 @@
       "name": "이원우",
       "birthDate": "2009-02-03",
       "classId": "c_g2_2",
-      "mileage": 0,
+      "mileage": 850,
       "active": true,
       "phone": "010-5186-9234"
     },
@@ -246,7 +246,7 @@
       "name": "김시현",
       "birthDate": "2008-02-05",
       "classId": "c_g3_1",
-      "mileage": 0,
+      "mileage": 900,
       "active": true,
       "phone": "010-5859-6932"
     },
@@ -255,7 +255,7 @@
       "name": "김주아",
       "birthDate": "2009-02-05",
       "classId": "c_g2_1",
-      "mileage": 0,
+      "mileage": 1500,
       "active": true,
       "phone": "010-4006-0861"
     },
@@ -273,7 +273,7 @@
       "name": "박수인",
       "birthDate": "2008-02-06",
       "classId": "c_g3_3",
-      "mileage": 0,
+      "mileage": 3100,
       "active": true,
       "phone": "010-7904-4509"
     },
@@ -291,7 +291,7 @@
       "name": "이다연",
       "birthDate": "2008-02-11",
       "classId": "c_g3_3",
-      "mileage": 0,
+      "mileage": 2200,
       "active": true,
       "phone": "010-5067-0170"
     },
@@ -309,7 +309,7 @@
       "name": "최종율",
       "birthDate": "2009-02-21",
       "classId": "c_g2_1",
-      "mileage": 0,
+      "mileage": 3200,
       "active": true,
       "phone": "010-5191-5813"
     },
@@ -336,7 +336,7 @@
       "name": "김신유",
       "birthDate": "2009-02-24",
       "classId": "c_g2_2",
-      "mileage": 0,
+      "mileage": 100,
       "active": true,
       "phone": "010-3477-1513"
     },
@@ -372,7 +372,7 @@
       "name": "김도혁",
       "birthDate": "2009-03-06",
       "classId": "c_g2_2",
-      "mileage": 0,
+      "mileage": 1000,
       "active": true,
       "phone": "010-8073-6568"
     },
@@ -381,7 +381,7 @@
       "name": "윤희원",
       "birthDate": "2009-03-06",
       "classId": "c_g2_1",
-      "mileage": 0,
+      "mileage": 1400,
       "active": true,
       "phone": "010-3775-6638"
     },
@@ -390,7 +390,7 @@
       "name": "임재선",
       "birthDate": "2008-03-09",
       "classId": "c_g3_3",
-      "mileage": 0,
+      "mileage": 500,
       "active": true,
       "phone": "010-6494-0799"
     },
@@ -417,7 +417,7 @@
       "name": "이승영",
       "birthDate": "2008-03-15",
       "classId": "c_g3_1",
-      "mileage": 0,
+      "mileage": 300,
       "active": true,
       "phone": "010-8977-3135"
     },
@@ -426,7 +426,7 @@
       "name": "최지윤",
       "birthDate": "2008-03-24",
       "classId": "c_g3_1",
-      "mileage": 0,
+      "mileage": 700,
       "active": true,
       "phone": "010-7411-0324"
     },
@@ -444,7 +444,7 @@
       "name": "임유민",
       "birthDate": "2008-03-25",
       "classId": "c_g3_3",
-      "mileage": 0,
+      "mileage": 2200,
       "active": true,
       "phone": "010-6785-0633"
     },
@@ -453,7 +453,7 @@
       "name": "이소이",
       "birthDate": "2008-03-27",
       "classId": "c_g3_3",
-      "mileage": 0,
+      "mileage": 3100,
       "active": true,
       "phone": "010-8363-7917"
     },
@@ -471,7 +471,7 @@
       "name": "표세연",
       "birthDate": "2008-03-31",
       "classId": "c_g3_1",
-      "mileage": 0,
+      "mileage": 2000,
       "active": true,
       "phone": "010-5294-0381"
     },
@@ -489,7 +489,7 @@
       "name": "유예나",
       "birthDate": "2009-04-17",
       "classId": "c_g2_2",
-      "mileage": 0,
+      "mileage": 2100,
       "active": true,
       "phone": "010-9846-3352"
     },
@@ -498,7 +498,7 @@
       "name": "최영린",
       "birthDate": "2009-04-17",
       "classId": "c_g2_3",
-      "mileage": 0,
+      "mileage": 1700,
       "active": true,
       "phone": "010-7211-9321"
     },
@@ -507,7 +507,7 @@
       "name": "이재주",
       "birthDate": "2009-04-20",
       "classId": "c_g2_3",
-      "mileage": 0,
+      "mileage": 2000,
       "active": true,
       "phone": "010-3287-4178"
     },
@@ -516,7 +516,7 @@
       "name": "윤종식",
       "birthDate": "2009-04-21",
       "classId": "c_g2_1",
-      "mileage": 0,
+      "mileage": 2800,
       "active": true,
       "phone": "010-6345-0838"
     },
@@ -534,7 +534,7 @@
       "name": "김지윤",
       "birthDate": "2009-04-30",
       "classId": "c_g2_3",
-      "mileage": 0,
+      "mileage": 3200,
       "active": true,
       "phone": "010-3078-5731"
     },
@@ -570,7 +570,7 @@
       "name": "손찬희",
       "birthDate": "2008-05-07",
       "classId": "c_g3_1",
-      "mileage": 0,
+      "mileage": 400,
       "active": true,
       "phone": "010-2171-7951"
     },
@@ -588,7 +588,7 @@
       "name": "김예봄",
       "birthDate": "2009-05-19",
       "classId": "c_g2_4",
-      "mileage": 0,
+      "mileage": 3200,
       "active": true,
       "phone": "010-4228-2982"
     },
@@ -642,7 +642,7 @@
       "name": "전사랑",
       "birthDate": "2009-07-14",
       "classId": "c_g2_4",
-      "mileage": 0,
+      "mileage": 2400,
       "active": true,
       "phone": "010-9610-6616"
     },
@@ -678,7 +678,7 @@
       "name": "이준수",
       "birthDate": "2009-07-27",
       "classId": "c_g2_3",
-      "mileage": 0,
+      "mileage": 2200,
       "active": true,
       "phone": "010-4568-9727"
     },
@@ -714,7 +714,7 @@
       "name": "박세종",
       "birthDate": "2009-08-05",
       "classId": "c_g2_1",
-      "mileage": 0,
+      "mileage": 1100,
       "active": true,
       "phone": "010-3462-3780"
     },
@@ -723,7 +723,7 @@
       "name": "박하민",
       "birthDate": "2008-08-09",
       "classId": "c_g3_3",
-      "mileage": 0,
+      "mileage": 300,
       "active": true,
       "phone": "010-2168-5279"
     },
@@ -741,7 +741,7 @@
       "name": "강예슬",
       "birthDate": "2008-08-11",
       "classId": "c_g3_1",
-      "mileage": 0,
+      "mileage": 3200,
       "active": true,
       "phone": "010-9651-2836"
     },
@@ -768,7 +768,7 @@
       "name": "소유정",
       "birthDate": "2009-08-31",
       "classId": "c_g2_4",
-      "mileage": 0,
+      "mileage": 800,
       "active": true,
       "phone": "010-5269-6308"
     },
@@ -777,7 +777,7 @@
       "name": "박하안",
       "birthDate": "2008-09-06",
       "classId": "c_g3_1",
-      "mileage": 0,
+      "mileage": 500,
       "active": true,
       "phone": "010-9841-5075"
     },
@@ -831,7 +831,7 @@
       "name": "곽예은",
       "birthDate": "2009-10-05",
       "classId": "c_g2_4",
-      "mileage": 0,
+      "mileage": 900,
       "active": true,
       "phone": "010-9367-8865"
     },
@@ -840,7 +840,7 @@
       "name": "유주연",
       "birthDate": "2009-10-13",
       "classId": "c_g2_4",
-      "mileage": 0,
+      "mileage": 900,
       "active": true,
       "phone": "010-8869-7077"
     },
@@ -849,7 +849,7 @@
       "name": "임예찬",
       "birthDate": "2009-10-14",
       "classId": "c_g2_2",
-      "mileage": 0,
+      "mileage": 1200,
       "active": true,
       "phone": "010-4017-9166"
     },
@@ -867,7 +867,7 @@
       "name": "김아윤",
       "birthDate": "2009-10-15",
       "classId": "c_g2_2",
-      "mileage": 0,
+      "mileage": 600,
       "active": true,
       "phone": ""
     },
@@ -876,7 +876,7 @@
       "name": "전서연",
       "birthDate": "2008-10-17",
       "classId": "c_g3_1",
-      "mileage": 0,
+      "mileage": 2900,
       "active": true,
       "phone": "010-8817-1444"
     },
@@ -912,7 +912,7 @@
       "name": "전예림",
       "birthDate": "2009-10-21",
       "classId": "c_g2_3",
-      "mileage": 0,
+      "mileage": 1800,
       "active": true,
       "phone": "010-6558-5382"
     },
@@ -930,7 +930,7 @@
       "name": "양지훈",
       "birthDate": "2008-11-13",
       "classId": "c_g3_1",
-      "mileage": 0,
+      "mileage": 1650,
       "active": true,
       "phone": "010-8689-2439"
     },
@@ -939,7 +939,7 @@
       "name": "조호진",
       "birthDate": "2009-11-13",
       "classId": "c_g2_2",
-      "mileage": 0,
+      "mileage": 900,
       "active": true,
       "phone": "010-7106-9170"
     },
@@ -948,7 +948,7 @@
       "name": "김하원",
       "birthDate": "2009-11-23",
       "classId": "c_g2_3",
-      "mileage": 0,
+      "mileage": 1900,
       "active": true,
       "phone": ""
     },
@@ -984,7 +984,7 @@
       "name": "민서진",
       "birthDate": "2009-12-11",
       "classId": "c_g2_2",
-      "mileage": 0,
+      "mileage": 2500,
       "active": true,
       "phone": "010-2552-1569"
     },
