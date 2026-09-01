@@ -82,18 +82,42 @@ export function getPrayers(): PrayerRequest[] {
   } catch { return []; }
 }
 
+const PRAYER_DAILY_KEY = "mileage_prayer_daily";
+
+function getDailyPrayerMap(): Record<string, string[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(PRAYER_DAILY_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    const today = new Date().toISOString().slice(0, 10);
+    if (parsed._date !== today) return {};
+    return parsed.data || {};
+  } catch { return {}; }
+}
+
+function saveDailyPrayerMap(data: Record<string, string[]>) {
+  if (typeof window === "undefined") return;
+  const today = new Date().toISOString().slice(0, 10);
+  localStorage.setItem(PRAYER_DAILY_KEY, JSON.stringify({ _date: today, data }));
+}
+
 export function hasPrayed(prayerId: string, studentId: string): boolean {
-  const prayers = getPrayers();
-  const p = prayers.find(x => x.id === prayerId);
-  return p ? p.prayedBy.includes(studentId) : false;
+  const daily = getDailyPrayerMap();
+  return daily[prayerId]?.includes(studentId) || false;
 }
 
 export function togglePrayer(prayerId: string, studentId: string): PrayerRequest[] {
   const prayers = getPrayers();
+  const daily = getDailyPrayerMap();
+  if (!daily[prayerId]) daily[prayerId] = [];
+  if (!daily[prayerId].includes(studentId)) {
+    daily[prayerId].push(studentId);
+    saveDailyPrayerMap(daily);
+  }
   return prayers.map(p => {
     if (p.id !== prayerId) return p;
-    if (p.prayedBy.includes(studentId)) return p;
-    return { ...p, prayerCount: p.prayerCount + 1, prayedBy: [...p.prayedBy, studentId] };
+    return { ...p, prayerCount: p.prayerCount + 1, prayedBy: [...new Set([...p.prayedBy, studentId])] };
   });
 }
 
