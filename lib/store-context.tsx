@@ -22,6 +22,7 @@ import {
   getTransactions, addTransaction, updateStudentMileage,
 } from "./storage";
 import { isSupabaseReady } from "./config";
+import { updateClassXP } from "./class-xp-sync";
 
 /* ── Supabase lazy helpers ── */
 async function loadFromSupabase(table: string) {
@@ -74,6 +75,30 @@ async function deleteSupabase(table: string, match: Record<string, unknown>) {
     if (!sb) return;
     await sb.from(table).delete().match(match);
   } catch { /* ignore */ }
+}
+
+/* ── 마일리지 추가 + 반 XP 갱신 헬퍼 ── */
+function addMileage(
+  student: Student,
+  delta: number,
+  setStudent: React.Dispatch<React.SetStateAction<Student | null>>,
+  setClasses: React.Dispatch<React.SetStateAction<any[]>>,
+  setTxns: React.Dispatch<React.SetStateAction<MileageTransaction[]>>,
+  tx: MileageTransaction,
+) {
+  const updated = updateStudentMileage(student.id, delta, student);
+  setStudent(updated);
+  addTransaction(tx);
+  setTxns(prev => [...prev, tx]);
+  // 반 XP 갱신
+  updateClassXP(setClasses, student.classId, delta);
+  // Supabase: 학생 마일리지 + 반 XP
+  updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
+  updateSupabase("classes", { id: student.classId }, {
+    xp: { raw: `xp + ${delta}` },
+    weekly_xp: { raw: `weekly_xp + ${delta}` },
+  }).catch(() => {});
+  upsertSupabase("mileage_transactions", tx);
 }
 
 /* ── Context ── */
@@ -529,9 +554,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       completeDailyQuestRemote(student.id, questId, today, quest.reward);
       return next;
     });
-    // 마일리지 보상
-    const updated = updateStudentMileage(student.id, quest.reward, student);
-    setStudent(updated);
     const tx: MileageTransaction = {
       id: "tx_" + Date.now(),
       studentId: student.id,
@@ -540,13 +562,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: quest.reward,
       date: today,
     };
-    addTransaction(tx);
-    setTxns(prev => [...prev, tx]);
+    addMileage(student, quest.reward, setStudent, setClasses, setTxns, tx);
     showPointToast(`+${quest.reward}M 획득!`);
     updateBadges(student.id);
-    // DB writes
-    updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
-    upsertSupabase("mileage_transactions", tx);
   }, [dailyQuests, student]);
 
   // 배지 progress 자동 업데이트
@@ -573,10 +591,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   /* ── QT ── */
   const completeQTHandler = useCallback(async (remembered: string, application: string) => {
     if (!student || qtDoneToday) return;
-    const updated = updateStudentMileage(student.id, 20, student);
-    setStudent(updated);
-    showPointToast("+20M QT 완료!");
-    updateBadges(student.id);
     const rec: QTRecord = {
       id: "qt_" + Date.now(),
       studentId: student.id,
@@ -598,13 +612,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: 20,
       date: new Date().toISOString().slice(0, 10),
     };
-    addTransaction(tx);
-    setTxns(prev => [...prev, tx]);
+    addMileage(student, 20, setStudent, setClasses, setTxns, tx);
+    showPointToast("+20M QT 완료!");
+    updateBadges(student.id);
     completeDailyQuest("d1");
     // DB writes
-    await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
     await upsertSupabase("qt_records", rec);
-    await upsertSupabase("mileage_transactions", tx);
   }, [student, qtDoneToday, qtToday, completeDailyQuest]);
 
   /* ── MISSION ── */
@@ -612,8 +625,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!student || completedMissionIds.includes(missionId)) return;
     const mission = missions.find(m => m.id === missionId);
     if (!mission) return;
-    const updated = updateStudentMileage(student.id, mission.reward, student);
-    setStudent(updated);
     const completed: CompletedMission = {
       missionId,
       studentId: student.id,
@@ -630,20 +641,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: mission.reward,
       date: new Date().toISOString().slice(0, 10),
     };
-    addTransaction(tx);
-    setTxns(prev => [...prev, tx]);
+    addMileage(student, mission.reward, setStudent, setClasses, setTxns, tx);
     // DB writes
-    await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
     await upsertSupabase("completed_missions", { mission_id: missionId, student_id: student.id, reward: mission.reward, completed_at: completed.completedAt });
-    await upsertSupabase("mileage_transactions", tx);
   }, [student, completedMissionIds, missions]);
 
   /* ── PRAYER ── */
   const prayForHandler = useCallback(async (prayerId: string) => {
     if (!student) return;
     if (hasPrayed(prayerId, student.id)) return;
-    const updated = updateStudentMileage(student.id, 5, student);
-    setStudent(updated);
     setPrayers(prev => {
       const next = togglePrayer(prayerId, student.id);
       if (typeof window !== "undefined")
@@ -658,14 +664,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: 5,
       date: new Date().toISOString().slice(0, 10),
     };
-    addTransaction(tx);
-    setTxns(prev => [...prev, tx]);
+    addMileage(student, 5, setStudent, setClasses, setTxns, tx);
     showPointToast("+5M 기도 참여!");
     updateBadges(student.id);
     completeDailyQuest("d3");
     // DB writes
-    await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
-    await upsertSupabase("mileage_transactions", tx);
     await prayForRemote(student.id, prayerId);
   }, [student, completeDailyQuest]);
 
@@ -722,8 +725,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!student) return false;
     const today = new Date().toISOString().slice(0, 10);
     if (sharedQTDates.includes(today)) return false;
-    const updated = updateStudentMileage(student.id, 10, student);
-    setStudent(updated);
     const newShared = [...sharedQTDates, today];
     setSharedQTDates(newShared);
     if (typeof window !== "undefined")
@@ -760,13 +761,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: 10,
       date: today,
     };
-    addTransaction(tx);
-    setTxns(prev => [...prev, tx]);
+    addMileage(student, 10, setStudent, setClasses, setTxns, tx);
     completeDailyQuest("d2");
     // DB writes
     (async () => {
-      await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
-      await upsertSupabase("mileage_transactions", tx);
       await createSharedPost(post);
     })();
     return true;
