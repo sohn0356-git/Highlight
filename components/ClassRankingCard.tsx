@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { TrendingUp, Trophy, User } from "lucide-react";
+import { TrendingUp, Trophy } from "lucide-react";
 import type { SchoolClass } from "@/lib/types";
 
 type RankTab = "class" | "personal";
@@ -130,13 +130,6 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
                 </div>
               );
             })}
-          </div>
-          <div className="mt-4 flex items-center gap-2 rounded-xl bg-purple-50 px-3.5 py-3">
-            <User size={16} className="text-purple-500" />
-            <p className="text-sm text-purple-700">
-              <span className="font-bold">💎 마일리지 랭킹</span>{" "}
-              총 {sortedStudents.length}명 활동 중
-            </p>
           </div>
         </>
       )}
