@@ -1,6 +1,6 @@
 {
-  "name": "고등부 마일리지",
-  "short_name": "마일리지",
+  "name": "고등부 Highlight",
+  "short_name": "Highlight",
   "start_url": "/Highlight/",
   "display": "standalone",
   "background_color": "#faf9f7",

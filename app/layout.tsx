@@ -4,8 +4,8 @@ import Providers from "./providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
-  title: "고등부 마일리지",
-  description: "교회 고등부 마일리지 앱",
+  title: "고등부 Highlight",
+  description: "교회 고등부 Highlight 앱",
   manifest: "/Highlight/manifest.json",
   icons: {
     icon: [
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "마일리지",
+    title: "Highlight",
   },
   formatDetection: { telephone: false },
 };

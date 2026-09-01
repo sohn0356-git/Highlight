@@ -111,7 +111,7 @@ export default function LoginPage() {
       </form>
 
       <p className="mt-6 text-center text-[11px] leading-relaxed text-neutral-300">
-        고등부 마일리지 · 2026 FALL SEASON
+        고등부 Highlight · 2026 FALL SEASON
       </p>
     </div>
   );

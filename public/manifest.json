@@ -1,7 +1,7 @@
 {
-  "name": "고등부 마일리지",
-  "short_name": "마일리지",
-  "description": "교회 고등부 마일리지 앱",
+  "name": "고등부 Highlight",
+  "short_name": "Highlight",
+  "description": "교회 고등부 Highlight 앱",
   "start_url": "/Highlight/",
   "scope": "/Highlight/",
   "display": "standalone",
