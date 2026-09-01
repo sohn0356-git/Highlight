@@ -48,6 +48,7 @@ interface AdminState {
   closeAttendanceSession: (id: string) => void;
   attendanceRecords: AttendanceRecordAdmin[];
   addAttendanceRecord: (r: AttendanceRecordAdmin) => void;
+  updateAttendanceRecord: (id: string, patch: Partial<AttendanceRecordAdmin>) => void;
   bulkMarkAttendance: (studentIds: string[], sessionId: string, state: AttendanceStateType) => void;
 
   qtContents: QTContent[];
@@ -179,6 +180,9 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       if (exists) return prev;
       return [...prev, r];
     });
+  }, []);
+  const updateAttendanceRecord = useCallback((id: string, patch: Partial<AttendanceRecordAdmin>) => {
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
   }, []);
   const bulkMarkAttendance = useCallback((studentIds: string[], sessionId: string, state: AttendanceStateType) => {
     const now = new Date().toISOString();
@@ -356,7 +360,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       students, addStudent, updateStudent, deactivateStudent,
       teachers, addTeacher, updateTeacher,
       attendanceSessions: sessions, addAttendanceSession, closeAttendanceSession,
-      attendanceRecords: records, addAttendanceRecord, bulkMarkAttendance,
+      attendanceRecords: records, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance,
       qtContents, addQTContent, updateQTContent,
       missions: missionAdmins, addMission, updateMission,
       missionCompletions, approveMissionCompletion, rejectMissionCompletion,

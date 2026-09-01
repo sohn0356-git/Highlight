@@ -10,7 +10,7 @@ function stateLabel(s: AttendanceState) {
 }
 
 export default function AdminAttendance() {
-  const { attendanceSessions, attendanceRecords, addAttendanceSession, closeAttendanceSession, addAttendanceRecord, bulkMarkAttendance, currentUser } = useAdmin();
+  const { attendanceSessions, attendanceRecords, addAttendanceSession, closeAttendanceSession, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance, currentUser } = useAdmin();
   const { classes } = useApp();
   const [view, setView] = useState<"today" | "history">("today");
   const [historyMode, setHistoryMode] = useState<"day" | "week" | "month">("day");
@@ -18,6 +18,7 @@ export default function AdminAttendance() {
   const [selectedClass, setSelectedClass] = useState("all");
   const [showNewSession, setShowNewSession] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [newSession, setNewSession] = useState({
     eventName: "주일예배",
     date: new Date().toISOString().slice(0, 10),
@@ -72,6 +73,16 @@ export default function AdminAttendance() {
       bulkMarkAttendance(selectedStudents, activeSession.id, state);
       setSelectedStudents([]);
     }
+  }
+
+  function updateRecordState(recordId: string, newState: AttendanceState) {
+    updateAttendanceRecord(recordId, { state: newState });
+    setEditingRecordId(null);
+  }
+
+  function deleteRecord(recordId: string) {
+    updateAttendanceRecord(recordId, { state: "absent" });
+    setEditingRecordId(null);
   }
 
   function toggleSelect(id: string) {
@@ -232,20 +243,44 @@ export default function AdminAttendance() {
               {filteredRecords.map(r => {
                 const stu = students.find(x => x.id === r.studentId);
                 const cls = classes.find((c: any) => c.id === stu?.classId);
+                const isEditing = editingRecordId === r.id;
                 return (
-                  <div key={r.id} className="flex items-center justify-between px-4 py-2.5">
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-700">{stu?.name}</p>
-                      <p className="text-[11px] text-neutral-400">{cls?.name} · {r.checkTime ? new Date(r.checkTime).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) : "-"}</p>
-                    </div>
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                      r.state === "present" ? "bg-emerald-50 text-emerald-600"
-                      : r.state === "late" ? "bg-amber-50 text-amber-600"
-                      : r.state === "absent" ? "bg-rose-50 text-rose-600"
-                      : "bg-sky-50 text-sky-600"
-                    }`}>
-                      {stateLabel(r.state)}
-                    </span>
+                  <div key={r.id}>
+                    <button
+                      onClick={() => setEditingRecordId(isEditing ? null : r.id)}
+                      className="flex w-full items-center justify-between px-4 py-2.5 text-left"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-neutral-700">{stu?.name}</p>
+                        <p className="text-[11px] text-neutral-400">{cls?.name} · {r.checkTime ? new Date(r.checkTime).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) : "-"}</p>
+                      </div>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                        r.state === "present" ? "bg-emerald-50 text-emerald-600"
+                        : r.state === "late" ? "bg-amber-50 text-amber-600"
+                        : r.state === "absent" ? "bg-rose-50 text-rose-600"
+                        : "bg-sky-50 text-sky-600"
+                      }`}>
+                        {stateLabel(r.state)}
+                      </span>
+                    </button>
+                    {isEditing && (
+                      <div className="px-4 pb-3 pt-1 flex gap-1.5 flex-wrap">
+                        {(["present", "late", "absent", "excused"] as AttendanceState[]).map(s => (
+                          <button
+                            key={s}
+                            onClick={() => updateRecordState(r.id, s)}
+                            className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition active:scale-95 ${
+                              r.state === s
+                                ? s === "present" ? "bg-emerald-500 text-white"
+                                  : s === "late" ? "bg-amber-500 text-white"
+                                  : s === "absent" ? "bg-rose-500 text-white"
+                                  : "bg-sky-500 text-white"
+                                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                            }`}
+                          >{stateLabel(s)}</button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

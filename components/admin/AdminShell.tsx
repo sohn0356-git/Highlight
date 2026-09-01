@@ -69,7 +69,7 @@ export default function AdminShell({ children, activePage, onNavigate, onExit }:
               <GraduationCap size={20} />
             </div>
             <div>
-              <p className="text-sm font-bold text-neutral-900">고등부 Admin</p>
+              <p className="text-sm font-bold text-neutral-900">고등2부</p>
               <p className="text-[11px] text-neutral-400">{currentUser?.name || "관리자"}</p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function AdminShell({ children, activePage, onNavigate, onExit }:
                   <GraduationCap size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-neutral-900">고등부 Admin</p>
+                  <p className="text-sm font-bold text-neutral-900">고등2부</p>
                   <p className="text-[11px] text-neutral-400">{currentUser?.name}</p>
                 </div>
               </div>
@@ -172,7 +172,7 @@ export default function AdminShell({ children, activePage, onNavigate, onExit }:
               </button>
             )}
             <div>
-              <h1 className="text-base font-bold text-neutral-900 md:text-lg">고등부 Admin</h1>
+              <h1 className="text-base font-bold text-neutral-900 md:text-lg">고등2부</h1>
               <p className="text-[11px] text-neutral-400">{new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}</p>
             </div>
           </div>

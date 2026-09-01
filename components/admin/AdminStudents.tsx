@@ -18,6 +18,7 @@ export default function AdminStudents() {
   const [gradeFilter, setGradeFilter] = useState("all");
   const [classFilter, setClassFilter] = useState("all");
   const [mileageSort, setMileageSort] = useState<"none" | "asc" | "desc">("none");
+  const [listTab, setListTab] = useState<"students" | "teachers">("students");
   const [showForm, setShowForm] = useState<"student" | "teacher" | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -157,75 +158,88 @@ export default function AdminStudents() {
         </div>
       )}
 
-      {/* Search & filters */}
+      {/* Search & tabs */}
       {!detailStudent && !showForm && (
         <>
+          {/* Student / Teacher tab */}
+          <div className="flex gap-1.5 rounded-xl bg-neutral-100 p-1">
+            {([
+              { id: "students" as const, label: "학생", count: students.length },
+              { id: "teachers" as const, label: "교사", count: teachers.length },
+            ]).map(t => (
+              <button key={t.id} onClick={() => setListTab(t.id)}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition ${listTab === t.id ? "bg-white text-indigo-600 shadow-sm" : "text-neutral-500"}`}>
+                {t.label} <span className="text-[10px] opacity-60">({t.count})</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Search */}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input className="w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 py-2.5 text-sm" placeholder="학생 검색..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input className="w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 py-2.5 text-sm" placeholder={listTab === "students" ? "학생 검색..." : "교사 검색..."} value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <button onClick={() => setShowForm("student")} className="grid h-10 w-10 place-items-center rounded-lg bg-indigo-500 text-white"><Plus size={18} /></button>
+            <button onClick={() => setShowForm(listTab === "students" ? "student" : "teacher")} className="grid h-10 w-10 place-items-center rounded-lg bg-indigo-500 text-white"><Plus size={18} /></button>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto">
-            {["all", "1", "2", "3"].map(g => (
-              <button key={g} onClick={() => { setGradeFilter(g); setClassFilter("all"); }}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${gradeFilter === g ? "bg-indigo-500 text-white" : "bg-white border border-neutral-200 text-neutral-600"}`}>
-                {g === "all" ? "전체 학년" : `고${g}`}
-              </button>
-            ))}
-            <button onClick={() => setMileageSort(prev => prev === "asc" ? "desc" : prev === "desc" ? "none" : "asc")} className="shrink-0 flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-200 text-neutral-600">
-              <ArrowUpDown size={12} />
-              {mileageSort === "asc" ? "마일리지 ↑" : mileageSort === "desc" ? "마일리지 ↓" : "정렬"}
-            </button>
-          </div>
-
-          {/* Student list */}
-          <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50 overflow-hidden">
-            {sorted.map(s => {
-              const cls = classes.find((c: any) => c.id === s.classId);
-              return (
-                <button key={s.id} onClick={() => setDetailId(s.id)} className={`flex w-full items-center justify-between px-4 py-3 text-left ${!s.active ? "opacity-50" : ""}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="grid h-9 w-9 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">{s.name[0]}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-800">{s.name}</p>
-                      <p className="text-[11px] text-neutral-400">{cls?.name || "미배정"} · {s.birthDate}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-indigo-600">{s.mileage}M</span>
-                    <ChevronRight size={16} className="text-neutral-300" />
-                  </div>
+          {listTab === "students" && (
+            <>
+              <div className="flex gap-2 overflow-x-auto">
+                {["all", "1", "2", "3"].map(g => (
+                  <button key={g} onClick={() => { setGradeFilter(g); setClassFilter("all"); }}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${gradeFilter === g ? "bg-indigo-500 text-white" : "bg-white border border-neutral-200 text-neutral-600"}`}>
+                    {g === "all" ? "전체 학년" : `고${g}`}
+                  </button>
+                ))}
+                <button onClick={() => setMileageSort(prev => prev === "asc" ? "desc" : prev === "desc" ? "none" : "asc")} className="shrink-0 flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-200 text-neutral-600">
+                  <ArrowUpDown size={12} />
+                  {mileageSort === "asc" ? "마일리지 ↑" : mileageSort === "desc" ? "마일리지 ↓" : "정렬"}
                 </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {/* Teacher section */}
-      {!detailStudent && !showForm && (
-        <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100">
-            <h3 className="text-sm font-bold text-neutral-800">교사 목록</h3>
-            <button onClick={() => setShowForm("teacher")} className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-600">+ 추가</button>
-          </div>
-          <div className="divide-y divide-neutral-50">
-            {teachers.map(t => (
-              <div key={t.id} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-neutral-700">{t.name}</p>
-                  <p className="text-[11px] text-neutral-400">
-                    {t.assignedClassIds.map(id => classes.find((c: any) => c.id === id)?.name || id).join(", ") || "미배정"}
-                  </p>
-                </div>
-                <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-bold text-neutral-500">{t.role === "admin" ? "관리자" : "교사"}</span>
               </div>
-            ))}
-          </div>
-        </div>
+
+              {/* Student list */}
+              <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50 overflow-hidden">
+                {sorted.map(s => {
+                  const cls = classes.find((c: any) => c.id === s.classId);
+                  return (
+                    <button key={s.id} onClick={() => setDetailId(s.id)} className={`flex w-full items-center justify-between px-4 py-3 text-left ${!s.active ? "opacity-50" : ""}`}>
+                      <div className="flex items-center gap-3">
+                        <span className="grid h-9 w-9 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">{s.name[0]}</span>
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-800">{s.name}</p>
+                          <p className="text-[11px] text-neutral-400">{cls?.name || "미배정"} · {s.birthDate}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-indigo-600">{s.mileage}M</span>
+                        <ChevronRight size={16} className="text-neutral-300" />
+                      </div>
+                    </button>
+                  );
+                })}
+                {sorted.length === 0 && <p className="py-6 text-center text-xs text-neutral-400">검색 결과가 없습니다.</p>}
+              </div>
+            </>
+          )}
+
+          {listTab === "teachers" && (
+            <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50 overflow-hidden">
+              {teachers.filter(t => !search || t.name.includes(search)).map(t => (
+                <div key={t.id} className="flex items-center justify-between px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-700">{t.name}</p>
+                    <p className="text-[11px] text-neutral-400">
+                      {t.assignedClassIds.map(id => classes.find((c: any) => c.id === id)?.name || id).join(", ") || "미배정"} · {t.birthDate}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-bold text-neutral-500">{t.role === "admin" ? "관리자" : "교사"}</span>
+                </div>
+              ))}
+              {teachers.filter(t => !search || t.name.includes(search)).length === 0 && <p className="py-6 text-center text-xs text-neutral-400">검색 결과가 없습니다.</p>}
+            </div>
+          )}
+        </>
       )}
 
       {/* Student form */}
