@@ -203,6 +203,19 @@ export async function fetchActivities(): Promise<typeof mockData.activities> {
   return mockData.activities;
 }
 
+export async function createActivity(type: string, message: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  try {
+    await sb.from("community_activities").insert([{
+      id: "act_" + Date.now(),
+      type,
+      message,
+      created_at: new Date().toISOString(),
+    }]);
+  } catch { /* ignore */ }
+}
+
 /* ── 선생님 ── */
 export async function fetchTeachers(): Promise<Teacher[]> {
   const sb = getSupabase();

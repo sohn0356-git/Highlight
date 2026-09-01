@@ -9,8 +9,13 @@ import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
 
 export default function HomeContent() {
-  const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest, allStudents } = useApp();
+  const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
+
+  // 홈탭 열릴 때 최신 공지(활동) 갱신
+  useEffect(() => {
+    refreshActivities();
+  }, [refreshActivities]);
 
   // 홈 확인 일일 퀘스트 자동 달성
   useEffect(() => {

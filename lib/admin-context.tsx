@@ -5,6 +5,7 @@ import type { PrayerRequestAdmin } from "./admin-types";
 import { seedUsers, seedAdminStudents, seedAdminTeachers, seedAttendanceSessions, seedAttendanceRecords, seedQTContent, seedMissionAdmins, seedAnnouncements, seedRewards, seedRedemptions, seedSeasonAdmin, seedBadgeAdmins, seedAuditLogs, seedAdminSettings } from "./admin-seed-data";
 import { isSupabaseReady } from "./config";
 import { getSupabase } from "./supabase";
+import { createActivity } from "@/services/mileage-service";
 
 function loadArray<T>(key: string, fallback: T[]): T[] {
   if (typeof window === "undefined") return fallback;
@@ -324,6 +325,18 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   const awardsMileage = useCallback((target: "student" | "class" | "grade" | "all", targetId: string, amount: number, reason: string) => {
     const actorName = currentUser?.name || "관리자";
+    // 홈탭 공지 생성
+    if (isSupabaseReady) {
+      const targetLabel = target === "student"
+        ? (students.find(s => s.id === targetId)?.name || "학생")
+        : target === "class"
+          ? "반"
+          : target === "grade"
+            ? `고${targetId.replace(/\D/g, "")}학년`
+            : "전체";
+      const action = amount >= 0 ? `+${amount}M 지급` : `${amount}M 차감`;
+      createActivity("mileage", `${targetLabel} ${action} · ${reason}`);
+    }
     if (target === "student") {
       setStudents(prev => prev.map(s => s.id === targetId ? { ...s, mileage: s.mileage + amount } : s));
       const stu = students.find(s => s.id === targetId);

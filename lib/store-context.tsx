@@ -137,6 +137,7 @@ interface AppState {
   classes: typeof mockData.classes;
   allStudents: typeof mockData.students;
   activities: typeof mockData.activities;
+  refreshActivities: () => Promise<void>;
   sharedGoal: typeof mockData.shared_goal;
   teachers: Teacher[];
 }
@@ -821,6 +822,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return qtComments[postId] || [];
   }, [qtComments]);
 
+  const refreshActivities = useCallback(async () => {
+    if (!isSupabaseReady) return;
+    try {
+      const a = await fetchActivities();
+      if (a && a.length) setActivities(a);
+    } catch { /* keep current */ }
+  }, []);
+
   return (
     <ViewModeCtx.Provider value={{ mode, setMode: (m) => { if (typeof window !== "undefined") localStorage.setItem("app_view_mode", m); setMode(m); } }}>
     <Ctx.Provider value={{
@@ -857,6 +866,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       classes,
       allStudents,
       activities,
+      refreshActivities,
       sharedGoal,
       teachers,
     }}>
