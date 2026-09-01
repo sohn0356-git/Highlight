@@ -15,6 +15,21 @@ export default function MyContent() {
   const myClass = classes.find((c: any) => c.id === student.classId) as any;
   const nextLevelXp = 15000;
 
+  if (!myClass) {
+    return (
+      <div>
+        <div className="px-5 pt-7">
+          <PageHeader title="우리 반" showBack subtitle="서로를 위해, 함께 걸어요" right={<Users size={18} className="text-indigo-400" />} />
+        </div>
+        <section className="mt-10 px-5">
+          <Card className="text-center">
+            <p className="py-8 text-sm text-neutral-400">반 정보를 불러오는 중...</p>
+          </Card>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="px-5 pt-7">
