@@ -2,10 +2,10 @@ import { Lock } from "lucide-react";
 import type { Badge } from "@/lib/types";
 
 const LEVEL_COLORS = [
-  { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700", label: "Lv.1" },
-  { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", badge: "bg-blue-100 text-blue-700", label: "Lv.2" },
-  { bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700", badge: "bg-violet-100 text-violet-700", label: "Lv.3" },
-  { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", badge: "bg-amber-100 text-amber-700", label: "Lv.MAX" },
+  { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700" },
+  { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", badge: "bg-blue-100 text-blue-700" },
+  { bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700", badge: "bg-violet-100 text-violet-700" },
+  { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", badge: "bg-amber-100 text-amber-700" },
 ];
 
 function getLevel(progress: number, thresholds: number[]): number {
@@ -23,6 +23,9 @@ export default function BadgeCard({ badge }: { badge: Badge }) {
   const unlocked = level > 0;
   const color = unlocked ? LEVEL_COLORS[Math.min(level - 1, LEVEL_COLORS.length - 1)] : null;
 
+  const nextTarget = level < maxLevel ? thresholds[level] : thresholds[maxLevel - 1];
+  const actionLabel = badge.actionLabel || badge.description;
+
   return (
     <div className={`relative flex flex-col items-center rounded-2xl border p-3.5 text-center transition ${
       unlocked ? `${color!.border} ${color!.bg}` : "border-neutral-100 bg-neutral-50/80"
@@ -39,15 +42,13 @@ export default function BadgeCard({ badge }: { badge: Badge }) {
         </span>
       )}
 
-      {unlocked && level < maxLevel && (
-        <p className="mt-1 text-[10px] text-neutral-400">
-          {badge.progress} / {thresholds[level]}
+      {level < maxLevel ? (
+        <p className="mt-1.5 text-[11px] font-semibold text-neutral-500">
+          {actionLabel} <span className="text-neutral-400">{badge.progress}/{nextTarget}</span>
         </p>
-      )}
-
-      {!unlocked && (
-        <p className="mt-1 text-[10px] font-semibold text-neutral-300">
-          {badge.progress} / {thresholds[0]}
+      ) : (
+        <p className="mt-1.5 text-[11px] font-semibold text-neutral-500">
+          {actionLabel} <span className="text-neutral-400">달성!</span>
         </p>
       )}
     </div>
