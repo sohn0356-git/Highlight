@@ -22,6 +22,7 @@ import {
   getTransactions, addTransaction, updateStudentMileage,
 } from "./storage";
 import { isSupabaseReady } from "./config";
+import { fetchClassStats } from "./stats-service";
 import { updateClassXP } from "./class-xp-sync";
 
 /* ── Supabase lazy helpers ── */
@@ -256,7 +257,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setSharedGoal(sg);
           setActivities(a);
           setBadges(b);
-          if (cls && cls.length) setClasses(cls as any[]);
+          if (cls && cls.length) {
+            setClasses(cls as any[]);
+            // 반별 통계 실시간 계산
+            const classIds = (cls as any[]).map((c: any) => c.id);
+            const classStats = await fetchClassStats(classIds);
+            if (Object.keys(classStats).length) {
+              setClasses((prev: any[]) => prev.map((c: any) => {
+                const st = classStats[c.id];
+                if (!st) return c;
+                return {
+                  ...c,
+                  qtCount: st.qtCount,
+                  missionCount: st.missionCount,
+                  prayerCount: st.prayerCount,
+                  attendance: { attended: st.attendanceAttended, total: st.attendanceTotal },
+                };
+              }));
+            }
+          }
           setTeachers(tch);
           setDataLoaded(true);
         } catch { /* keep mock fallback */ }
