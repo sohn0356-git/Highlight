@@ -13,7 +13,7 @@ export default function AdminAttendance() {
   const { attendanceSessions, attendanceRecords, addAttendanceSession, closeAttendanceSession, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance, currentUser } = useAdmin();
   const { classes } = useApp();
   const [view, setView] = useState<"today" | "history">("today");
-  const [historyMode, setHistoryMode] = useState<"day" | "week" | "month">("day");
+  const [historyMode, setHistoryMode] = useState<"day" | "week" | "month">("week");
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedClass, setSelectedClass] = useState("all");
   const [showNewSession, setShowNewSession] = useState(false);
@@ -21,7 +21,14 @@ export default function AdminAttendance() {
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [newSession, setNewSession] = useState({
     eventName: "주일예배",
-    date: new Date().toISOString().slice(0, 10),
+    date: (() => {
+      const d = new Date();
+      const day = d.getDay();
+      // 이미 오늘이 주일(0)이면 오늘, 아니면 다음 주일
+      const daysUntilSun = day === 0 ? 0 : 7 - day;
+      d.setDate(d.getDate() + daysUntilSun);
+      return d.toISOString().slice(0, 10);
+    })(),
     startTime: "10:00",
     endTime: "12:00",
     mileageReward: 100,
@@ -94,7 +101,7 @@ export default function AdminAttendance() {
       {/* View tabs */}
       <div className="flex gap-1.5 rounded-xl bg-neutral-100 p-1">
         {[
-          { id: "today" as const, label: "오늘 출석", icon: <CalendarDays size={14} /> },
+          { id: "today" as const, label: "주일 출석", icon: <CalendarDays size={14} /> },
           { id: "history" as const, label: "출석 기록", icon: <History size={14} /> },
         ].map(t => (
           <button
@@ -117,7 +124,7 @@ export default function AdminAttendance() {
               onClick={() => setShowNewSession(true)}
               className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3.5 text-sm font-bold text-indigo-600"
             >
-              <Plus size={16} /> 오늘의 출석 생성
+              <Plus size={16} /> 이번 주일 출석 체크
             </button>
           )}
 
@@ -318,12 +325,22 @@ export default function AdminAttendance() {
               else d.setMonth(d.getMonth() - 1);
               setSelectedDate(d.toISOString().slice(0, 10));
             }} className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 bg-white text-neutral-500 active:bg-neutral-50"><ChevronLeft size={16} /></button>
-            <input
-              type={historyMode === "month" ? "month" : "date"}
-              className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm text-center font-semibold"
-              value={historyMode === "month" ? selectedDate.slice(0, 7) : selectedDate}
-              onChange={e => setSelectedDate(historyMode === "month" ? e.target.value + "-01" : e.target.value)}
-            />
+            <div className="flex-1 text-center">
+              <input
+                type={historyMode === "month" ? "month" : "date"}
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-center font-semibold"
+                value={historyMode === "month" ? selectedDate.slice(0, 7) : selectedDate}
+                onChange={e => setSelectedDate(historyMode === "month" ? e.target.value + "-01" : e.target.value)}
+              />
+              {historyMode === "week" && (
+                <p className="mt-1 text-[10px] text-neutral-400">
+                  {(() => {
+                    const { start, end } = getWeekRange(selectedDate);
+                    return `${start} ~ ${end}`;
+                  })()}
+                </p>
+              )}
+            </div>
             <button onClick={() => {
               const d = new Date(selectedDate);
               if (historyMode === "day") d.setDate(d.getDate() + 1);
@@ -332,6 +349,14 @@ export default function AdminAttendance() {
               setSelectedDate(d.toISOString().slice(0, 10));
             }} className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 bg-white text-neutral-500 active:bg-neutral-50"><ChevronRight size={16} /></button>
           </div>
+          {historyMode === "week" && (
+            <button
+              onClick={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
+              className="w-full rounded-lg bg-indigo-50 py-1.5 text-xs font-semibold text-indigo-600 active:bg-indigo-100"
+            >
+              이번 주로 이동
+            </button>
+          )}
 
           {/* Class filter */}
           <select className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
