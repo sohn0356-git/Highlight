@@ -16,7 +16,18 @@ export async function fetchStudents(): Promise<Student[]> {
   const sb = getSupabase();
   if (sb) {
     const { data, error } = await sb.from("students").select("*");
-    if (!error && data && data.length) return data as unknown as Student[];
+    if (!error && data && data.length) {
+      return data.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        birthDate: row.birth_date || row.birthDate || "",
+        classId: row.class_id || row.classId || "",
+        mileage: Number(row.mileage) || 0,
+        isTeacher: row.is_teacher || row.isTeacher || false,
+        role: row.role || "student",
+        assignedClassIds: row.assigned_class_ids || row.assignedClassIds || [],
+      })) as Student[];
+    }
   }
   return mockData.students;
 }
@@ -25,7 +36,23 @@ export async function fetchClasses(): Promise<ClassRoom[]> {
   const sb = getSupabase();
   if (sb) {
     const { data, error } = await sb.from("classes").select("*");
-    if (!error && data && data.length) return data as unknown as ClassRoom[];
+    if (!error && data && data.length) {
+      return data.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        level: Number(row.level) || 0,
+        xp: Number(row.xp) || 0,
+        weeklyXp: Number(row.weekly_xp || row.weeklyXp) || 0,
+        attendance: {
+          attended: Number(row.attendance_attended || 0),
+          total: Number(row.attendance_total || 0),
+        },
+        qtCount: Number(row.qt_count || 0),
+        missionCount: Number(row.mission_count || 0),
+        prayerCount: Number(row.prayer_count || 0),
+        classMessage: row.class_message || "",
+      })) as ClassRoom[];
+    }
   }
   return mockData.classes as unknown as ClassRoom[];
 }
