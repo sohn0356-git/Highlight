@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Plus, CalendarDays, History, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Plus, CalendarDays, History, CheckCircle2, XCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
 import type { AttendanceRecordAdmin, AttendanceState } from "@/lib/admin-types";
@@ -13,6 +13,7 @@ export default function AdminAttendance() {
   const { attendanceSessions, attendanceRecords, addAttendanceSession, closeAttendanceSession, addAttendanceRecord, bulkMarkAttendance, currentUser } = useAdmin();
   const { classes } = useApp();
   const [view, setView] = useState<"today" | "history">("today");
+  const [historyMode, setHistoryMode] = useState<"day" | "week" | "month">("day");
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedClass, setSelectedClass] = useState("all");
   const [showNewSession, setShowNewSession] = useState(false);
@@ -29,15 +30,35 @@ export default function AdminAttendance() {
   const students = useAdmin().students;
   const activeSession = attendanceSessions.find(s => s.active);
 
-  const filteredSessions = attendanceSessions.filter(s => s.date === selectedDate);
+  // 날짜 범위 유틸
+  const getWeekRange = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const day = d.getDay();
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - ((day + 6) % 7));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { start: monday.toISOString().slice(0, 10), end: sunday.toISOString().slice(0, 10) };
+  };
+
+  const filteredSessions = attendanceSessions.filter(s => {
+    if (historyMode === "day") return s.date === selectedDate;
+    if (historyMode === "week") {
+      const { start, end } = getWeekRange(selectedDate);
+      return s.date >= start && s.date <= end;
+    }
+    // month
+    return s.date.slice(0, 7) === selectedDate.slice(0, 7);
+  });
+
   const filteredRecords = attendanceRecords.filter(r => {
     const session = attendanceSessions.find(s => s.id === r.sessionId);
     if (!session) return false;
-    if (selectedClass !== "all" && session.date === selectedDate) {
+    if (selectedClass !== "all") {
       const stu = students.find(x => x.id === r.studentId);
       if (stu?.classId !== selectedClass) return false;
     }
-    return true;
+    return filteredSessions.some(s => s.id === r.sessionId);
   });
 
   function createSession() {
@@ -236,25 +257,91 @@ export default function AdminAttendance() {
       {/* History view */}
       {view === "history" && (
         <div className="space-y-3">
-          <div className="flex gap-2">
-            <input type="date" className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
-            <select className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-              <option value="all">전체 반</option>
-              {classes.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+          {/* Day / Week / Month tabs */}
+          <div className="flex gap-1.5 rounded-xl bg-neutral-100 p-1">
+            {([
+              { id: "day" as const, label: "일별" },
+              { id: "week" as const, label: "주별" },
+              { id: "month" as const, label: "월별" },
+            ]).map(t => (
+              <button
+                key={t.id}
+                onClick={() => setHistoryMode(t.id)}
+                className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
+                  historyMode === t.id ? "bg-white text-indigo-600 shadow-sm" : "text-neutral-500"
+                }`}
+              >{t.label}</button>
+            ))}
           </div>
+
+          {/* Date navigator */}
+          <div className="flex items-center gap-2">
+            <button onClick={() => {
+              const d = new Date(selectedDate);
+              if (historyMode === "day") d.setDate(d.getDate() - 1);
+              else if (historyMode === "week") d.setDate(d.getDate() - 7);
+              else d.setMonth(d.getMonth() - 1);
+              setSelectedDate(d.toISOString().slice(0, 10));
+            }} className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 bg-white text-neutral-500 active:bg-neutral-50"><ChevronLeft size={16} /></button>
+            <input
+              type={historyMode === "month" ? "month" : "date"}
+              className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm text-center font-semibold"
+              value={historyMode === "month" ? selectedDate.slice(0, 7) : selectedDate}
+              onChange={e => setSelectedDate(historyMode === "month" ? e.target.value + "-01" : e.target.value)}
+            />
+            <button onClick={() => {
+              const d = new Date(selectedDate);
+              if (historyMode === "day") d.setDate(d.getDate() + 1);
+              else if (historyMode === "week") d.setDate(d.getDate() + 7);
+              else d.setMonth(d.getMonth() + 1);
+              setSelectedDate(d.toISOString().slice(0, 10));
+            }} className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 bg-white text-neutral-500 active:bg-neutral-50"><ChevronRight size={16} /></button>
+          </div>
+
+          {/* Class filter */}
+          <select className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+            <option value="all">전체 반</option>
+            {classes.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+
+          {/* Summary */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl bg-emerald-50 p-3 text-center">
+              <p className="text-lg font-bold text-emerald-600">{filteredRecords.filter(r => r.state === "present").length}</p>
+              <p className="text-[10px] font-semibold text-emerald-500">출석</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 p-3 text-center">
+              <p className="text-lg font-bold text-amber-600">{filteredRecords.filter(r => r.state === "late").length}</p>
+              <p className="text-[10px] font-semibold text-amber-500">지각</p>
+            </div>
+            <div className="rounded-xl bg-rose-50 p-3 text-center">
+              <p className="text-lg font-bold text-rose-600">{filteredRecords.filter(r => r.state === "absent").length}</p>
+              <p className="text-[10px] font-semibold text-rose-500">결석</p>
+            </div>
+          </div>
+
+          {/* Session list */}
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50">
+            {filteredSessions.length === 0 && (
+              <div className="flex flex-col items-center gap-2 py-8 text-neutral-400">
+                <AlertCircle size={24} />
+                <p className="text-xs">해당 기간에 출석 세션이 없습니다.</p>
+              </div>
+            )}
             {filteredSessions.map(sess => {
               const count = attendanceRecords.filter(r => r.sessionId === sess.id).length;
+              const present = attendanceRecords.filter(r => r.sessionId === sess.id && r.state === "present").length;
               return (
                 <div key={sess.id} className="flex items-center justify-between px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-neutral-700">{sess.eventName}</p>
                     <p className="text-[11px] text-neutral-400">{sess.date} · {sess.startTime}~{sess.endTime} · {count}명 체크</p>
                   </div>
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${sess.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
-                    {sess.active ? "진행 중" : "종료"}
-                  </span>
+                  <div className="text-right">
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${sess.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
+                      {count > 0 ? `${present}/${count}` : sess.active ? "진행 중" : "종료"}
+                    </span>
+                  </div>
                 </div>
               );
             })}
