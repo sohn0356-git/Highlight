@@ -28,7 +28,8 @@ html {
 body {
   background-color: #f7f6f3;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  overflow-y: auto;
   font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard Variable", Pretendard, "Noto Sans KR", Roboto, "Segoe UI", sans-serif;
 }
 
@@ -67,14 +68,10 @@ html, body, body > div, body > main {
 
 /* PWA standalone: 바탕화면/홈화면에서 전체 화면, 데스크톱처럼 보이지 않게 */
 @media (display-mode: standalone) {
-  html, body {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
   body {
-    touch-action: manipulation;
     -webkit-touch-callout: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
