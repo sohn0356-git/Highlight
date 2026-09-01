@@ -126,12 +126,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/80">
                     <div className={`h-full rounded-full ${rs.bar}`} style={{ width: `${pct}%` }} />
                   </div>
-                  {i === 2 && (
-                    <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-orange-50 px-2.5 py-1.5">
-                      <span className="text-xs">🔥</span>
-                      <p className="text-[11px] font-bold text-orange-600">조금만 더하면 2등이에요!</p>
-                    </div>
-                  )}
+
                 </div>
               );
             })}
