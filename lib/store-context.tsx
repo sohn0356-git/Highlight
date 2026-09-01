@@ -7,6 +7,12 @@ import { showPointToast } from "@/components/PointToast";
 import {
   fetchStudents, fetchClasses, fetchMissions, fetchBadges, fetchPrayers,
   fetchTodayQT, fetchSeason, fetchSharedGoal, fetchActivities, fetchTeachers,
+  fetchDailyQuests, completeDailyQuestRemote,
+  fetchTransactions, fetchQTRecords, fetchCompletedMissions,
+  fetchPrayerParticipants, prayForRemote,
+  fetchSharedQTDates, fetchSharedPosts, createSharedPost,
+  fetchComments, addCommentToPost,
+  addPrayer, updatePrayerRemote, deletePrayerRemote,
 } from "@/services/mileage-service";
 import {
   getSession, setSession, clearSession,
@@ -37,7 +43,7 @@ async function upsertSupabase(table: string, row: any) {
     const sb = mod.getSupabase();
     if (!sb) return;
     await sb.from(table).upsert(row);
-  } catch { /* ignore – localStorage is already updated */ }
+  } catch { /* ignore */ }
 }
 
 async function updateSupabase(table: string, match: Record<string, unknown>, patch: Record<string, unknown>) {
@@ -47,6 +53,26 @@ async function updateSupabase(table: string, match: Record<string, unknown>, pat
     const sb = mod.getSupabase();
     if (!sb) return;
     await sb.from(table).update(patch).match(match);
+  } catch { /* ignore */ }
+}
+
+async function insertSupabase(table: string, row: any) {
+  if (!isSupabaseReady) return;
+  try {
+    const mod = await import("./supabase");
+    const sb = mod.getSupabase();
+    if (!sb) return;
+    await sb.from(table).insert([row]);
+  } catch { /* ignore */ }
+}
+
+async function deleteSupabase(table: string, match: Record<string, unknown>) {
+  if (!isSupabaseReady) return;
+  try {
+    const mod = await import("./supabase");
+    const sb = mod.getSupabase();
+    if (!sb) return;
+    await sb.from(table).delete().match(match);
   } catch { /* ignore */ }
 }
 
@@ -108,7 +134,6 @@ export function useApp() {
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  // 동기 복원: 첫 렌더링부터 세션 반영 → 점멸/리다이렉트 루프 방지
   const [mode, setMode] = useState<AppViewMode>(() => {
     if (typeof window === "undefined") return "student";
     return (localStorage.getItem("app_view_mode") as AppViewMode) || "student";
@@ -117,7 +142,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [student, setStudent] = useState<Student | null>(() => {
     const s = getSession();
     if (!s) return null;
-    // Always ensure admin/teacher roles are correct
     const adminMap: Record<string, { role: string; assignedClassIds?: string[] }> = {
       "홍길동": { role: "admin", assignedClassIds: ["c1"] },
       "김선생": { role: "teacher", assignedClassIds: ["c1", "c2"] },
@@ -141,27 +165,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const [prayers, setPrayers] = useState<PrayerRequest[]>(mockData.prayers);
   const [txns, setTxns] = useState<MileageTransaction[]>([]);
-
-  // 일일 퀘스트 매일 리셋 + 저장
-  useEffect(() => {
+  const [dailyQuestIds, setDailyQuestIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
     const today = new Date().toISOString().slice(0, 10);
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("mileage_daily_quests");
-      try {
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.date !== today) {
-            setDailyQuestIds([]);
-            localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: [] }));
-          }
-        } else {
-          localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: [] }));
-        }
-      } catch {
-        localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: [] }));
+    const saved = localStorage.getItem("mileage_daily_quests");
+    try {
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.date === today) return parsed.ids;
       }
-    }
-  }, []);
+    } catch {}
+    return [];
+  });
   const [sharedQTDates, setSharedQTDates] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try { return JSON.parse(localStorage.getItem("mileage_shared_qt") || "[]"); }
@@ -181,23 +196,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { ...(mockData.qt_comments || {}), ...local };
     } catch { return mockData.qt_comments || {}; }
   });
-
-  // Supabase에서 관리되는 데이터 (mock 폴백)
   const [qtToday, setQtToday] = useState(mockData.qt_today);
   const [missions, setMissions] = useState(mockData.missions);
   const [dailyQuests, setDailyQuests] = useState(mockData.daily_quests);
-  const [dailyQuestIds, setDailyQuestIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    const today = new Date().toISOString().slice(0, 10);
-    const saved = localStorage.getItem("mileage_daily_quests");
-    try {
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.date === today) return parsed.ids;
-      }
-    } catch {}
-    return [];
-  });
   const [season, setSeason] = useState(mockData.season);
   const [sharedGoal, setSharedGoal] = useState(mockData.shared_goal);
   const [activities, setActivities] = useState(mockData.activities);
@@ -206,20 +207,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // qtToday 날짜를 오늘 날짜로 자동 갱신
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
     setQtToday(prev => prev.date === today ? prev : { ...prev, date: today });
   }, []);
 
-  /* On mount: init prayers + try load from Supabase */
+  /* ── On mount: DB-first load with localStorage fallback ── */
   useEffect(() => {
     initPrayers(mockData.prayers);
     setPrayers(getPrayers());
     setTxns(getTransactions());
     if (isSupabaseReady) {
       (async () => {
-        // 정적 데이터를 Supabase에서 우선 로드
+        const today = new Date().toISOString().slice(0, 10);
         try {
           const [q, m, s, sg, a, b, cls, tch] = await Promise.all([
             fetchTodayQT(), fetchMissions(), fetchSeason(), fetchSharedGoal(),
@@ -235,26 +235,90 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setTeachers(tch);
           setDataLoaded(true);
         } catch { /* keep mock fallback */ }
-        try {
-          const mod = await import("./supabase");
-          const sb = mod.getSupabase();
-          if (!sb) return;
-          if (student) {
-            const { data } = await sb.from("qt_records").select("*").eq("student_id", student.id);
-            if (data && data.length) {
-              setQtRecords(data as QTRecord[]);
-              setQtDoneToday(data.some((r: any) => r.date === new Date().toISOString().slice(0, 10)));
+
+        // Load student-specific data from DB
+        if (student) {
+          try {
+            const [dbQT, dbMissions, dbTxns, dbPrayers, dbDailyIds, dbSharedPosts, dbComments, dbSharedDates, dbPrayerParts] = await Promise.all([
+              fetchQTRecords(student.id),
+              fetchCompletedMissions(student.id),
+              fetchTransactions(student.id),
+              fetchPrayers(student.id),
+              fetchDailyQuests(student.id, today),
+              fetchSharedPosts(),
+              Promise.all([]) as any,
+              fetchSharedQTDates(student.id),
+              fetchPrayerParticipants(student.id),
+            ]);
+
+            if (dbQT && dbQT.length) {
+              setQtRecords(dbQT as QTRecord[]);
+              setQtDoneToday(dbQT.some((r: any) => r.date === today));
+            } else {
+              // localStorage fallback
+              const localQT = getQTRecords();
+              if (localQT.length) setQtRecords(localQT);
             }
-            const { data: missions } = await sb.from("completed_missions").select("mission_id").eq("student_id", student.id);
-            if (missions && missions.length) {
-              setCompletedMissionIds(missions.map((m: any) => m.mission_id));
+
+            if (dbMissions && dbMissions.length) {
+              setCompletedMissionIds(dbMissions);
+            } else {
+              setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
             }
-          }
-          const { data: prayersData } = await sb.from("prayer_requests").select("*").order("created_at", { ascending: false });
-          if (prayersData && prayersData.length) {
-            setPrayers(prayersData as unknown as PrayerRequest[]);
-          }
-        } catch { /* keep local */ }
+
+            if (dbTxns && dbTxns.length) {
+              setTxns(dbTxns as MileageTransaction[]);
+            } else {
+              setTxns(getTransactions());
+            }
+
+            if (dbPrayers && dbPrayers.length) {
+              setPrayers(dbPrayers as unknown as PrayerRequest[]);
+            } else {
+              setPrayers(getPrayers());
+            }
+
+            if (dbDailyIds && dbDailyIds.length) {
+              setDailyQuestIds(dbDailyIds);
+              localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: dbDailyIds }));
+            }
+
+            if (dbSharedDates && dbSharedDates.length) {
+              setSharedQTDates(dbSharedDates);
+              localStorage.setItem("mileage_shared_qt", JSON.stringify(dbSharedDates));
+            }
+
+            if (dbSharedPosts && dbSharedPosts.length) {
+              setSharedPosts(dbSharedPosts as SharedQTPost[]);
+              localStorage.setItem("mileage_shared_posts", JSON.stringify(dbSharedPosts));
+            }
+
+            // Load comments for shared posts
+            if (dbSharedPosts && dbSharedPosts.length) {
+              const allComments: Record<string, QTComment[]> = {};
+              for (const post of dbSharedPosts) {
+                const comments = await fetchComments(post.id);
+                if (comments.length) allComments[post.id] = comments;
+              }
+              if (Object.keys(allComments).length) {
+                setQtComments(allComments);
+                localStorage.setItem("mileage_qt_comments", JSON.stringify(allComments));
+              }
+            }
+
+            // Load all students for ranking
+            const allStu = await fetchStudents();
+            if (allStu.length) setAllStudents(allStu);
+          } catch { /* keep local */ }
+        } else {
+          // No student logged in, still load prayers from DB
+          try {
+            const dbPrayers = await fetchPrayers();
+            if (dbPrayers && dbPrayers.length) {
+              setPrayers(dbPrayers as unknown as PrayerRequest[]);
+            }
+          } catch { /* ignore */ }
+        }
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -262,7 +326,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /* ── LOGIN ── */
   const login = useCallback(async (name: string, birthDate: string): Promise<boolean> => {
-    // Check admin/teacher accounts first (highest priority)
     const adminMap: Record<string, { id: string; role: string; assignedClassIds?: string[] }> = {
       "홍길동": { id: "s1", role: "admin", assignedClassIds: ["c1"] },
       "김선생": { id: "t001", role: "teacher", assignedClassIds: ["c1", "c2"] },
@@ -290,10 +353,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
       setPrayers(getPrayers());
       setTxns(getTransactions());
+      // Load from DB for admin/teacher
+      if (isSupabaseReady) {
+        try {
+          const dbPrayers = await fetchPrayers();
+          if (dbPrayers && dbPrayers.length) setPrayers(dbPrayers as unknown as PrayerRequest[]);
+          const allStu = await fetchStudents();
+          if (allStu.length) setAllStudents(allStu);
+        } catch { /* ignore */ }
+      }
       return true;
     }
 
-    // Try Supabase next
     if (isSupabaseReady) {
       try {
         const mod = await import("./supabase");
@@ -316,14 +387,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             };
             setSession(s);
             setStudent(s);
-            setQtDoneToday(isQTCompletedToday());
-            setQtRecords(getQTRecords());
-            setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
-            setPrayers(getPrayers());
-            setTxns(getTransactions());
+            // Load all student-specific data from DB
+            const today = new Date().toISOString().slice(0, 10);
+            const [dbQT, dbMissions, dbTxns, dbPrayers, dbDailyIds, dbSharedPosts, dbSharedDates] = await Promise.all([
+              fetchQTRecords(s.id),
+              fetchCompletedMissions(s.id),
+              fetchTransactions(s.id),
+              fetchPrayers(s.id),
+              fetchDailyQuests(s.id, today),
+              fetchSharedPosts(),
+              fetchSharedQTDates(s.id),
+            ]);
+            if (dbQT && dbQT.length) {
+              setQtRecords(dbQT as QTRecord[]);
+              setQtDoneToday(dbQT.some((r: any) => r.date === today));
+            } else {
+              setQtDoneToday(isQTCompletedToday());
+              setQtRecords(getQTRecords());
+            }
+            if (dbMissions && dbMissions.length) setCompletedMissionIds(dbMissions);
+            else setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
+            if (dbTxns && dbTxns.length) setTxns(dbTxns as MileageTransaction[]);
+            else setTxns(getTransactions());
+            if (dbPrayers && dbPrayers.length) setPrayers(dbPrayers as unknown as PrayerRequest[]);
+            else setPrayers(getPrayers());
+            if (dbDailyIds && dbDailyIds.length) {
+              setDailyQuestIds(dbDailyIds);
+              localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: dbDailyIds }));
+            }
+            if (dbSharedDates && dbSharedDates.length) {
+              setSharedQTDates(dbSharedDates);
+              localStorage.setItem("mileage_shared_qt", JSON.stringify(dbSharedDates));
+            }
+            if (dbSharedPosts && dbSharedPosts.length) {
+              setSharedPosts(dbSharedPosts as SharedQTPost[]);
+            }
+            // Load comments
+            if (dbSharedPosts && dbSharedPosts.length) {
+              const allComments: Record<string, QTComment[]> = {};
+              for (const post of dbSharedPosts) {
+                const comments = await fetchComments(post.id);
+                if (comments.length) allComments[post.id] = comments;
+              }
+              if (Object.keys(allComments).length) setQtComments(allComments);
+            }
             return true;
           }
-          // 선생님 계정 확인
           const { data: remoteTeachers } = await sb
             .from("teachers")
             .select("*")
@@ -346,7 +455,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setQtDoneToday(isQTCompletedToday());
             setQtRecords(getQTRecords());
             setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
-            setPrayers(getPrayers());
+            const dbPrayers = await fetchPrayers();
+            if (dbPrayers && dbPrayers.length) setPrayers(dbPrayers as unknown as PrayerRequest[]);
+            else setPrayers(getPrayers());
             setTxns(getTransactions());
             return true;
           }
@@ -354,7 +465,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch { /* fall through to local mock */ }
     }
 
-    // Fallback: local mock
     const found = mockData.students.find(
       s => s.name === name.trim() && s.birthDate === birthDate.trim()
     );
@@ -378,17 +488,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCompletedMissionIds([]);
     setTxns([]);
     setPrayers(mockData.prayers);
+    setDailyQuestIds([]);
+    setSharedQTDates([]);
+    setSharedPosts([]);
+    setQtComments({});
   }, []);
 
-  /* ── QT ── */
-  // 일일 퀘스트 완료 함수
+  /* ── Daily Quest ── */
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("mileage_daily_quests");
+      try {
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.date !== today) {
+            setDailyQuestIds([]);
+            localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: [] }));
+          }
+        } else {
+          localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: [] }));
+        }
+      } catch {
+        localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: [] }));
+      }
+    }
+  }, []);
+
   const completeDailyQuest = useCallback((questId: string) => {
     const today = new Date().toISOString().slice(0, 10);
     const quest = dailyQuests.find(q => q.id === questId);
     if (!quest || !student) return;
     setDailyQuestIds(prev => {
       if (prev.includes(questId)) return prev;
-      return [...prev, questId];
+      const next = [...prev, questId];
+      // localStorage backup
+      if (typeof window !== "undefined")
+        localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: next }));
+      // DB write
+      completeDailyQuestRemote(student.id, questId, today, quest.reward);
+      return next;
     });
     // 마일리지 보상
     const updated = updateStudentMileage(student.id, quest.reward, student);
@@ -404,15 +543,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addTransaction(tx);
     setTxns(prev => [...prev, tx]);
     showPointToast(`+${quest.reward}M 획득!`);
-    // 배지 progress 업데이트
     updateBadges(student.id);
-    // localStorage 저장
-    if (typeof window !== "undefined") {
-      setDailyQuestIds(prev => {
-        localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: prev }));
-        return prev;
-      });
-    }
+    // DB writes
     updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
     upsertSupabase("mileage_transactions", tx);
   }, [dailyQuests, student]);
@@ -422,27 +554,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setBadges(prev => prev.map(b => {
       let progress = b.progress;
       if (b.id === "b1" || b.id === "b2" || b.id === "b8") {
-        // QT 관련 배지
-        const qtCount = getQTRecords().filter(r => r.studentId === sid).length + 1;
+        const qtCount = qtRecords.filter(r => r.studentId === sid).length + 1;
         progress = qtCount;
       } else if (b.id === "b3") {
-        // 예배자 - 출석 기록 기반
         progress = (progress || 0) + 1;
       } else if (b.id === "b4" || b.id === "b7") {
-        // 기도 관련
         progress = (progress || 0) + 1;
       } else if (b.id === "b5") {
-        // 미션 완료
         progress = (progress || 0) + 1;
       } else if (b.id === "b6") {
-        // 마일리지
         const s = student;
         if (s) progress = s.mileage;
       }
       return { ...b, progress };
     }));
-  }, [student]);
+  }, [student, qtRecords]);
 
+  /* ── QT ── */
   const completeQTHandler = useCallback(async (remembered: string, application: string) => {
     if (!student || qtDoneToday) return;
     const updated = updateStudentMileage(student.id, 20, student);
@@ -473,7 +601,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addTransaction(tx);
     setTxns(prev => [...prev, tx]);
     completeDailyQuest("d1");
-    // Supabase writes
+    // DB writes
     await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
     await upsertSupabase("qt_records", rec);
     await upsertSupabase("mileage_transactions", tx);
@@ -504,7 +632,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     addTransaction(tx);
     setTxns(prev => [...prev, tx]);
-    // Supabase writes
+    // DB writes
     await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
     await upsertSupabase("completed_missions", { mission_id: missionId, student_id: student.id, reward: mission.reward, completed_at: completed.completedAt });
     await upsertSupabase("mileage_transactions", tx);
@@ -514,7 +642,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const prayForHandler = useCallback(async (prayerId: string) => {
     if (!student) return;
     if (hasPrayed(prayerId, student.id)) return;
-    // 기도 참여 보상 +5M
     const updated = updateStudentMileage(student.id, 5, student);
     setStudent(updated);
     setPrayers(prev => {
@@ -536,28 +663,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showPointToast("+5M 기도 참여!");
     updateBadges(student.id);
     completeDailyQuest("d3");
-    // Supabase writes
-    const asyncWrite = async () => {
-      await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
-      await upsertSupabase("mileage_transactions", tx);
-      if (isSupabaseReady) {
-        try {
-          const mod = await import("./supabase");
-          const sb = mod.getSupabase();
-          if (sb) {
-            await sb.from("prayer_requests").update({ prayer_count: { raw: "prayer_count + 1" } }).eq("id", prayerId);
-            await sb.from("prayer_participants").upsert([{ prayer_id: prayerId, student_id: student.id }]);
-          }
-        } catch { /* ignore */ }
-      }
-    };
-    asyncWrite();
+    // DB writes
+    await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
+    await upsertSupabase("mileage_transactions", tx);
+    await prayForRemote(student.id, prayerId);
   }, [student, completeDailyQuest]);
 
   const addPrayerRequest = useCallback(async (content: string, anonymous: boolean) => {
     if (!student) return;
     const newPrayer: PrayerRequest = {
       id: "pr_" + Date.now(),
+      studentId: student.id,
       authorName: anonymous ? null : student.name,
       anonymous,
       content,
@@ -571,20 +687,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("mileage_prayers", JSON.stringify(next));
       return next;
     });
-    // Supabase writes
-    if (isSupabaseReady) {
-      try {
-        const mod = await import("./supabase");
-        const sb = mod.getSupabase();
-        if (sb) await sb.from("prayer_requests").insert([newPrayer]);
-      } catch { /* ignore */ }
-    }
+    // DB write
+    await addPrayer(newPrayer);
   }, [student]);
 
-  // 오늘 올린 기도제목 수
   const todayPrayerCount = prayers.filter(p => p.createdAt?.startsWith(new Date().toISOString().slice(0, 10))).length;
 
-  const updatePrayerRequest = useCallback((prayerId: string, newContent: string) => {
+  const updatePrayerRequest = useCallback(async (prayerId: string, newContent: string) => {
     if (!student) return;
     setPrayers(prev => {
       const next = prev.map(p => p.id === prayerId ? { ...p, content: newContent } : p);
@@ -592,9 +701,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("mileage_prayers", JSON.stringify(next));
       return next;
     });
+    // DB write
+    await updatePrayerRemote(prayerId, newContent);
   }, [student]);
 
-  const deletePrayerRequest = useCallback((prayerId: string) => {
+  const deletePrayerRequest = useCallback(async (prayerId: string) => {
     if (!student) return;
     setPrayers(prev => {
       const next = prev.filter(p => p.id !== prayerId);
@@ -602,13 +713,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("mileage_prayers", JSON.stringify(next));
       return next;
     });
+    // DB write
+    await deletePrayerRemote(prayerId);
   }, [student]);
 
+  /* ── SHARED QT ── */
   const shareQT = useCallback((): boolean => {
     if (!student) return false;
     const today = new Date().toISOString().slice(0, 10);
     if (sharedQTDates.includes(today)) return false;
-    // 보너스 마일리지 (+10M)
     const updated = updateStudentMileage(student.id, 10, student);
     setStudent(updated);
     const newShared = [...sharedQTDates, today];
@@ -616,8 +729,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined")
       localStorage.setItem("mileage_shared_qt", JSON.stringify(newShared));
 
-    // 공유 피드에 게시글 등록 (앱 사용자 모두가 볼 수 있게)
-    const qtRec = getQTRecords().find(r => r.date === today) || null;
+    const qtRec = qtRecords.find(r => r.date === today) || null;
     const myClass = classes.find(c => c.id === student.classId) as any;
     const post: SharedQTPost = {
       id: "qp_" + Date.now(),
@@ -651,15 +763,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addTransaction(tx);
     setTxns(prev => [...prev, tx]);
     completeDailyQuest("d2");
-    // Supabase
-    const asyncWrite = async () => {
+    // DB writes
+    (async () => {
       await updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
       await upsertSupabase("mileage_transactions", tx);
-      await upsertSupabase("shared_qt_posts", post);
-    };
-    asyncWrite();
+      await createSharedPost(post);
+    })();
     return true;
-  }, [student, sharedQTDates, qtToday, classes, completeDailyQuest]);
+  }, [student, sharedQTDates, qtToday, classes, completeDailyQuest, qtRecords]);
 
   /* ── QT 공유 댓글 ── */
   const addComment = useCallback((postId: string, content: string) => {
@@ -685,11 +796,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("mileage_shared_posts", JSON.stringify(posts));
     }
     completeDailyQuest("d7");
-    // Supabase
-    const asyncWrite = async () => {
-      await upsertSupabase("qt_comments", comment);
-    };
-    asyncWrite();
+    // DB write
+    addCommentToPost(comment);
   }, [student, completeDailyQuest]);
 
   const fetchPostComments = useCallback((postId: string): QTComment[] => {

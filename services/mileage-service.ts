@@ -69,21 +69,6 @@ export async function addPrayer(prayer: PrayerRequest) {
   }
 }
 
-export async function prayForRemote(prayerId: string, studentId: string) {
-  const sb = getSupabase();
-  if (!sb) return false;
-  // Check if already prayed
-  const { data: existing } = await sb
-    .from("prayer_participants")
-    .select("id")
-    .eq("prayer_id", prayerId)
-    .eq("student_id", studentId);
-  if (existing && existing.length) return false;
-  // Increment count + insert participant
-  await sb.from("prayer_requests").update({ prayer_count: { raw: "prayer_count + 1" } }).eq("id", prayerId);
-  await sb.from("prayer_participants").insert([{ prayer_id: prayerId, student_id: studentId }]);
-  return true;
-}
 
 export const isSupabaseAvailable = () => isSupabaseConfigured();
 
@@ -226,4 +211,104 @@ export async function fetchBadgesRemote(): Promise<typeof mockData.badges> {
     }
   }
   return mockData.badges;
+}
+
+/* ── 일일 퀘스트 (DB) ── */
+export async function fetchDailyQuests(studentId: string, today: string): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.from("daily_quests").select("quest_id").eq("student_id", studentId).eq("date", today);
+  if (!error && data) return data.map((r: any) => r.quest_id);
+  return [];
+}
+
+export async function completeDailyQuestRemote(studentId: string, questId: string, today: string, reward: number): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.from("daily_quests").upsert({
+    student_id: studentId,
+    quest_id: questId,
+    date: today,
+    reward,
+  }, { onConflict: "student_id,quest_id,date" });
+}
+
+/* ── 마일리지 내역 (DB) ── */
+export async function fetchTransactions(studentId: string): Promise<any[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.from("mileage_transactions").select("*").eq("student_id", studentId).order("date", { ascending: false }).limit(100);
+  if (!error && data) return data;
+  return [];
+}
+
+/* ── QT 기록 (DB) ── */
+export async function fetchQTRecords(studentId: string): Promise<any[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.from("qt_records").select("*").eq("student_id", studentId);
+  if (!error && data) return data;
+  return [];
+}
+
+/* ── 완료 미션 (DB) ── */
+export async function fetchCompletedMissions(studentId: string): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.from("completed_missions").select("mission_id").eq("student_id", studentId);
+  if (!error && data) return data.map((r: any) => r.mission_id);
+  return [];
+}
+
+/* ── 기도 참여 기록 (DB) ── */
+export async function fetchPrayerParticipants(studentId: string): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.from("prayer_participants").select("prayer_id").eq("student_id", studentId);
+  if (!error && data) return data.map((r: any) => r.prayer_id);
+  return [];
+}
+
+export async function prayForRemote(studentId: string, prayerId: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.from("prayer_participants").upsert({ prayer_id: prayerId, student_id: studentId });
+  await sb.from("prayer_requests").update({ prayer_count: { raw: "prayer_count + 1" } }).eq("id", prayerId);
+}
+
+/* ── QT 공유 날짜 (DB) ── */
+export async function fetchSharedQTDates(studentId: string): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.from("shared_qt_posts").select("date").eq("student_id", studentId);
+  if (!error && data) return [...new Set(data.map((r: any) => r.date))];
+  return [];
+}
+
+/* ── 기도제목 CRUD (DB) ── */
+export async function fetchPrayerCounts(prayerId: string): Promise<number> {
+  const sb = getSupabase();
+  if (!sb) return 0;
+  const { data, error } = await sb.from("prayer_participants").select("*").eq("prayer_id", prayerId);
+  if (!error && data) return data.length;
+  return 0;
+}
+
+export async function addPrayerRemote(prayer: any): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.from("prayer_requests").insert([prayer]);
+}
+
+export async function updatePrayerRemote(prayerId: string, content: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.from("prayer_requests").update({ content }).eq("id", prayerId);
+}
+
+export async function deletePrayerRemote(prayerId: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.from("prayer_requests").delete().eq("id", prayerId);
+  await sb.from("prayer_participants").delete().eq("prayer_id", prayerId);
 }
