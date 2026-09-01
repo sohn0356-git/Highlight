@@ -12,6 +12,8 @@ export default function QTContent() {
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
   const [sharedMsg, setSharedMsg] = useState("");
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
 
   if (!student || !isLoggedIn) return null;
 
@@ -119,25 +121,69 @@ export default function QTContent() {
       )}
 
       <section className="mt-5 px-5 pb-6">
-        <div className="flex items-center gap-2">
-          <Calendar size={16} className="text-neutral-400" />
-          <h3 className="text-sm font-bold text-neutral-800">내 QT 기록</h3>
-        </div>
-        <div className="mt-2 flex flex-col gap-2">
-          {qtRecords.length === 0 && (
-            <p className="py-6 text-center text-sm text-neutral-400">아직 QT 기록이 없어요.</p>
-          )}
-          {qtRecords.slice().reverse().map(r => (
-            <Card key={r.id} className="!p-3.5">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-neutral-700">{r.date}</p>
-                <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">+{r.reward}M</span>
-              </div>
-              <p className="mt-1 text-xs text-neutral-500">{r.passage}</p>
-            </Card>
-          ))}
-        </div>
+        <button
+          onClick={() => setShowRecordModal(true)}
+          className="flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3.5 shadow-sm active:scale-[0.98] transition"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-lg">📖</span>
+            <div className="text-left">
+              <p className="text-sm font-bold text-neutral-800">내 QT 기록</p>
+              <p className="text-xs text-neutral-400">{qtRecords.length}개의 기록</p>
+            </div>
+          </div>
+          <span className="text-lg text-neutral-300">›</span>
+        </button>
       </section>
+
+      {showRecordModal && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+            <h2 className="text-base font-bold text-neutral-900">QT 기록 ({qtRecords.length}개)</h2>
+            <button onClick={() => setShowRecordModal(false)} className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">
+              ✕
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            {qtRecords.length === 0 ? (
+              <p className="py-12 text-center text-sm text-neutral-400">아직 QT 기록이 없어요.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {qtRecords.slice().reverse().map(r => (
+                  <div key={r.id} onClick={() => setExpandedRecord(expandedRecord === r.id ? null : r.id)} className="cursor-pointer rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-3.5 transition active:bg-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">📖</span>
+                        <p className="text-sm font-bold text-neutral-800">{r.passage}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">+{r.reward}M</span>
+                        <span className={`text-xs transition-transform ${expandedRecord === r.id ? "rotate-90" : ""}`}>›</span>
+                      </div>
+                    </div>
+                    <p className="mt-1 text-[11px] text-neutral-400">{r.date}</p>
+                    {expandedRecord === r.id && (
+                      <div className="mt-3 rounded-xl bg-white p-3.5 border border-neutral-100">
+                        <blockquote className="border-l-2 border-indigo-200 pl-3 text-sm italic text-neutral-600">&ldquo;{r.verse}&rdquo;</blockquote>
+                        <div className="mt-3 space-y-2">
+                          <div className="rounded-lg bg-indigo-50/70 px-3 py-2.5">
+                            <p className="text-[11px] font-bold text-indigo-600">💡 기억나는 말씀</p>
+                            <p className="mt-1 text-xs leading-relaxed text-neutral-700">{r.remembered}</p>
+                          </div>
+                          <div className="rounded-lg bg-emerald-50/70 px-3 py-2.5">
+                            <p className="text-[11px] font-bold text-emerald-600">🌱 실천할 것</p>
+                            <p className="mt-1 text-xs leading-relaxed text-neutral-700">{r.application}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mt-2 pb-6">
         <SharedQTFeed />
