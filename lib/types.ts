@@ -94,6 +94,7 @@ export interface PrayerRequest {
   prayerCount: number;
   createdAt: string;
   prayedBy: string[];
+  studentId?: string;
 }
 
 export interface MileageTransaction {
