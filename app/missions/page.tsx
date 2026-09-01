@@ -1,53 +1,115 @@
 "use client";
-import { Target } from "lucide-react";
+import { useEffect } from "react";
+import { Target, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import MissionCard from "@/components/MissionCard";
+import Card from "@/components/Card";
 import BadgeCard from "@/components/BadgeCard";
 import { useApp } from "@/lib/store-context";
 
 export default function MissionsContent() {
-  const { student, isLoggedIn, missions, completedMissionIds, completeMission, badges } = useApp();
+  const { student, isLoggedIn, missions, completedMissionIds, completeMission, badges, dailyQuests, dailyQuestIds, completeDailyQuest } = useApp();
+
+  // 일일 퀘스트 d6 자동 달성 (미션 탭 방문)
+  useEffect(() => {
+    if (isLoggedIn) {
+      completeDailyQuest("d6");
+    }
+  }, [isLoggedIn, completeDailyQuest]);
+
   if (!student || !isLoggedIn) return null;
 
-  const weekly = missions.filter(m => m.category === "weekly");
   const special = missions.filter(m => m.category === "special");
+  const dailyTotal = dailyQuests.length;
+  const dailyDone = dailyQuestIds.length;
 
   return (
     <div>
       <div className="px-5 pt-7">
-        <PageHeader title="이번 주 미션" showBack subtitle="미션을 완료하고 마일리지를 받으세요!" right={<Target size={18} className="text-indigo-400" />} />
+        <PageHeader title="일일 퀘스트" showBack subtitle="활동하면 자동으로 달성돼요!" right={<Target size={18} className="text-indigo-400" />} />
       </div>
 
+      {/* Progress bar */}
       <section className="mt-3 px-5">
-        <div className="flex flex-col gap-3">
-          {weekly.map(m => (
-            <MissionCard
-              key={m.id}
-              mission={m}
-              completed={completedMissionIds.includes(m.id)}
-              onComplete={() => completeMission(m.id)}
-            />
-          ))}
+        <Card className="bg-gradient-to-br from-indigo-500 to-violet-500 border-0 text-white">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold">오늘의 퀘스트</p>
+            <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">{dailyDone}/{dailyTotal}</span>
+          </div>
+          <div className="mt-3 h-2 rounded-full bg-white/20">
+            <div className="h-full rounded-full bg-white transition-all" style={{ width: `${(dailyDone / dailyTotal) * 100}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-indigo-100">{dailyDone === dailyTotal ? "🎉 오늘 퀘스트 모두 달성!" : `${dailyTotal - dailyDone}개 남았어요`}</p>
+        </Card>
+      </section>
+
+      {/* Daily quests */}
+      <section className="mt-5 px-5">
+        <h2 className="flex items-center gap-2 text-base font-bold text-neutral-900">
+          <span className="text-indigo-500">📋</span>
+          <span>오늘의 퀘스트</span>
+        </h2>
+        <p className="mt-1 text-xs text-neutral-500">QT, 공유, 기도 등 활동하면 자동으로 완료돼요.</p>
+        <div className="mt-3 flex flex-col gap-2.5">
+          {dailyQuests.map(q => {
+            const done = dailyQuestIds.includes(q.id);
+            return (
+              <div key={q.id} className={`rounded-2xl border p-4 transition ${done ? "border-emerald-200 bg-emerald-50/60" : "border-neutral-100 bg-white shadow-sm"}`}>
+                <div className="flex items-start gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neutral-50 text-xl">{q.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className={`text-sm font-bold ${done ? "text-emerald-700" : "text-neutral-900"}`}>{q.title}</h3>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${done ? "bg-emerald-100 text-emerald-600" : "bg-indigo-50 text-indigo-600"}`}>+{q.reward}M</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-neutral-500">{q.description}</p>
+                  </div>
+                </div>
+                {done && (
+                  <div className="mt-2 flex items-center gap-1 text-xs font-bold text-emerald-600">
+                    <CheckCircle2 size={14} /> 달성 완료!
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      <section className="mt-5 px-5">
-        <h2 className="flex items-center gap-2 text-base font-bold text-neutral-900">
-          <span className="text-amber-500">⭐</span>
-          <span>SPECIAL QUEST</span>
-        </h2>
-        <p className="mt-1 text-xs text-neutral-500">특별한 이벤트 미션에 도전하세요.</p>
-        <div className="mt-3 flex flex-col gap-3">
-          {special.map(m => (
-            <MissionCard
-              key={m.id}
-              mission={m}
-              completed={completedMissionIds.includes(m.id)}
-              onComplete={() => completeMission(m.id)}
-            />
-          ))}
-        </div>
-      </section>
+      {/* Special missions */}
+      {special.length > 0 && (
+        <section className="mt-5 px-5">
+          <h2 className="flex items-center gap-2 text-base font-bold text-neutral-900">
+            <span className="text-amber-500">⭐</span>
+            <span>SPECIAL QUEST</span>
+          </h2>
+          <p className="mt-1 text-xs text-neutral-500">특별한 이벤트 미션에 도전하세요.</p>
+          <div className="mt-3 flex flex-col gap-3">
+            {special.map(m => (
+              <div key={m.id} className={`rounded-2xl border p-4 transition ${completedMissionIds.includes(m.id) ? "border-emerald-200 bg-emerald-50/60" : "border-neutral-100 bg-white shadow-sm"}`}>
+                <div className="flex items-start gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-neutral-50 text-xl">{m.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-bold text-neutral-900">{m.title}</h3>
+                      <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-600">+{m.reward}M</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-neutral-500">{m.description}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => completeMission(m.id)}
+                  disabled={completedMissionIds.includes(m.id)}
+                  className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold transition active:scale-[0.98] ${
+                    completedMissionIds.includes(m.id) ? "bg-emerald-100 text-emerald-600" : "bg-amber-500 text-white active:bg-amber-600"
+                  }`}
+                >
+                  {completedMissionIds.includes(m.id) ? (<><CheckCircle2 size={16} /> 완료했어요</>) : ("완료하기")}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mt-5 px-5 pb-6">
         <h2 className="flex items-center gap-2 text-base font-bold text-neutral-900">

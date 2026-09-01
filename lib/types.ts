@@ -65,6 +65,15 @@ export interface CompletedMission {
   reward: number;
 }
 
+export interface DailyQuest {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+  reward: number;
+  category: "daily";
+}
+
 export interface Badge {
   id: string;
   icon: string;

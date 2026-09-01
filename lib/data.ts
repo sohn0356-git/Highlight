@@ -1,6 +1,6 @@
 import raw from "./mock-data.json";
 import type {
-  Season, ClassRoom, Student, AttendanceRecord, QTRecord, Mission,
+  Season, ClassRoom, Student, AttendanceRecord, QTRecord, Mission, DailyQuest,
   Badge, PrayerRequest, MileageTransaction, CommunityActivity, SchoolClass,
   SharedQTPost, QTComment,
 } from "./types";
@@ -10,6 +10,7 @@ interface MockData {
   classes: (ClassRoom | SchoolClass)[];
   students: Student[];
   missions: Mission[];
+  daily_quests: DailyQuest[];
   badges: Badge[];
   prayers: PrayerRequest[];
   transactions: MileageTransaction[];

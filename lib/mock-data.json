@@ -513,5 +513,55 @@
         "createdAt": "2026-08-29T21:00:00Z"
       }
     ]
-  }
+  },
+  "daily_quests": [
+    {
+      "id": "d1",
+      "icon": "📖",
+      "title": "오늘 QT 완료",
+      "description": "오늘의 QT를 완료해요.",
+      "reward": 20,
+      "category": "daily"
+    },
+    {
+      "id": "d2",
+      "icon": "🤝",
+      "title": "QT 친구와 공유",
+      "description": "오늘의 QT를 친구와 공유해요.",
+      "reward": 10,
+      "category": "daily"
+    },
+    {
+      "id": "d3",
+      "icon": "🙏",
+      "title": "기도제목에 기도",
+      "description": "친구 기도제목에 함께 기도해요.",
+      "reward": 5,
+      "category": "daily"
+    },
+    {
+      "id": "d4",
+      "icon": "📝",
+      "title": "기도제목 남기기",
+      "description": "나의 기도제목을 남겨요.",
+      "reward": 10,
+      "category": "daily"
+    },
+    {
+      "id": "d5",
+      "icon": "🏠",
+      "title": "홈 확인하기",
+      "description": "오늘 홈 화면을 확인해요.",
+      "reward": 5,
+      "category": "daily"
+    },
+    {
+      "id": "d6",
+      "icon": "⭐",
+      "title": "일일 퀘스트 확인",
+      "description": "오늘의 퀘스트를 확인해요.",
+      "reward": 5,
+      "category": "daily"
+    }
+  ]
 }

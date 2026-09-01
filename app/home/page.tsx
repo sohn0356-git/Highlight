@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, Flame, IceCream, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
@@ -9,8 +9,16 @@ import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
 
 export default function HomeContent() {
-  const { student, isLoggedIn, classes, activities, sharedGoal, season } = useApp();
+  const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
+
+  // 홈 확인 일일 퀘스트 자동 달성
+  useEffect(() => {
+    if (isLoggedIn && !dailyQuestIds.includes("d5")) {
+      completeDailyQuest("d5");
+    }
+  }, [isLoggedIn, dailyQuestIds, completeDailyQuest]);
+
   if (!student || !isLoggedIn) return null;
   const myClass = classes.find(c => c.id === student.classId);
 
