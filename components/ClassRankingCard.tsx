@@ -17,9 +17,23 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
   const top = sorted[0];
 
   const sortedStudents = students
-    ? [...students].sort((a, b) => b.mileage - a.mileage).slice(0, 20)
+    ? [...students].filter(s => s.mileage > 0).sort((a, b) => b.mileage - a.mileage).slice(0, 20)
     : [];
   const topStudent = sortedStudents[0];
+
+  const getRankStyle = (i: number, isMine: boolean) => {
+    if (i === 0) return { badge: "bg-amber-100 text-amber-700", bar: "bg-amber-400", glow: "ring-1 ring-amber-200 bg-amber-50/50" };
+    if (i === 1) return { badge: "bg-neutral-200 text-neutral-600", bar: "bg-neutral-400", glow: "ring-1 ring-neutral-200 bg-neutral-50/50" };
+    if (i === 2) return { badge: "bg-orange-100 text-orange-700", bar: "bg-gradient-to-r from-orange-400 to-amber-400", glow: "ring-1 ring-orange-200 bg-orange-50/50" };
+    return { badge: "bg-neutral-200/70 text-neutral-500", bar: isMine ? "bg-indigo-500" : "bg-neutral-300", glow: "" };
+  };
+
+  const getMedal = (i: number) => {
+    if (i === 0) return "🥇";
+    if (i === 1) return "🥈";
+    if (i === 2) return "🥉";
+    return null;
+  };
 
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm border border-neutral-100">
@@ -54,11 +68,15 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
             {sorted.map((c, i) => {
               const isMine = c.id === myClassId;
               const pct = top.xp > 0 ? (c.xp / top.xp) * 100 : 0;
+              const medal = getMedal(i);
+              const rs = getRankStyle(i, isMine);
               return (
-                <div key={c.id} className={`rounded-xl px-3.5 py-2.5 ${isMine ? "bg-indigo-50 ring-1 ring-indigo-200" : "bg-neutral-50"}`}>
+                <div key={c.id} className={`rounded-xl px-3.5 py-2.5 ${isMine ? "bg-indigo-50 ring-1 ring-indigo-200" : rs.glow || "bg-neutral-50"}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${i === 0 ? "bg-amber-100 text-amber-700" : "bg-neutral-200/70 text-neutral-500"}`}>{i + 1}</span>
+                      <span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${rs.badge}`}>
+                        {medal ? <span className="text-xs">{medal}</span> : i + 1}
+                      </span>
                       <span className={`text-sm font-medium ${isMine ? "text-indigo-700" : "text-neutral-800"}`}>
                         {c.name} {isMine && <span className="ml-1 rounded-full bg-indigo-500 px-1.5 py-0.5 text-[10px] font-bold text-white">나</span>}
                       </span>
@@ -66,7 +84,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
                     <span className={`text-sm font-bold ${isMine ? "text-indigo-700" : "text-neutral-700"}`}>{c.xp.toLocaleString()} XP</span>
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/80">
-                    <div className={`h-full rounded-full ${i === 0 ? "bg-amber-400" : isMine ? "bg-indigo-500" : "bg-neutral-300"}`} style={{ width: `${pct}%` }} />
+                    <div className={`h-full rounded-full ${rs.bar}`} style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
@@ -89,15 +107,15 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
             {sortedStudents.map((s, i) => {
               const isMine = s.id === myStudentId;
               const pct = topStudent && topStudent.mileage > 0 ? (s.mileage / topStudent.mileage) * 100 : 0;
-              const medals = ["🥇", "🥈", "🥉"];
+              const medal = getMedal(i);
+              const rs = getRankStyle(i, isMine);
+
               return (
-                <div key={s.id} className={`rounded-xl px-3.5 py-2.5 ${isMine ? "bg-indigo-50 ring-1 ring-indigo-200" : "bg-neutral-50"}`}>
+                <div key={s.id} className={`rounded-xl px-3.5 py-2.5 ${isMine ? "bg-indigo-50 ring-1 ring-indigo-200" : rs.glow || "bg-neutral-50"} ${i === 2 ? "shadow-sm" : ""}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${
-                        i < 3 ? "bg-amber-100 text-amber-700" : "bg-neutral-200/70 text-neutral-500"
-                      }`}>
-                        {i < 3 ? <span className="text-xs">{medals[i]}</span> : i + 1}
+                      <span className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${rs.badge}`}>
+                        {medal ? <span className="text-xs">{medal}</span> : i + 1}
                       </span>
                       <span className={`text-sm font-medium ${isMine ? "text-indigo-700" : "text-neutral-800"}`}>
                         {s.name} {isMine && <span className="ml-1 rounded-full bg-indigo-500 px-1.5 py-0.5 text-[10px] font-bold text-white">나</span>}
@@ -106,8 +124,14 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
                     <span className={`text-sm font-bold ${isMine ? "text-indigo-700" : "text-neutral-700"}`}>{s.mileage.toLocaleString()}M</span>
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/80">
-                    <div className={`h-full rounded-full ${i === 0 ? "bg-amber-400" : isMine ? "bg-indigo-500" : "bg-neutral-300"}`} style={{ width: `${pct}%` }} />
+                    <div className={`h-full rounded-full ${rs.bar}`} style={{ width: `${pct}%` }} />
                   </div>
+                  {i === 2 && (
+                    <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-orange-50 px-2.5 py-1.5">
+                      <span className="text-xs">🔥</span>
+                      <p className="text-[11px] font-bold text-orange-600">조금만 더하면 2등이에요!</p>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -116,7 +140,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
             <User size={16} className="text-purple-500" />
             <p className="text-sm text-purple-700">
               <span className="font-bold">💎 마일리지 랭킹</span>{" "}
-              총 {sortedStudents.length}명
+              총 {sortedStudents.length}명 활동 중
             </p>
           </div>
         </>
