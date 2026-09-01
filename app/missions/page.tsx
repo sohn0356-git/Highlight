@@ -9,12 +9,7 @@ import { useApp } from "@/lib/store-context";
 export default function MissionsContent() {
   const { student, isLoggedIn, missions, completedMissionIds, completeMission, badges, dailyQuests, dailyQuestIds, completeDailyQuest } = useApp();
 
-  // 일일 퀘스트 d6 자동 달성 (미션 탭 방문)
-  useEffect(() => {
-    if (isLoggedIn) {
-      completeDailyQuest("d6");
-    }
-  }, [isLoggedIn, completeDailyQuest]);
+  // (d6 제거됨 - 더 이상 미션 탭 방문으로 자동 달성하지 않음)
 
   if (!student || !isLoggedIn) return null;
 

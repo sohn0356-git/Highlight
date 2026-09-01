@@ -383,40 +383,71 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 일일 퀘스트 완료 함수
   const completeDailyQuest = useCallback((questId: string) => {
     const today = new Date().toISOString().slice(0, 10);
+    const quest = dailyQuests.find(q => q.id === questId);
+    if (!quest || !student) return;
     setDailyQuestIds(prev => {
       if (prev.includes(questId)) return prev;
-      const next = [...prev, questId];
-      if (typeof window !== "undefined") {
-        localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: next }));
-      }
-      // 마일리지 보상
-      const quest = dailyQuests.find(q => q.id === questId);
-      if (quest && student) {
-        const updated = updateStudentMileage(student.id, quest.reward, student);
-        setStudent(updated);
-        const tx: MileageTransaction = {
-          id: "tx_" + Date.now(),
-          studentId: student.id,
-          type: "미션 완료",
-          description: quest.title,
-          amount: quest.reward,
-          date: today,
-        };
-        addTransaction(tx);
-        setTxns(prev => [...prev, tx]);
-        showPointToast(`+${quest.reward}M 획득!`);
-        updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
-        upsertSupabase("mileage_transactions", tx);
-      }
-      return next;
+      return [...prev, questId];
     });
+    // 마일리지 보상
+    const updated = updateStudentMileage(student.id, quest.reward, student);
+    setStudent(updated);
+    const tx: MileageTransaction = {
+      id: "tx_" + Date.now(),
+      studentId: student.id,
+      type: "미션 완료",
+      description: quest.title,
+      amount: quest.reward,
+      date: today,
+    };
+    addTransaction(tx);
+    setTxns(prev => [...prev, tx]);
+    showPointToast(`+${quest.reward}M 획득!`);
+    // 배지 progress 업데이트
+    updateBadges(student.id);
+    // localStorage 저장
+    if (typeof window !== "undefined") {
+      setDailyQuestIds(prev => {
+        localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: prev }));
+        return prev;
+      });
+    }
+    updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
+    upsertSupabase("mileage_transactions", tx);
   }, [dailyQuests, student]);
+
+  // 배지 progress 자동 업데이트
+  const updateBadges = useCallback((sid: string) => {
+    setBadges(prev => prev.map(b => {
+      let progress = b.progress;
+      if (b.id === "b1" || b.id === "b2" || b.id === "b8") {
+        // QT 관련 배지
+        const qtCount = getQTRecords().filter(r => r.studentId === sid).length + 1;
+        progress = qtCount;
+      } else if (b.id === "b3") {
+        // 예배자 - 출석 기록 기반
+        progress = (progress || 0) + 1;
+      } else if (b.id === "b4" || b.id === "b7") {
+        // 기도 관련
+        progress = (progress || 0) + 1;
+      } else if (b.id === "b5") {
+        // 미션 완료
+        progress = (progress || 0) + 1;
+      } else if (b.id === "b6") {
+        // 마일리지
+        const s = student;
+        if (s) progress = s.mileage;
+      }
+      return { ...b, progress };
+    }));
+  }, [student]);
 
   const completeQTHandler = useCallback(async (remembered: string, application: string) => {
     if (!student || qtDoneToday) return;
     const updated = updateStudentMileage(student.id, 20, student);
     setStudent(updated);
     showPointToast("+20M QT 완료!");
+    updateBadges(student.id);
     const rec: QTRecord = {
       id: "qt_" + Date.now(),
       studentId: student.id,
@@ -502,6 +533,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addTransaction(tx);
     setTxns(prev => [...prev, tx]);
     showPointToast("+5M 기도 참여!");
+    updateBadges(student.id);
     completeDailyQuest("d3");
     // Supabase writes
     const asyncWrite = async () => {
