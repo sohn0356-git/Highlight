@@ -76,6 +76,9 @@ interface AppState {
   prayers: PrayerRequest[];
   prayFor: (prayerId: string) => void;
   addPrayerRequest: (content: string, anonymous: boolean) => void;
+  updatePrayerRequest: (prayerId: string, content: string) => void;
+  deletePrayerRequest: (prayerId: string) => void;
+  todayPrayerCount: number;
   transactions: MileageTransaction[];
   badges: typeof mockData.badges;
   season: typeof mockData.season;
@@ -534,7 +537,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("mileage_prayers", JSON.stringify(next));
       return next;
     });
-    completeDailyQuest("d4");
     // Supabase writes
     if (isSupabaseReady) {
       try {
@@ -543,7 +545,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (sb) await sb.from("prayer_requests").insert([newPrayer]);
       } catch { /* ignore */ }
     }
-  }, [student, completeDailyQuest]);
+  }, [student]);
+
+  // 오늘 올린 기도제목 수
+  const todayPrayerCount = prayers.filter(p => p.createdAt?.startsWith(new Date().toISOString().slice(0, 10))).length;
+
+  const updatePrayerRequest = useCallback((prayerId: string, newContent: string) => {
+    if (!student) return;
+    setPrayers(prev => {
+      const next = prev.map(p => p.id === prayerId ? { ...p, content: newContent } : p);
+      if (typeof window !== "undefined")
+        localStorage.setItem("mileage_prayers", JSON.stringify(next));
+      return next;
+    });
+  }, [student]);
+
+  const deletePrayerRequest = useCallback((prayerId: string) => {
+    if (!student) return;
+    setPrayers(prev => {
+      const next = prev.filter(p => p.id !== prayerId);
+      if (typeof window !== "undefined")
+        localStorage.setItem("mileage_prayers", JSON.stringify(next));
+      return next;
+    });
+  }, [student]);
 
   const shareQT = useCallback((): boolean => {
     if (!student) return false;
@@ -664,6 +689,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prayers: [...prayers].sort((a, b) => b.prayerCount - a.prayerCount),
       prayFor: prayForHandler,
       addPrayerRequest,
+      updatePrayerRequest,
+      deletePrayerRequest,
+      todayPrayerCount,
       transactions: txns,
       badges,
       season,

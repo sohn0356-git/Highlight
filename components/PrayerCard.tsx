@@ -1,13 +1,30 @@
 import { useState } from "react";
-import { HandHeart, ChevronDown, X } from "lucide-react";
+import { HandHeart, ChevronDown, X, Pencil, Trash2, Check, XIcon } from "lucide-react";
 import type { PrayerRequest } from "@/lib/types";
 
-export default function PrayerCard({ prayer, studentId, onPray, nameMap }: {
-  prayer: PrayerRequest; studentId: string; onPray: () => void;
+interface PrayerCardProps {
+  prayer: PrayerRequest;
+  studentId: string;
+  onPray: () => void;
   nameMap?: Record<string, string>;
-}) {
+  isOwner?: boolean;
+  isEditing?: boolean;
+  editContent?: string;
+  onStartEdit?: () => void;
+  onCancelEdit?: () => void;
+  onSaveEdit?: () => void;
+  onDelete?: () => void;
+  onEditContentChange?: (v: string) => void;
+}
+
+export default function PrayerCard({
+  prayer, studentId, onPray, nameMap,
+  isOwner, isEditing, editContent,
+  onStartEdit, onCancelEdit, onSaveEdit, onDelete, onEditContentChange,
+}: PrayerCardProps) {
   const already = prayer.prayedBy.includes(studentId);
   const [showPrayed, setShowPrayed] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const prayedNames = prayer.prayedBy
     .map(id => nameMap?.[id] || id)
@@ -19,14 +36,37 @@ export default function PrayerCard({ prayer, studentId, onPray, nameMap }: {
         <span className="text-sm font-bold text-neutral-800">
           {prayer.anonymous ? "익명" : prayer.authorName}
         </span>
-        <button
-          onClick={() => setShowPrayed(v => !v)}
-          className="flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-500 transition active:scale-95"
-          title="기도한 친구 보기"
-        >
-          🙏 {prayer.prayerCount}
-          <ChevronDown size={12} className={`transition-transform ${showPrayed ? "rotate-180" : ""}`} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {isOwner && !isEditing && (
+            <>
+              <button onClick={onStartEdit} className="grid h-7 w-7 place-items-center rounded-full bg-neutral-50 text-neutral-400 active:bg-neutral-100 transition">
+                <Pencil size={13} />
+              </button>
+              {confirmDelete ? (
+                <div className="flex items-center gap-1">
+                  <button onClick={onDelete} className="grid h-7 w-7 place-items-center rounded-full bg-red-50 text-red-500 active:bg-red-100 transition">
+                    <Check size={13} />
+                  </button>
+                  <button onClick={() => setConfirmDelete(false)} className="grid h-7 w-7 place-items-center rounded-full bg-neutral-50 text-neutral-400 active:bg-neutral-100 transition">
+                    <XIcon size={13} />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmDelete(true)} className="grid h-7 w-7 place-items-center rounded-full bg-neutral-50 text-neutral-400 active:bg-neutral-100 transition">
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </>
+          )}
+          <button
+            onClick={() => setShowPrayed(v => !v)}
+            className="flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-500 transition active:scale-95"
+            title="기도한 친구 보기"
+          >
+            🙏 {prayer.prayerCount}
+            <ChevronDown size={12} className={`transition-transform ${showPrayed ? "rotate-180" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {showPrayed && (
@@ -49,7 +89,27 @@ export default function PrayerCard({ prayer, studentId, onPray, nameMap }: {
         </div>
       )}
 
-      <p className="mt-2 text-sm leading-relaxed text-neutral-600">{prayer.content}</p>
+      {isEditing ? (
+        <div className="mt-2">
+          <textarea
+            value={editContent}
+            onChange={e => onEditContentChange?.(e.target.value)}
+            rows={2}
+            className="w-full rounded-xl border border-rose-200 bg-rose-50/50 px-3.5 py-3 text-sm outline-none focus:border-rose-400 resize-none"
+          />
+          <div className="mt-2 flex items-center gap-2 justify-end">
+            <button onClick={onCancelEdit} className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-500 active:scale-95 transition">
+              취소
+            </button>
+            <button onClick={onSaveEdit} className="rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white active:scale-95 transition">
+              저장
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600">{prayer.content}</p>
+      )}
+
       <button
         onClick={onPray}
         disabled={already}

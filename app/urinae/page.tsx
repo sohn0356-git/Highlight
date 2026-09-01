@@ -8,10 +8,12 @@ import { useApp } from "@/lib/store-context";
 import { mockData } from "@/lib/data";
 
 export default function WeContent() {
-  const { student, isLoggedIn, prayers, prayFor, addPrayerRequest } = useApp();
+  const { student, isLoggedIn, prayers, prayFor, addPrayerRequest, updatePrayerRequest, deletePrayerRequest, todayPrayerCount } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
 
   if (!student || !isLoggedIn) return null;
 
@@ -19,12 +21,25 @@ export default function WeContent() {
     mockData.students.map(s => [s.id, s.name])
   );
 
+  const canPost = todayPrayerCount < 1;
+
   const handleAdd = () => {
-    if (!content.trim()) return;
+    if (!content.trim() || !canPost) return;
     addPrayerRequest(content.trim(), anonymous);
     setContent("");
     setAnonymous(false);
     setShowForm(false);
+  };
+
+  const handleEdit = (id: string) => {
+    if (!editContent.trim()) return;
+    updatePrayerRequest(id, editContent.trim());
+    setEditId(null);
+    setEditContent("");
+  };
+
+  const handleDelete = (id: string) => {
+    deletePrayerRequest(id);
   };
 
   return (
@@ -48,12 +63,16 @@ export default function WeContent() {
       <section className="mt-5 px-5 pb-6">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-neutral-900">기도제목</h2>
-          <button
-            onClick={() => setShowForm(v => !v)}
-            className="flex items-center gap-1 rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white active:scale-95 transition"
-          >
-            <MessageCirclePlus size={14} /> 기도제목 남기기
-          </button>
+          {canPost ? (
+            <button
+              onClick={() => setShowForm(v => !v)}
+              className="flex items-center gap-1 rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white active:scale-95 transition"
+            >
+              <MessageCirclePlus size={14} /> 기도제목 남기기
+            </button>
+          ) : (
+            <span className="text-[11px] font-semibold text-neutral-400">오늘은 이미 남겼어요</span>
+          )}
         </div>
 
         {showForm && (
@@ -79,7 +98,21 @@ export default function WeContent() {
 
         <div className="mt-3 flex flex-col gap-2.5">
           {prayers.map(p => (
-            <PrayerCard key={p.id} prayer={p} studentId={student.id} onPray={() => prayFor(p.id)} nameMap={nameMap} />
+            <PrayerCard
+              key={p.id}
+              prayer={p}
+              studentId={student.id}
+              onPray={() => prayFor(p.id)}
+              nameMap={nameMap}
+              isOwner={p.studentId === student.id}
+              isEditing={editId === p.id}
+              editContent={editContent}
+              onStartEdit={() => { setEditId(p.id); setEditContent(p.content); }}
+              onCancelEdit={() => { setEditId(null); setEditContent(""); }}
+              onSaveEdit={() => handleEdit(p.id)}
+              onDelete={() => handleDelete(p.id)}
+              onEditContentChange={setEditContent}
+            />
           ))}
           {prayers.length === 0 && (
             <Card className="text-center">
