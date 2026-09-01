@@ -6,161 +6,996 @@
   },
   "classes": [
     {
-      "id": "c1",
-      "name": "고2-3반",
-      "xp": 12450,
-      "weeklyXp": 620,
-      "level": 7,
-      "attendance": {
-        "attended": 11,
-        "total": 13
-      },
-      "qtCount": 37,
-      "missionCount": 21,
-      "prayerCount": 18,
-      "classMessage": "이번 주도 서로를 위해 기도해요 🙏"
+      "id": "c_g1_1",
+      "name": "고1-1반",
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "주응선·손경주",
+      "grade": "고1"
     },
     {
-      "id": "c2",
+      "id": "c_g1_2",
       "name": "고1-2반",
-      "xp": 11920,
-      "weeklyXp": 540,
-      "level": 6
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "서지민·이예은·박성현",
+      "grade": "고1"
     },
     {
-      "id": "c3",
-      "name": "고3-1반",
-      "xp": 10840,
-      "weeklyXp": 380,
-      "level": 5
+      "id": "c_g1_3",
+      "name": "고1-3반",
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "서재완·박소영",
+      "grade": "고1"
     },
     {
-      "id": "c4",
+      "id": "c_g1_4",
       "name": "고1-4반",
-      "xp": 10120,
-      "weeklyXp": 1420,
-      "level": 4
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "장결(재편예정)",
+      "grade": "고1"
     },
     {
-      "id": "c5",
+      "id": "c_g2_1",
       "name": "고2-1반",
-      "xp": 9720,
-      "weeklyXp": 490,
-      "level": 4
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "박주형",
+      "grade": "고2"
     },
     {
-      "id": "c6",
+      "id": "c_g2_2",
+      "name": "고2-2반",
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "김성학",
+      "grade": "고2"
+    },
+    {
+      "id": "c_g2_3",
+      "name": "고2-3반",
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "김채림",
+      "grade": "고2"
+    },
+    {
+      "id": "c_g2_4",
+      "name": "고2-4반",
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "이수연",
+      "grade": "고2"
+    },
+    {
+      "id": "c_g2_5",
+      "name": "고2-5반",
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "신입반",
+      "grade": "고2"
+    },
+    {
+      "id": "c_g3_1",
+      "name": "고3-1반",
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "김기광·이수아",
+      "grade": "고3"
+    },
+    {
+      "id": "c_g3_2",
       "name": "고3-2반",
-      "xp": 8950,
-      "weeklyXp": 310,
-      "level": 3
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "김성완",
+      "grade": "고3"
+    },
+    {
+      "id": "c_g3_3",
+      "name": "고3-3반",
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "송현이·이주형",
+      "grade": "고3"
+    },
+    {
+      "id": "c_g3_4",
+      "name": "고3-4반",
+      "xp": 0,
+      "weeklyXp": 0,
+      "level": 1,
+      "teacher": "보류",
+      "grade": "고3"
     }
   ],
   "students": [
     {
       "id": "s1",
-      "name": "홍길동",
-      "birthDate": "2009-03-15",
-      "classId": "c1",
-      "mileage": 1420
+      "name": "김예인",
+      "birthDate": "2010-01-01",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6641-9424"
     },
     {
       "id": "s2",
-      "name": "김민준",
-      "birthDate": "2008-11-22",
-      "classId": "c1",
-      "mileage": 980
+      "name": "이가을",
+      "birthDate": "2010-01-01",
+      "classId": "c_g1_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8698-1773"
     },
     {
       "id": "s3",
-      "name": "이서연",
-      "birthDate": "2009-07-04",
-      "classId": "c1",
-      "mileage": 1100
+      "name": "이민희",
+      "birthDate": "2010-01-01",
+      "classId": "c_g1_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4338-9823"
     },
     {
       "id": "s4",
-      "name": "박지호",
-      "birthDate": "2008-02-10",
-      "classId": "c1",
-      "mileage": 870
+      "name": "허지성",
+      "birthDate": "2010-01-02",
+      "classId": "c_g1_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4947-0084"
     },
     {
       "id": "s5",
-      "name": "최수진",
-      "birthDate": "2009-09-30",
-      "classId": "c1",
-      "mileage": 1350
+      "name": "강은율",
+      "birthDate": "2009-01-06",
+      "classId": "c_g2_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9534-1290"
     },
     {
       "id": "s6",
-      "name": "정하은",
-      "birthDate": "2008-05-18",
-      "classId": "c1",
-      "mileage": 1020
+      "name": "이서율",
+      "birthDate": "2009-01-06",
+      "classId": "c_g2_5",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9052-5587"
     },
     {
       "id": "s7",
-      "name": "강이준",
-      "birthDate": "2009-01-25",
-      "classId": "c2",
-      "mileage": 950
+      "name": "곽선민",
+      "birthDate": "2009-01-10",
+      "classId": "c_g2_2",
+      "mileage": 0,
+      "active": true,
+      "phone": ""
     },
     {
       "id": "s8",
-      "name": "한지우",
-      "birthDate": "2009-06-12",
-      "classId": "c2",
-      "mileage": 1180
+      "name": "전진민",
+      "birthDate": "2010-01-11",
+      "classId": "c_g2_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-7190-9728"
     },
     {
       "id": "s9",
-      "name": "윤서준",
-      "birthDate": "2008-08-03",
-      "classId": "c3",
-      "mileage": 870
+      "name": "김예원",
+      "birthDate": "2010-01-27",
+      "classId": "c_g1_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6811-9423"
     },
     {
       "id": "s10",
-      "name": "오다은",
-      "birthDate": "2009-12-19",
-      "classId": "c3",
-      "mileage": 1050
+      "name": "한혜윤",
+      "birthDate": "2009-01-30",
+      "classId": "c_g2_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5695-7909"
     },
     {
       "id": "s11",
-      "name": "노현서",
-      "birthDate": "2009-04-22",
-      "classId": "c4",
-      "mileage": 1300
+      "name": "김희찬",
+      "birthDate": "2009-01-31",
+      "classId": "c_g2_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3775-3348"
     },
     {
       "id": "s12",
-      "name": "임도윤",
-      "birthDate": "2008-10-07",
-      "classId": "c5",
-      "mileage": 920
+      "name": "이드보라",
+      "birthDate": "2010-01-31",
+      "classId": "c_g1_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9892-8089"
     },
     {
       "id": "s13",
-      "name": "신예린",
-      "birthDate": "2009-08-28",
-      "classId": "c6",
-      "mileage": 1150
+      "name": "이원우",
+      "birthDate": "2009-02-03",
+      "classId": "c_g2_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5186-9234"
     },
     {
       "id": "s14",
-      "name": "장도현",
-      "birthDate": "2008-12-14",
-      "classId": "c4",
-      "mileage": 1080
+      "name": "김시현",
+      "birthDate": "2008-02-05",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5859-6932"
     },
     {
       "id": "s15",
-      "name": "문시은",
-      "birthDate": "2009-03-09",
-      "classId": "c1",
-      "mileage": 1200
+      "name": "김주아",
+      "birthDate": "2009-02-05",
+      "classId": "c_g2_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4006-0861"
+    },
+    {
+      "id": "s16",
+      "name": "전한결",
+      "birthDate": "2008-02-05",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3040-5808"
+    },
+    {
+      "id": "s17",
+      "name": "박수인",
+      "birthDate": "2008-02-06",
+      "classId": "c_g3_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-7904-4509"
+    },
+    {
+      "id": "s18",
+      "name": "안자영",
+      "birthDate": "2010-02-11",
+      "classId": "c_g1_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5846-0543"
+    },
+    {
+      "id": "s19",
+      "name": "이다연",
+      "birthDate": "2008-02-11",
+      "classId": "c_g3_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5067-0170"
+    },
+    {
+      "id": "s20",
+      "name": "최라은",
+      "birthDate": "2008-02-20",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4102-0220"
+    },
+    {
+      "id": "s21",
+      "name": "최종율",
+      "birthDate": "2009-02-21",
+      "classId": "c_g2_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5191-5813"
+    },
+    {
+      "id": "s22",
+      "name": "박신유",
+      "birthDate": "2008-02-22",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3803-5341"
+    },
+    {
+      "id": "s23",
+      "name": "최명철",
+      "birthDate": "2010-02-23",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5403-2270"
+    },
+    {
+      "id": "s24",
+      "name": "김신유",
+      "birthDate": "2009-02-24",
+      "classId": "c_g2_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3477-1513"
+    },
+    {
+      "id": "s25",
+      "name": "최영진",
+      "birthDate": "2010-02-24",
+      "classId": "c_g1_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5806-2632"
+    },
+    {
+      "id": "s26",
+      "name": "정명원",
+      "birthDate": "2010-02-26",
+      "classId": "c_g1_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6422-5923"
+    },
+    {
+      "id": "s27",
+      "name": "이준정",
+      "birthDate": "2008-03-05",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-7750-1867"
+    },
+    {
+      "id": "s28",
+      "name": "김도혁",
+      "birthDate": "2009-03-06",
+      "classId": "c_g2_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8073-6568"
+    },
+    {
+      "id": "s29",
+      "name": "윤희원",
+      "birthDate": "2009-03-06",
+      "classId": "c_g2_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3775-6638"
+    },
+    {
+      "id": "s30",
+      "name": "임재선",
+      "birthDate": "2008-03-09",
+      "classId": "c_g3_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6494-0799"
+    },
+    {
+      "id": "s31",
+      "name": "박소윤",
+      "birthDate": "2009-03-12",
+      "classId": "c_g2_5",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9040-3238"
+    },
+    {
+      "id": "s32",
+      "name": "정하준",
+      "birthDate": "2008-03-13",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5274-5923"
+    },
+    {
+      "id": "s33",
+      "name": "이승영",
+      "birthDate": "2008-03-15",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8977-3135"
+    },
+    {
+      "id": "s34",
+      "name": "최지윤",
+      "birthDate": "2008-03-24",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-7411-0324"
+    },
+    {
+      "id": "s35",
+      "name": "김혜성",
+      "birthDate": "2008-03-25",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9643-6279"
+    },
+    {
+      "id": "s36",
+      "name": "임유민",
+      "birthDate": "2008-03-25",
+      "classId": "c_g3_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6785-0633"
+    },
+    {
+      "id": "s37",
+      "name": "이소이",
+      "birthDate": "2008-03-27",
+      "classId": "c_g3_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8363-7917"
+    },
+    {
+      "id": "s38",
+      "name": "최다솔",
+      "birthDate": "2010-03-28",
+      "classId": "c_g1_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4824-0328"
+    },
+    {
+      "id": "s39",
+      "name": "표세연",
+      "birthDate": "2008-03-31",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5294-0381"
+    },
+    {
+      "id": "s40",
+      "name": "최가율",
+      "birthDate": "2010-04-05",
+      "classId": "c_g1_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9582-5813"
+    },
+    {
+      "id": "s41",
+      "name": "유예나",
+      "birthDate": "2009-04-17",
+      "classId": "c_g2_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9846-3352"
+    },
+    {
+      "id": "s42",
+      "name": "최영린",
+      "birthDate": "2009-04-17",
+      "classId": "c_g2_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-7211-9321"
+    },
+    {
+      "id": "s43",
+      "name": "이재주",
+      "birthDate": "2009-04-20",
+      "classId": "c_g2_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3287-4178"
+    },
+    {
+      "id": "s44",
+      "name": "윤종식",
+      "birthDate": "2009-04-21",
+      "classId": "c_g2_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6345-0838"
+    },
+    {
+      "id": "s45",
+      "name": "최하윤",
+      "birthDate": "2008-04-25",
+      "classId": "c_g3_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9391-4830"
+    },
+    {
+      "id": "s46",
+      "name": "김지윤",
+      "birthDate": "2009-04-30",
+      "classId": "c_g2_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3078-5731"
+    },
+    {
+      "id": "s47",
+      "name": "김기훈",
+      "birthDate": "2010-05-04",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-2367-1433"
+    },
+    {
+      "id": "s48",
+      "name": "김민서",
+      "birthDate": "2008-05-05",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5467-2105"
+    },
+    {
+      "id": "s49",
+      "name": "최현우",
+      "birthDate": "2010-05-06",
+      "classId": "c_g1_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6786-3995"
+    },
+    {
+      "id": "s50",
+      "name": "손찬희",
+      "birthDate": "2008-05-07",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-2171-7951"
+    },
+    {
+      "id": "s51",
+      "name": "윤현승",
+      "birthDate": "2010-05-11",
+      "classId": "c_g1_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3209-6627"
+    },
+    {
+      "id": "s52",
+      "name": "김예봄",
+      "birthDate": "2009-05-19",
+      "classId": "c_g2_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4228-2982"
+    },
+    {
+      "id": "s53",
+      "name": "김하윤",
+      "birthDate": "2010-05-28",
+      "classId": "c_g1_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9243-8539"
+    },
+    {
+      "id": "s54",
+      "name": "홍린",
+      "birthDate": "2008-06-04",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6474-3124"
+    },
+    {
+      "id": "s55",
+      "name": "임유라",
+      "birthDate": "2010-06-27",
+      "classId": "c_g1_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5139-2919"
+    },
+    {
+      "id": "s56",
+      "name": "문호세",
+      "birthDate": "2010-07-05",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8986-4020"
+    },
+    {
+      "id": "s57",
+      "name": "전재희",
+      "birthDate": "2010-07-11",
+      "classId": "c_g1_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-7613-5146"
+    },
+    {
+      "id": "s58",
+      "name": "전사랑",
+      "birthDate": "2009-07-14",
+      "classId": "c_g2_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9610-6616"
+    },
+    {
+      "id": "s59",
+      "name": "최기주",
+      "birthDate": "2010-07-14",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8369-2842"
+    },
+    {
+      "id": "s60",
+      "name": "양우빈",
+      "birthDate": "2010-07-21",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": ""
+    },
+    {
+      "id": "s61",
+      "name": "오세아",
+      "birthDate": "2008-07-25",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-2450-4082"
+    },
+    {
+      "id": "s62",
+      "name": "이준수",
+      "birthDate": "2009-07-27",
+      "classId": "c_g2_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4568-9727"
+    },
+    {
+      "id": "s63",
+      "name": "임정연",
+      "birthDate": "2010-07-29",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9554-2598"
+    },
+    {
+      "id": "s64",
+      "name": "정요셉",
+      "birthDate": "2010-07-31",
+      "classId": "c_g1_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4548-4884"
+    },
+    {
+      "id": "s65",
+      "name": "유승민",
+      "birthDate": "2008-08-01",
+      "classId": "c_g3_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4596-5639"
+    },
+    {
+      "id": "s66",
+      "name": "박세종",
+      "birthDate": "2009-08-05",
+      "classId": "c_g2_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3462-3780"
+    },
+    {
+      "id": "s67",
+      "name": "박하민",
+      "birthDate": "2008-08-09",
+      "classId": "c_g3_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-2168-5279"
+    },
+    {
+      "id": "s68",
+      "name": "김민성",
+      "birthDate": "2010-08-10",
+      "classId": "c_g1_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8896-4229"
+    },
+    {
+      "id": "s69",
+      "name": "강예슬",
+      "birthDate": "2008-08-11",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9651-2836"
+    },
+    {
+      "id": "s70",
+      "name": "최승민",
+      "birthDate": "2009-08-12",
+      "classId": "c_g2_5",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-2057-7515"
+    },
+    {
+      "id": "s71",
+      "name": "박선재",
+      "birthDate": "2010-08-13",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-3294-5731"
+    },
+    {
+      "id": "s72",
+      "name": "소유정",
+      "birthDate": "2009-08-31",
+      "classId": "c_g2_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5269-6308"
+    },
+    {
+      "id": "s73",
+      "name": "박하안",
+      "birthDate": "2008-09-06",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9841-5075"
+    },
+    {
+      "id": "s74",
+      "name": "임재의",
+      "birthDate": "2010-09-06",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9691-0779"
+    },
+    {
+      "id": "s75",
+      "name": "이준호",
+      "birthDate": "2008-09-20",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9044-3873"
+    },
+    {
+      "id": "s76",
+      "name": "윤시윤",
+      "birthDate": "2010-09-30",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8795-8223"
+    },
+    {
+      "id": "s77",
+      "name": "김지후",
+      "birthDate": "2010-10-02",
+      "classId": "c_g1_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9782-4211"
+    },
+    {
+      "id": "s78",
+      "name": "박유솔",
+      "birthDate": "2010-10-03",
+      "classId": "c_g1_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-7227-1263"
+    },
+    {
+      "id": "s79",
+      "name": "곽예은",
+      "birthDate": "2009-10-05",
+      "classId": "c_g2_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9367-8865"
+    },
+    {
+      "id": "s80",
+      "name": "유주연",
+      "birthDate": "2009-10-13",
+      "classId": "c_g2_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8869-7077"
+    },
+    {
+      "id": "s81",
+      "name": "임예찬",
+      "birthDate": "2009-10-14",
+      "classId": "c_g2_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4017-9166"
+    },
+    {
+      "id": "s82",
+      "name": "조동혁",
+      "birthDate": "2008-10-14",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-2808-8114"
+    },
+    {
+      "id": "s83",
+      "name": "김아윤",
+      "birthDate": "2009-10-15",
+      "classId": "c_g2_2",
+      "mileage": 0,
+      "active": true,
+      "phone": ""
+    },
+    {
+      "id": "s84",
+      "name": "전서연",
+      "birthDate": "2008-10-17",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8817-1444"
+    },
+    {
+      "id": "s85",
+      "name": "김예건",
+      "birthDate": "2009-10-18",
+      "classId": "c_g2_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4133-1282"
+    },
+    {
+      "id": "s86",
+      "name": "홍예은",
+      "birthDate": "2010-10-19",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": ""
+    },
+    {
+      "id": "s87",
+      "name": "박은호",
+      "birthDate": "2010-10-20",
+      "classId": "c_g1_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8345-8120"
+    },
+    {
+      "id": "s88",
+      "name": "전예림",
+      "birthDate": "2009-10-21",
+      "classId": "c_g2_3",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6558-5382"
+    },
+    {
+      "id": "s89",
+      "name": "서   진",
+      "birthDate": "2008-10-28",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-4657-3180"
+    },
+    {
+      "id": "s90",
+      "name": "양지훈",
+      "birthDate": "2008-11-13",
+      "classId": "c_g3_1",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-8689-2439"
+    },
+    {
+      "id": "s91",
+      "name": "조호진",
+      "birthDate": "2009-11-13",
+      "classId": "c_g2_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-7106-9170"
+    },
+    {
+      "id": "s92",
+      "name": "김하원",
+      "birthDate": "2009-11-23",
+      "classId": "c_g2_3",
+      "mileage": 0,
+      "active": true,
+      "phone": ""
+    },
+    {
+      "id": "s93",
+      "name": "이온유",
+      "birthDate": "2010-11-29",
+      "classId": "c_g1_4",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9938-4544"
+    },
+    {
+      "id": "s94",
+      "name": "김나윤",
+      "birthDate": "2008-12-01",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-5069-9374"
+    },
+    {
+      "id": "s95",
+      "name": "박유진",
+      "birthDate": "2008-12-09",
+      "classId": "c_g3_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-6773-1527"
+    },
+    {
+      "id": "s96",
+      "name": "민서진",
+      "birthDate": "2009-12-11",
+      "classId": "c_g2_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-2552-1569"
+    },
+    {
+      "id": "s97",
+      "name": "김민준",
+      "birthDate": "2010-12-27",
+      "classId": "c_g1_2",
+      "mileage": 0,
+      "active": true,
+      "phone": "010-9979-2808"
     }
   ],
   "missions": [
