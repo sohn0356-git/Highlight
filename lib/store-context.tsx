@@ -801,6 +801,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       content: content.trim(),
       createdAt: new Date().toISOString(),
     };
+    // 자기 QT 게시글에 댓글 달면 미션(d7) 성공 안 됨
+    const postOwner = sharedPosts.find(p => p.id === postId)?.studentId;
     setQtComments(prev => {
       const next = { ...prev, [postId]: [...(prev[postId] || []), comment] };
       if (typeof window !== "undefined")
@@ -813,10 +815,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .map((p: SharedQTPost) => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p);
       localStorage.setItem("mileage_shared_posts", JSON.stringify(posts));
     }
-    completeDailyQuest("d7");
+    if (postOwner !== student.id) {
+      completeDailyQuest("d7");
+    }
     // DB write
     addCommentToPost(comment);
-  }, [student, completeDailyQuest]);
+  }, [student, completeDailyQuest, sharedPosts]);
 
   const fetchPostComments = useCallback((postId: string): QTComment[] => {
     return qtComments[postId] || [];
