@@ -64,6 +64,20 @@ export default function HomeContent() {
         </Card>
       </section>
 
+      <section className="mt-4 px-5">
+        <Card className="bg-gradient-to-br from-violet-500 to-purple-600 border-0 text-white shadow-lg shadow-purple-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-purple-200">내 마일리지</p>
+              <p className="mt-1 text-2xl font-extrabold">{student.mileage.toLocaleString()}<span className="text-base font-bold text-purple-200 ml-1">M</span></p>
+            </div>
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/20 text-2xl">
+              <span>💎</span>
+            </div>
+          </div>
+        </Card>
+      </section>
+
       <section className="mt-5 px-5">
         <ClassRankingCard classes={classes as any} myClassId={student.classId} students={allStudents as any} myStudentId={student.id} />
       </section>

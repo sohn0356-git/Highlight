@@ -17,7 +17,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
   const top = sorted[0];
 
   const sortedStudents = students
-    ? [...students].filter(s => s.mileage > 0).sort((a, b) => b.mileage - a.mileage).slice(0, 20)
+    ? [...students].filter(s => s.mileage > 0).sort((a, b) => b.mileage - a.mileage).slice(0, 10)
     : [];
   const topStudent = sortedStudents[0];
 
