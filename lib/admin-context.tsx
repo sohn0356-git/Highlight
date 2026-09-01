@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { AdminStudent, AdminTeacher, AttendanceSession, AttendanceRecordAdmin, QTContent, MissionAdmin, MissionCompletionAdmin, Announcement, Reward, RewardRedemption, SeasonAdmin, BadgeAdmin, AuditLog, AdminSettings, MileageActionType } from "./admin-types";
 import type { PrayerRequestAdmin } from "./admin-types";
-import { seedUsers, seedAdminStudents, seedAdminTeachers, seedAttendanceSessions, seedQTContent, seedMissionAdmins, seedAnnouncements, seedRewards, seedRedemptions, seedSeasonAdmin, seedBadgeAdmins, seedAuditLogs, seedAdminSettings } from "./admin-seed-data";
+import { seedUsers, seedAdminStudents, seedAdminTeachers, seedAttendanceSessions, seedAttendanceRecords, seedQTContent, seedMissionAdmins, seedAnnouncements, seedRewards, seedRedemptions, seedSeasonAdmin, seedBadgeAdmins, seedAuditLogs, seedAdminSettings } from "./admin-seed-data";
 import { isSupabaseReady } from "./config";
 
 function loadArray<T>(key: string, fallback: T[]): T[] {
@@ -123,7 +123,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [students, setStudents] = useState<AdminStudent[]>(() => loadArray("admin_students", seedAdminStudents));
   const [teachers, setTeachers] = useState<AdminTeacher[]>(() => loadArray("admin_teachers", seedAdminTeachers));
   const [sessions, setSessions] = useState<AttendanceSession[]>(() => loadArray("admin_attendance_sessions", seedAttendanceSessions));
-  const [records, setRecords] = useState<AttendanceRecordAdmin[]>(() => loadArray("admin_attendance_records", []));
+  const [records, setRecords] = useState<AttendanceRecordAdmin[]>(() => loadArray("admin_attendance_records", seedAttendanceRecords));
   const [qtContents, setQTContents] = useState<QTContent[]>(() => loadArray("admin_qt_contents", seedQTContent));
   const [missionAdmins, setMissionAdmins] = useState<MissionAdmin[]>(() => loadArray("admin_missions", seedMissionAdmins));
   const [missionCompletions, setMissionCompletions] = useState<MissionCompletionAdmin[]>(() => loadArray("admin_mission_completions", []));
