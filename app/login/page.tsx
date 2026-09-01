@@ -4,12 +4,13 @@ import { useApp } from "@/lib/store-context";
 import { Calendar } from "lucide-react";
 
 const DEMO_ACCOUNTS = [
-  { name: "홍길동", birthDate: "2009-03-15", label: "관리자" },
-  { name: "김민준", birthDate: "2008-11-22", label: "학생" },
-  { name: "이서연", birthDate: "2009-07-04", label: "학생" },
-  { name: "박지호", birthDate: "2008-02-10", label: "학생" },
-  { name: "김선생", birthDate: "1985-03-20", label: "교사" },
-  { name: "이선생", birthDate: "1988-07-15", label: "교사" },
+  { name: "관리자", birthDate: "2000-01-01", label: "관리자" },
+  { name: "허지성", birthDate: "2010-01-02", label: "고1-2반" },
+  { name: "최다솔", birthDate: "2010-03-28", label: "고1-1반" },
+  { name: "최종율", birthDate: "2009-02-21", label: "고2-1반" },
+  { name: "전진민", birthDate: "2010-01-11", label: "고2-3반" },
+  { name: "강예슬", birthDate: "2008-08-11", label: "고3-1반" },
+  { name: "김하윤", birthDate: "2010-05-28", label: "고1-3반" },
 ];
 
 export default function LoginPage() {
@@ -100,7 +101,6 @@ export default function LoginPage() {
                   <span className="text-neutral-700 font-medium">{acc.name} · {acc.birthDate}</span>
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                     acc.label === "관리자" ? "bg-indigo-100 text-indigo-600" :
-                    acc.label === "교사" ? "bg-amber-100 text-amber-600" :
                     "bg-neutral-200 text-neutral-500"
                   }`}>{acc.label}</span>
                 </button>
