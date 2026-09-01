@@ -4,6 +4,7 @@ import type { AdminStudent, AdminTeacher, AttendanceSession, AttendanceRecordAdm
 import type { PrayerRequestAdmin } from "./admin-types";
 import { seedUsers, seedAdminStudents, seedAdminTeachers, seedAttendanceSessions, seedAttendanceRecords, seedQTContent, seedMissionAdmins, seedAnnouncements, seedRewards, seedRedemptions, seedSeasonAdmin, seedBadgeAdmins, seedAuditLogs, seedAdminSettings } from "./admin-seed-data";
 import { isSupabaseReady } from "./config";
+import { getSupabase } from "./supabase";
 
 function loadArray<T>(key: string, fallback: T[]): T[] {
   if (typeof window === "undefined") return fallback;
@@ -157,6 +158,77 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { saveArray("admin_audit_logs", auditLogs); }, [auditLogs]);
   useEffect(() => { saveArray("admin_settings", [settings]); }, [settings]);
 
+  // Supabase에서 학생/출석 데이터 로드 (마운트 시 1회)
+  useEffect(() => {
+    if (!isSupabaseReady) return;
+    (async () => {
+      try {
+        const sb = getSupabase();
+        if (!sb) return;
+
+        // 학생 로드
+        const { data: studentsData } = await sb.from("students").select("*").order("name");
+        if (studentsData && studentsData.length) {
+          const mapped = studentsData.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            birthDate: r.birth_date || "",
+            classId: r.class_id || "",
+            mileage: Number(r.mileage) || 0,
+            role: r.role || "student",
+            active: r.active !== false,
+          }));
+          setStudents(mapped);
+        }
+
+        // 교사 로드
+        const { data: teachersData } = await sb.from("teachers").select("*").order("name");
+        if (teachersData && teachersData.length) {
+          const mapped = teachersData.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            birthDate: r.birth_date || "",
+            role: "teacher" as "teacher" | "admin",
+            assignedClassIds: r.assigned_class_ids || [],
+            active: r.active !== false,
+          }));
+          setTeachers(mapped);
+        }
+
+        // 출석 세션 로드
+        const { data: sessionsData } = await sb.from("attendance_sessions").select("*").order("date", { ascending: false });
+        if (sessionsData && sessionsData.length) {
+          const mapped = sessionsData.map((r: any) => ({
+            id: r.id,
+            eventName: r.event_name || r.eventName || "주일예배",
+            date: r.date,
+            startTime: r.start_time || r.startTime || "10:00",
+            endTime: r.end_time || r.endTime || "12:00",
+            active: r.active || false,
+            mileageReward: Number(r.mileage_reward || 0),
+            xpReward: Number(r.xp_reward || 0),
+          }));
+          setSessions(mapped);
+        }
+
+        // 출석 기록 로드
+        const { data: recordsData } = await sb.from("attendance_records").select("*");
+        if (recordsData && recordsData.length) {
+          const mapped = recordsData.map((r: any) => ({
+            id: r.id,
+            sessionId: r.session_id,
+            studentId: r.student_id,
+            state: r.state,
+            checkTime: r.check_time || r.checkTime || new Date().toISOString(),
+            method: (r.method as "manual") || "manual",
+          }));
+          setRecords(mapped);
+        }
+      } catch { /* keep localStorage data */ }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const addStudent = useCallback((s: AdminStudent) => setStudents(prev => [...prev, s]), []);
   const updateStudent = useCallback((id: string, patch: Partial<AdminStudent>) => {
     setStudents(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
@@ -170,7 +242,17 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setTeachers(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
   }, []);
 
-  const addAttendanceSession = useCallback((s: AttendanceSession) => setSessions(prev => [...prev, s]), []);
+  const addAttendanceSession = useCallback((s: AttendanceSession) => {
+    setSessions(prev => [...prev, s]);
+    // Supabase
+    if (isSupabaseReady) {
+      getSupabase()?.from("attendance_sessions").insert([{
+        id: s.id, event_name: s.eventName, date: s.date,
+        start_time: s.startTime, end_time: s.endTime,
+        active: s.active, mileage_reward: s.mileageReward, xp_reward: s.xpReward,
+      }]); /* sb write */ void 0;
+    }
+  }, []);
   const closeAttendanceSession = useCallback((id: string) => {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, active: false } : s));
   }, []);
@@ -180,6 +262,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       if (exists) return prev;
       return [...prev, r];
     });
+    // Supabase
+    if (isSupabaseReady) {
+      getSupabase()?.from("attendance_records").upsert({
+        id: r.id, session_id: r.sessionId, student_id: r.studentId,
+        state: r.state, check_time: r.checkTime, method: r.method,
+      }, { onConflict: "session_id,student_id" }); /* sb write */ void 0;
+    }
   }, []);
   const updateAttendanceRecord = useCallback((id: string, patch: Partial<AttendanceRecordAdmin>) => {
     setRecords(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
@@ -196,6 +285,14 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         checkTime: now,
         method: "manual" as const,
       }));
+      // Supabase
+      if (isSupabaseReady && newRecords.length) {
+        const rows = newRecords.map(r => ({
+          id: r.id, session_id: r.sessionId, student_id: r.studentId,
+          state: r.state, check_time: r.checkTime, method: r.method,
+        }));
+        getSupabase()?.from("attendance_records").upsert(rows, { onConflict: "session_id,student_id" }); /* sb write */ void 0;
+      }
       return [...prev, ...newRecords];
     });
   }, []);
@@ -258,6 +355,14 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           description: reason, amount, date: new Date().toISOString().slice(0, 10), actorName,
         };
         setAllTx(prev => [...prev, tx]);
+        // Supabase
+        if (isSupabaseReady) {
+          const sb = getSupabase();
+          if (sb) {
+            sb.from("students").update({ mileage: stu.mileage + amount }).eq("id", stu.id); /* sb write */ void 0;
+            sb.from("mileage_transactions").insert([{ id: tx.id, student_id: tx.studentId, type: tx.type, description: tx.description, amount: tx.amount, date: tx.date }]); /* sb write */ void 0;
+          }
+        }
       });
     }
   }, [currentUser, students]);

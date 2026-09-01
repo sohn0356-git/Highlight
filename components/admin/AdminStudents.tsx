@@ -7,7 +7,7 @@ import type { AdminStudent, AdminTeacher } from "@/lib/admin-types";
 
 function parseGrade(classId: string) {
   if (!classId) return "";
-  const cls = classId.match(/c(\d)/);
+  const cls = classId.match(/_g(\d)_/);
   return cls ? `고${cls[1]}` : "";
 }
 
@@ -40,7 +40,7 @@ export default function AdminStudents() {
   });
 
   const filtered = students.filter(s => {
-    if (gradeFilter !== "all" && !s.classId.startsWith(`c${gradeFilter}`)) return false;
+    if (gradeFilter !== "all" && !s.classId.includes(`_g${gradeFilter}_`)) return false;
     if (classFilter !== "all" && s.classId !== classFilter) return false;
     if (search && !s.name.includes(search)) return false;
     return true;
