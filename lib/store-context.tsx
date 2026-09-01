@@ -113,6 +113,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return "student";
     return (localStorage.getItem("app_view_mode") as AppViewMode) || "student";
   });
+  const [allStudents, setAllStudents] = useState(mockData.students);
   const [student, setStudent] = useState<Student | null>(() => {
     const s = getSession();
     if (!s) return null;
@@ -729,7 +730,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       badges,
       season,
       classes,
-      allStudents: mockData.students,
+      allStudents,
       activities,
       sharedGoal,
       teachers,
