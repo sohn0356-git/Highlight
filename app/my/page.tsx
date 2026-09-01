@@ -21,52 +21,58 @@ export default function MyContent() {
         <PageHeader title="우리 반" showBack subtitle="서로를 위해, 함께 걸어요" right={<Users size={18} className="text-indigo-400" />} />
       </div>
 
-      {myClass ? (
-        <>
-          <section className="mt-3 px-5">
-            <Card className="bg-gradient-to-br from-amber-400 to-orange-400 border-0 text-white shadow-lg shadow-amber-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-extrabold">{myClass.name}</p>
-                  <p className="mt-1 text-sm text-amber-50">LV.{myClass.level}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-extrabold">{myClass.xp?.toLocaleString()} XP</p>
-                  <p className="text-xs text-amber-50">다음 레벨까지</p>
-                </div>
+      {myClass && (
+        <section className="mt-3 px-5">
+          <Card className="bg-gradient-to-br from-amber-400 to-orange-400 border-0 text-white shadow-lg shadow-amber-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-extrabold">{myClass.name}</p>
+                <p className="mt-1 text-sm text-amber-50">LV.{myClass.level ?? 1}</p>
               </div>
-              <div className="mt-4">
-                <ProgressBar value={myClass.xp} max={nextLevelXp} className="bg-white/30" barClassName="bg-white" />
+              <div className="text-right">
+                <p className="text-lg font-extrabold">{(myClass.xp ?? 0).toLocaleString()} XP</p>
+                <p className="text-xs text-amber-50">다음 레벨까지</p>
               </div>
-            </Card>
-          </section>
-
-          <section className="mt-5 px-5">
-            <div className="grid grid-cols-2 gap-2.5">
-              <StatCard label="출석" value={`${myClass.attendance?.attended} / ${myClass.attendance?.total}`} tone="emerald" icon={<span>⛪</span>} />
-              <StatCard label="QT" value={`${myClass.qtCount}회`} tone="indigo" icon={<span>📖</span>} />
-              <StatCard label="미션" value={`${myClass.missionCount}회`} tone="amber" icon={<span>🎯</span>} />
-              <StatCard label="기도" value={`${myClass.prayerCount}회`} tone="rose" icon={<span>🙏</span>} />
             </div>
-          </section>
-
-          <section className="mt-5 px-5">
-            <Card className="bg-indigo-50/60 border-indigo-100">
-              <h3 className="text-sm font-bold text-indigo-800">반 선생님 메시지</h3>
-              <p className="mt-1.5 text-sm text-indigo-700">{myClass.classMessage}</p>
-            </Card>
-          </section>
-        </>
-      ) : (
-        <section className="mt-5 px-5">
-          <Card className="text-center">
-            <p className="py-4 text-sm text-neutral-400">반 정보를 불러올 수 없습니다.</p>
+            <div className="mt-4">
+              <ProgressBar value={myClass.xp ?? 0} max={nextLevelXp} className="bg-white/30" barClassName="bg-white" />
+            </div>
           </Card>
         </section>
       )}
 
-      {isAdmin && (
+      {myClass && (
         <section className="mt-5 px-5">
+          <div className="grid grid-cols-2 gap-2.5">
+            <StatCard label="출석" value={`${myClass.attendance?.attended ?? 0} / ${myClass.attendance?.total ?? 0}`} tone="emerald" icon={<span>⛪</span>} />
+            <StatCard label="QT" value={`${myClass.qtCount ?? 0}회`} tone="indigo" icon={<span>📖</span>} />
+            <StatCard label="미션" value={`${myClass.missionCount ?? 0}회`} tone="amber" icon={<span>🎯</span>} />
+            <StatCard label="기도" value={`${myClass.prayerCount ?? 0}회`} tone="rose" icon={<span>🙏</span>} />
+          </div>
+        </section>
+      )}
+
+      {myClass?.classMessage && (
+        <section className="mt-5 px-5">
+          <Card className="bg-indigo-50/60 border-indigo-100">
+            <h3 className="text-sm font-bold text-indigo-800">반 선생님 메시지</h3>
+            <p className="mt-1.5 text-sm text-indigo-700">{myClass.classMessage}</p>
+          </Card>
+        </section>
+      )}
+
+      <section className="mt-5 px-5">
+        <div className="flex items-center gap-2 rounded-xl bg-neutral-50 px-4 py-3">
+          <span className="text-sm">👤</span>
+          <div>
+            <p className="text-sm font-bold text-neutral-800">{student.name}</p>
+            <p className="text-[11px] text-neutral-400">{student.classId}</p>
+          </div>
+        </div>
+      </section>
+
+      {isAdmin && (
+        <section className="mt-4 px-5">
           <button onClick={() => setMode("admin")} className="flex w-full items-center gap-3 rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 text-left shadow-sm active:scale-[0.98] transition">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-500 text-white"><ShieldCheck size={22} /></span>
             <div className="flex-1">
