@@ -180,7 +180,7 @@ export default function AdminStudents() {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
               <input className="w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 py-2.5 text-sm" placeholder={listTab === "students" ? "학생 검색..." : "교사 검색..."} value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <button onClick={() => setShowForm(listTab === "students" ? "student" : "teacher")} className="grid h-10 w-10 place-items-center rounded-lg bg-indigo-500 text-white"><Plus size={18} /></button>
+            <button onClick={() => { setEditId(null); setTeacherForm({ name: "", birthDate: "", assignedClassIds: [], role: "teacher" }); setShowForm(listTab === "students" ? "student" : "teacher"); }} className="grid h-10 w-10 place-items-center rounded-lg bg-indigo-500 text-white"><Plus size={18} /></button>
           </div>
 
           {listTab === "students" && (
