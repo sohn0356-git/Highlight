@@ -20,17 +20,7 @@ export default function QTContent() {
   const handleShare = () => {
     const ok = shareQT();
     if (ok) {
-      setSharedMsg("친구와 공유했어요! +10M");
-      // Web Share API (Native 앱 feel)
-      if (navigator.share) {
-        navigator.share({
-          title: "오늘의 QT",
-          text: qtToday.passage + " — " + qtToday.verse,
-          url: window.location.href,
-        }).catch(() => {});
-      } else if (navigator.clipboard) {
-        navigator.clipboard.writeText(qtToday.passage + " — " + qtToday.verse).catch(() => {});
-      }
+      setSharedMsg("QT 공유 완료! +10M");
     } else {
       setSharedMsg("오늘은 이미 공유했어요.");
     }

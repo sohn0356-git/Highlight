@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { Student, MileageTransaction, QTRecord, PrayerRequest, CompletedMission, SharedQTPost, QTComment } from "./types";
 import type { Teacher } from "./types";
 import { mockData } from "./data";
+import { showPointToast } from "@/components/PointToast";
 import {
   fetchStudents, fetchClasses, fetchMissions, fetchBadges, fetchPrayers,
   fetchTodayQT, fetchSeason, fetchSharedGoal, fetchActivities, fetchTeachers,
@@ -399,6 +400,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
         addTransaction(tx);
         setTxns(prev => [...prev, tx]);
+        showPointToast(`+${quest.reward}M 획득!`);
         updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
         upsertSupabase("mileage_transactions", tx);
       }
@@ -410,6 +412,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!student || qtDoneToday) return;
     const updated = updateStudentMileage(student.id, 20, student);
     setStudent(updated);
+    showPointToast("+20M QT 완료!");
     const rec: QTRecord = {
       id: "qt_" + Date.now(),
       studentId: student.id,
@@ -494,6 +497,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     addTransaction(tx);
     setTxns(prev => [...prev, tx]);
+    showPointToast("+5M 기도 참여!");
     completeDailyQuest("d3");
     // Supabase writes
     const asyncWrite = async () => {
@@ -621,12 +625,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .map((p: SharedQTPost) => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p);
       localStorage.setItem("mileage_shared_posts", JSON.stringify(posts));
     }
+    completeDailyQuest("d7");
     // Supabase
     const asyncWrite = async () => {
       await upsertSupabase("qt_comments", comment);
     };
     asyncWrite();
-  }, [student]);
+  }, [student, completeDailyQuest]);
 
   const fetchPostComments = useCallback((postId: string): QTComment[] => {
     return qtComments[postId] || [];

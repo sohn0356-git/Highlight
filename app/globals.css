@@ -86,3 +86,9 @@ html, body, body > div, body > main {
     border-right: 1px solid rgba(0,0,0,0.04);
   }
 }
+
+@keyframes bounceIn {
+  0% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+  60% { transform: translateX(-50%) translateY(4px); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(0); }
+}

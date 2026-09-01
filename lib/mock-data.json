@@ -1414,14 +1414,6 @@
       "category": "daily"
     },
     {
-      "id": "d4",
-      "icon": "📝",
-      "title": "기도제목 남기기",
-      "description": "나의 기도제목을 남겨요.",
-      "reward": 10,
-      "category": "daily"
-    },
-    {
       "id": "d5",
       "icon": "🏠",
       "title": "홈 확인하기",
@@ -1430,10 +1422,10 @@
       "category": "daily"
     },
     {
-      "id": "d6",
-      "icon": "⭐",
-      "title": "일일 퀘스트 확인",
-      "description": "오늘의 퀘스트를 확인해요.",
+      "id": "d7",
+      "icon": "💬",
+      "title": "댓글 달기",
+      "description": "QT 공유에 댓글을 남겨봐요.",
       "reward": 5,
       "category": "daily"
     }

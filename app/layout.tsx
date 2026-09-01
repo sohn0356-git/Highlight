@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "./providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import PointToast from "@/components/PointToast";
 
 export const metadata: Metadata = {
   title: "고등부 Highlight",
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-dvh bg-[#faf9f7] antialiased overscroll-none">
         <ServiceWorkerRegister />
+        <PointToast />
         <Providers>
           <main className="relative w-full min-h-dvh pb-20 sm:mx-auto sm:max-w-md">
             {children}
