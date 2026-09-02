@@ -287,6 +287,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setDataLoaded(true);
         } catch { /* keep mock fallback */ }
 
+        // Supabase real-time: students 테이블 변경 시 자동 갱신
+        if (isSupabaseReady) {
+          try {
+            const { getSupabase } = await import("./supabase");
+            const sb = getSupabase();
+            if (sb) {
+              const channel = sb.channel("students-changes")
+                .on("postgres_changes", { event: "*", schema: "public", table: "students" }, (payload: any) => {
+                  if (payload.eventType === "UPDATE" && payload.new) {
+                    const row = payload.new;
+                    setStudent(prev => {
+                      if (prev && prev.id === row.id) {
+                        return { ...prev, mileage: Number(row.mileage) || prev.mileage };
+                      }
+                      return prev;
+                    });
+                    setAllStudents(prev => prev.map((s: any) =>
+                      s.id === row.id ? { ...s, mileage: Number(row.mileage) || s.mileage } : s
+                    ));
+                  } else if (payload.eventType === "INSERT" && payload.new) {
+                    // 새 학생 추가 시 allStudents 갱신
+                    fetchStudents().then(stu => { if (stu.length) setAllStudents(stu); });
+                  }
+                })
+                .subscribe();
+              return () => { sb.removeChannel(channel); };
+            }
+          } catch { /* ignore */ }
+        }
+
         // Load student-specific data from DB
         if (student) {
           try {
