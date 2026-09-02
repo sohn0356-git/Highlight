@@ -255,7 +255,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             fetchTodayQT(), fetchMissions(), fetchSeason(), fetchSharedGoal(),
             fetchActivities(), fetchBadges(), fetchClasses(), fetchTeachers(),
           ]);
-          setQtToday(q || mockData.qt_today);
+          setQtToday(q || { ...mockData.qt_today, date: new Date().toISOString().slice(0, 10) });
           setMissions(m as any);
           setSeason(s);
           setSharedGoal(sg);
@@ -869,7 +869,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       supabaseReady: isSupabaseReady,
       login,
       logout,
-      qtToday,
+      qtToday: { ...qtToday, date: new Date().toISOString().slice(0, 10) },
       isQTDoneToday: qtDoneToday,
       qtRecords,
       completeQT: completeQTHandler,
