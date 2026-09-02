@@ -28,7 +28,7 @@ export interface AdminTeacher extends User {
 }
 
 /* ── Attendance ── */
-export type AttendanceState = "present" | "late" | "absent" | "excused";
+export type AttendanceState = "present" | "late" | "online" | "absent";
 
 export interface AttendanceSession {
   id: string;

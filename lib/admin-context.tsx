@@ -99,7 +99,7 @@ interface AdminState {
   resetToSeedData: () => void;
 }
 
-type AttendanceStateType = "present" | "late" | "absent" | "excused";
+type AttendanceStateType = "present" | "late" | "online" | "absent";
 type PrayerStatusType = "active" | "hidden" | "reported" | "deleted";
 
 interface MileageTransactionRecord {
@@ -282,7 +282,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     const targetMonth = month; // undefined면 연간 전체
     return records.filter(r => {
       if (r.studentId !== studentId) return false;
-      if (r.state !== "present" && r.state !== "late") return false;
+      if (r.state !== "present" && r.state !== "late" && r.state !== "online") return false;
       const session = sessions.find(s => s.id === r.sessionId);
       if (!session) return false;
       const d = new Date(session.date);
@@ -315,9 +315,8 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       }
 
       // 출석 마일리지 자동 지급 (present/late = 20M)
-      if ((state === "present" || state === "late") && newRecords.length) {
-        const ATTENDANCE_MILEAGE = 20;
-        const attendanceMileage = (state === "late" ? 15 : 20); // 지각은 15, 출석은 20
+      if (state === "present" || state === "late" || state === "online") {
+        const attendanceMileage = state === "present" ? 20 : state === "late" ? 15 : 10;
         setStudents(prev => prev.map(s => {
           if (!newRecords.some(r => r.studentId === s.id)) return s;
           return { ...s, mileage: s.mileage + attendanceMileage };
@@ -330,7 +329,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
             id: "atx_att_" + Date.now() + "_" + stu.id,
             studentId: stu.id, studentName: stu.name,
             className: stu.classId, type: "attendance",
-            description: state === "present" ? "주일 예배 출석" : "주일 예배 지각",
+            description: state === "present" ? "주일 예배 출석" : state === "late" ? "주일 예배 지각" : "주일 예배 온라인",
             amount: attendanceMileage, date: today, actorName: "시스템",
           };
           setAllTx(prev => [...prev, tx]);
@@ -368,8 +367,8 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       }
       return next;
     });
-    // 마일리지 (출석=20, 지각=15, 공결=10, 결석=0)
-    if (state === "present" || state === "late" || state === "excused") {
+    // 마일리지 (출석=20, 지각=15, 온라인=10, 결석=0)
+    if (state === "present" || state === "late" || state === "online") {
       const mileage = state === "present" ? 20 : state === "late" ? 15 : 10;
       setStudents(prev => prev.map(s => s.id === studentId ? { ...s, mileage: s.mileage + mileage } : s));
       const stu = students.find(s => s.id === studentId);
@@ -377,7 +376,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         const tx: MileageTransactionRecord = {
           id: "atx_att_" + Date.now() + "_" + studentId, studentId: stu.id, studentName: stu.name,
           className: stu.classId, type: "attendance",
-          description: state === "present" ? "주일 예배 출석" : state === "late" ? "주일 예배 지각" : "주일 예배 공결",
+          description: state === "present" ? "주일 예배 출석" : state === "late" ? "주일 예배 지각" : "주일 예배 온라인",
           amount: mileage, date: today, actorName: "시스템",
         };
         setAllTx(prev => [...prev, tx]);
