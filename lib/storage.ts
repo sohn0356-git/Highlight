@@ -51,6 +51,19 @@ export function isQTCompletedToday(): boolean {
   return records.some(r => r.date === today);
 }
 
+export function updateQTRecord(id: string, patch: Partial<QTRecord>) {
+  if (typeof window === "undefined") return;
+  const records = getQTRecords();
+  const updated = records.map(r => r.id === id ? { ...r, ...patch } : r);
+  localStorage.setItem(QT_KEY, JSON.stringify(updated));
+}
+
+export function deleteQTRecord(id: string) {
+  if (typeof window === "undefined") return;
+  const records = getQTRecords().filter(r => r.id !== id);
+  localStorage.setItem(QT_KEY, JSON.stringify(records));
+}
+
 export function addQTRecord(rec: QTRecord) {
   if (typeof window === "undefined") return;
   const records = getQTRecords();

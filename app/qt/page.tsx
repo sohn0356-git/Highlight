@@ -7,13 +7,16 @@ import SharedQTFeed from "@/components/SharedQTFeed";
 import { useApp } from "@/lib/store-context";
 
 export default function QTContent() {
-  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, qtRecords, sharedTodayQT, shareQT, sharedQTDates } = useApp();
+  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, sharedQTDates } = useApp();
   const [remembered, setRemembered] = useState("");
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
   const [sharedMsg, setSharedMsg] = useState("");
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
+  const [editRecordId, setEditRecordId] = useState<string | null>(null);
+  const [editRemembered, setEditRemembered] = useState("");
+  const [editApplication, setEditApplication] = useState("");
 
   if (!student || !isLoggedIn) return null;
 
@@ -30,6 +33,13 @@ export default function QTContent() {
     if (!remembered.trim() || !application.trim()) return;
     completeQT(remembered.trim(), application.trim());
     setJustCompleted(true);
+  };
+
+  const handleUpdateQT = () => {
+    if (editRecordId && (editRemembered.trim() || editApplication.trim())) {
+      updateQT(editRecordId, { remembered: editRemembered.trim(), application: editApplication.trim() });
+      setEditRecordId(null);
+    }
   };
 
   return (
@@ -91,7 +101,7 @@ export default function QTContent() {
             </div>
             <p className="mt-3 text-lg font-bold text-emerald-700">🌱 오늘의 QT 완료!</p>
             <p className="mt-1 text-sm text-emerald-600">
-              이번 달 {qtRecords.filter(r => r.date.startsWith(new Date().toISOString().slice(0, 7))).length + 1}번째 QT예요.
+              이번 달 {qtRecords.filter(r => r.date.startsWith(new Date().toISOString().slice(0, 7))).length}번째 QT예요.
             </p>
             <div className="mt-4 rounded-xl bg-emerald-100/60 px-4 py-2 text-sm font-semibold text-emerald-700">+20M 적립 완료</div>
           </Card>
@@ -154,17 +164,34 @@ export default function QTContent() {
                     <p className="mt-1 text-[11px] text-neutral-400">{r.date}</p>
                     {expandedRecord === r.id && (
                       <div className="mt-3 rounded-xl bg-white p-3.5 border border-neutral-100">
-                        <blockquote className="border-l-2 border-indigo-200 pl-3 text-sm italic text-neutral-600">&ldquo;{r.verse}&rdquo;</blockquote>
-                        <div className="mt-3 space-y-2">
-                          <div className="rounded-lg bg-indigo-50/70 px-3 py-2.5">
-                            <p className="text-[11px] font-bold text-indigo-600">💡 기억나는 말씀</p>
-                            <p className="mt-1 text-xs leading-relaxed text-neutral-700">{r.remembered}</p>
+                        {editRecordId === r.id ? (
+                          <div className="space-y-2">
+                            <textarea value={editRemembered} onChange={e => setEditRemembered(e.target.value)} rows={2} className="w-full rounded-lg border border-indigo-200 px-3 py-2 text-xs outline-none" placeholder="기억나는 말씀" />
+                            <textarea value={editApplication} onChange={e => setEditApplication(e.target.value)} rows={2} className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-xs outline-none" placeholder="실천할 것" />
+                            <div className="flex gap-2">
+                              <button onClick={handleUpdateQT} className="flex-1 rounded-lg bg-indigo-500 py-2 text-xs font-bold text-white">저장</button>
+                              <button onClick={() => setEditRecordId(null)} className="rounded-lg bg-neutral-100 px-3 py-2 text-xs font-bold text-neutral-600">취소</button>
+                            </div>
                           </div>
-                          <div className="rounded-lg bg-emerald-50/70 px-3 py-2.5">
-                            <p className="text-[11px] font-bold text-emerald-600">🌱 실천할 것</p>
-                            <p className="mt-1 text-xs leading-relaxed text-neutral-700">{r.application}</p>
-                          </div>
-                        </div>
+                        ) : (
+                          <>
+                            <blockquote className="border-l-2 border-indigo-200 pl-3 text-sm italic text-neutral-600">&ldquo;{r.verse}&rdquo;</blockquote>
+                            <div className="mt-3 space-y-2">
+                              <div className="rounded-lg bg-indigo-50/70 px-3 py-2.5">
+                                <p className="text-[11px] font-bold text-indigo-600">💡 기억나는 말씀</p>
+                                <p className="mt-1 text-xs leading-relaxed text-neutral-700">{r.remembered}</p>
+                              </div>
+                              <div className="rounded-lg bg-emerald-50/70 px-3 py-2.5">
+                                <p className="text-[11px] font-bold text-emerald-600">🌱 실천할 것</p>
+                                <p className="mt-1 text-xs leading-relaxed text-neutral-700">{r.application}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button onClick={() => { setEditRecordId(r.id); setEditRemembered(r.remembered); setEditApplication(r.application); }} className="flex-1 rounded-lg bg-indigo-50 py-2 text-xs font-bold text-indigo-600">수정</button>
+                                <button onClick={() => deleteQT(r.id)} className="flex-1 rounded-lg bg-rose-50 py-2 text-xs font-bold text-rose-600">삭제</button>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

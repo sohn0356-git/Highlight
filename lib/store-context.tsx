@@ -8,6 +8,7 @@ import {
   fetchStudents, fetchClasses, fetchMissions, fetchBadges, fetchPrayers,
   fetchTodayQT, fetchSeason, fetchSharedGoal, fetchActivities, fetchTeachers,
   fetchDailyQuests, completeDailyQuestRemote,
+  updateQTRecordRemote, deleteQTRecordRemote,
   fetchTransactions, fetchQTRecords, fetchCompletedMissions,
   fetchPrayerParticipants, prayForRemote,
   fetchSharedQTDates, fetchSharedPosts, createSharedPost,
@@ -16,7 +17,7 @@ import {
 } from "@/services/mileage-service";
 import {
   getSession, setSession, clearSession,
-  getQTRecords, addQTRecord, isQTCompletedToday,
+  getQTRecords, addQTRecord, updateQTRecord, deleteQTRecord, isQTCompletedToday,
   getCompletedMissions, completeMission,
   getPrayers, initPrayers, hasPrayed, togglePrayer,
   getTransactions, addTransaction, updateStudentMileage,
@@ -113,6 +114,8 @@ interface AppState {
   isQTDoneToday: boolean;
   qtRecords: QTRecord[];
   completeQT: (remembered: string, application: string) => void;
+  updateQT: (id: string, patch: Partial<QTRecord>) => void;
+  deleteQT: (id: string) => void;
   sharedQTDates: string[];
   sharedTodayQT: boolean;
   shareQT: () => boolean;
@@ -640,6 +643,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await upsertSupabase("qt_records", rec);
   }, [student, qtDoneToday, qtToday, completeDailyQuest]);
 
+  /* QT 기록 수정 */
+  const updateQT = useCallback(async (id: string, patch: Partial<QTRecord>) => {
+    setQtRecords(prev => {
+      const next = prev.map(r => r.id === id ? { ...r, ...patch } : r);
+      if (typeof window !== "undefined") {
+        updateQTRecord(id, patch);
+      }
+      return next;
+    });
+    await updateQTRecordRemote(id, patch);
+  }, []);
+
+  /* QT 기록 삭제 */
+  const deleteQT = useCallback(async (id: string) => {
+    setQtRecords(prev => {
+      const next = prev.filter(r => r.id !== id);
+      if (typeof window !== "undefined") {
+        deleteQTRecord(id);
+      }
+      return next;
+    });
+    await deleteQTRecordRemote(id);
+  }, []);
+
   /* ── MISSION ── */
   const completeMissionHandler = useCallback(async (missionId: string) => {
     if (!student || completedMissionIds.includes(missionId)) return;
@@ -846,6 +873,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isQTDoneToday: qtDoneToday,
       qtRecords,
       completeQT: completeQTHandler,
+      updateQT,
+      deleteQT,
       sharedQTDates,
       sharedTodayQT: sharedQTDates.includes(new Date().toISOString().slice(0, 10)),
       shareQT,

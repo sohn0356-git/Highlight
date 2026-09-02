@@ -291,6 +291,22 @@ export async function fetchQTRecords(studentId: string): Promise<any[]> {
   return [];
 }
 
+export async function updateQTRecordRemote(id: string, patch: any): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  try {
+    await sb.from("qt_records").update(patch).eq("id", id);
+  } catch { /* ignore */ }
+}
+
+export async function deleteQTRecordRemote(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  try {
+    await sb.from("qt_records").delete().eq("id", id);
+  } catch { /* ignore */ }
+}
+
 /* ── 완료 미션 (DB) ── */
 export async function fetchCompletedMissions(studentId: string): Promise<string[]> {
   const sb = getSupabase();
