@@ -48,16 +48,24 @@ function parseQT(html, dateStr) {
     if (match) passage = match[1].trim();
   }
   
-  // Extract verse/title (e.g., "복되고 정결한 인생의 비결")
+  // Extract verse/title - h1 > em contains the subtitle
   let verse = "";
-  const verseEl = $("span.bible_1st_tit, .info_sub").first();
-  if (verseEl.length) {
-    verse = verseEl.text().trim();
+  const emEl = $("h1 em").first();
+  if (emEl.length) {
+    verse = emEl.text().trim().replace(/\s+/g, " ");
   }
-  // Fallback: look for title pattern
+  // Fallback: regex
   if (!verse) {
-    const match = html.match(/info_sub[^>]*>([^<]+)/);
-    if (match) verse = match[1].trim();
+    const emMatch = html.match(/<em>([^<]+)<\/em>/g);
+    if (emMatch) {
+      for (const m of emMatch) {
+        const text = m.replace(/<[^>]+>/g, "").trim();
+        if (text.length > 10 && !text.includes("다이어리") && !text.includes("로그인") && !text.includes("회원가입")) {
+          verse = text;
+          break;
+        }
+      }
+    }
   }
   
   // Extract bible content
