@@ -52,6 +52,8 @@ interface AdminState {
   addAttendanceRecord: (r: AttendanceRecordAdmin) => void;
   updateAttendanceRecord: (id: string, patch: Partial<AttendanceRecordAdmin>) => void;
   bulkMarkAttendance: (studentIds: string[], sessionId: string, state: AttendanceStateType) => void;
+  getStudentAttendanceCount: (studentId: string, year?: number, month?: number) => number;
+  markStudentAttendance: (studentId: string, sessionId: string, state: AttendanceStateType) => void;
 
   qtContents: QTContent[];
   addQTContent: (q: QTContent) => void;
@@ -274,8 +276,25 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const updateAttendanceRecord = useCallback((id: string, patch: Partial<AttendanceRecordAdmin>) => {
     setRecords(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
   }, []);
+  // 학생별 연/월 출석 횟수 계산
+  const getStudentAttendanceCount = useCallback((studentId: string, year?: number, month?: number): number => {
+    const targetYear = year || new Date().getFullYear();
+    const targetMonth = month; // undefined면 연간 전체
+    return records.filter(r => {
+      if (r.studentId !== studentId) return false;
+      if (r.state !== "present" && r.state !== "late") return false;
+      const session = sessions.find(s => s.id === r.sessionId);
+      if (!session) return false;
+      const d = new Date(session.date);
+      if (d.getFullYear() !== targetYear) return false;
+      if (targetMonth !== undefined && d.getMonth() + 1 !== targetMonth) return false;
+      return true;
+    }).length;
+  }, [records, sessions]);
+
   const bulkMarkAttendance = useCallback((studentIds: string[], sessionId: string, state: AttendanceStateType) => {
     const now = new Date().toISOString();
+    const today = new Date().toISOString().slice(0, 10);
     setRecords(prev => {
       const existing = new Set(prev.filter(r => r.sessionId === sessionId).map(r => r.studentId));
       const newRecords = studentIds.filter(id => !existing.has(id)).map(id => ({
@@ -294,9 +313,84 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         }));
         getSupabase()?.from("attendance_records").upsert(rows, { onConflict: "session_id,student_id" }); /* sb write */ void 0;
       }
+
+      // 출석 마일리지 자동 지급 (present/late = 20M)
+      if ((state === "present" || state === "late") && newRecords.length) {
+        const ATTENDANCE_MILEAGE = 20;
+        const attendanceMileage = (state === "late" ? 15 : 20); // 지각은 15, 출석은 20
+        setStudents(prev => prev.map(s => {
+          if (!newRecords.some(r => r.studentId === s.id)) return s;
+          return { ...s, mileage: s.mileage + attendanceMileage };
+        }));
+        // 트랜잭션 + Supabase
+        newRecords.forEach(r => {
+          const stu = students.find(s => s.id === r.studentId);
+          if (!stu) return;
+          const tx: MileageTransactionRecord = {
+            id: "atx_att_" + Date.now() + "_" + stu.id,
+            studentId: stu.id, studentName: stu.name,
+            className: stu.classId, type: "attendance",
+            description: state === "present" ? "주일 예배 출석" : "주일 예배 지각",
+            amount: attendanceMileage, date: today, actorName: "시스템",
+          };
+          setAllTx(prev => [...prev, tx]);
+          if (isSupabaseReady) {
+            const sb = getSupabase();
+            if (sb) {
+              sb.from("students").update({ mileage: stu.mileage + attendanceMileage }).eq("id", stu.id); void 0;
+              sb.from("mileage_transactions").insert([{ id: tx.id, student_id: tx.studentId, type: tx.type, description: tx.description, amount: tx.amount, date: tx.date }]); void 0;
+            }
+          }
+        });
+      }
+
       return [...prev, ...newRecords];
     });
-  }, []);
+  }, [students]);
+
+
+  // 개별 학생 출석 체크 (마일리지 포함)
+  const markStudentAttendance = useCallback((studentId: string, sessionId: string, state: AttendanceStateType) => {
+    const now = new Date().toISOString();
+    const today = now.slice(0, 10);
+    setRecords(prev => {
+      const exists = prev.some(r => r.sessionId === sessionId && r.studentId === studentId);
+      const newRecord = {
+        id: exists ? prev.find(r => r.sessionId === sessionId && r.studentId === studentId)!.id : "ar_" + Date.now() + "_" + studentId,
+        studentId, sessionId, state, checkTime: now, method: "manual" as const,
+      };
+      const next = exists ? prev.map(r => r.sessionId === sessionId && r.studentId === studentId ? { ...r, state, checkTime: now } : r) : [...prev, newRecord];
+      if (isSupabaseReady) {
+        getSupabase()?.from("attendance_records").upsert({
+          id: newRecord.id, session_id: sessionId, student_id: studentId,
+          state, check_time: now, method: "manual",
+        }, { onConflict: "session_id,student_id" }); void 0;
+      }
+      return next;
+    });
+    // 마일리지 (출석=20, 지각=15, 공결=10, 결석=0)
+    if (state === "present" || state === "late" || state === "excused") {
+      const mileage = state === "present" ? 20 : state === "late" ? 15 : 10;
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, mileage: s.mileage + mileage } : s));
+      const stu = students.find(s => s.id === studentId);
+      if (stu) {
+        const tx: MileageTransactionRecord = {
+          id: "atx_att_" + Date.now() + "_" + studentId, studentId: stu.id, studentName: stu.name,
+          className: stu.classId, type: "attendance",
+          description: state === "present" ? "주일 예배 출석" : state === "late" ? "주일 예배 지각" : "주일 예배 공결",
+          amount: mileage, date: today, actorName: "시스템",
+        };
+        setAllTx(prev => [...prev, tx]);
+        if (isSupabaseReady) {
+          const sb = getSupabase();
+          if (sb) {
+            sb.from("students").update({ mileage: stu.mileage + mileage }).eq("id", stu.id); void 0;
+            sb.from("mileage_transactions").insert([{ id: tx.id, student_id: tx.studentId, type: tx.type, description: tx.description, amount: tx.amount, date: tx.date }]); void 0;
+          }
+        }
+      }
+    }
+  }, [students]);
 
   const addQTContent = useCallback((q: QTContent) => setQTContents(prev => [...prev, q]), []);
   const updateQTContent = useCallback((id: string, patch: Partial<QTContent>) => {
@@ -478,7 +572,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       students, addStudent, updateStudent, deactivateStudent,
       teachers, addTeacher, updateTeacher,
       attendanceSessions: sessions, addAttendanceSession, closeAttendanceSession,
-      attendanceRecords: records, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance,
+      attendanceRecords: records, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance, getStudentAttendanceCount, markStudentAttendance,
       qtContents, addQTContent, updateQTContent,
       missions: missionAdmins, addMission, updateMission,
       missionCompletions, approveMissionCompletion, rejectMissionCompletion,
