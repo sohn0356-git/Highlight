@@ -79,22 +79,25 @@ async function deleteSupabase(table: string, match: Record<string, unknown>) {
   } catch { /* ignore */ }
 }
 
-/* ── 마일리지 추가 + 반 XP 갱신 헬퍼 ── */
+/* ── 마일리지 추가 + 반 XP + 개인랭킹 갱신 헬퍼 ── */
 function addMileage(
   student: Student,
   delta: number,
   setStudent: React.Dispatch<React.SetStateAction<Student | null>>,
   setClasses: React.Dispatch<React.SetStateAction<any[]>>,
   setTxns: React.Dispatch<React.SetStateAction<MileageTransaction[]>>,
+  setAllStudents: React.Dispatch<React.SetStateAction<any[]>>,
   tx: MileageTransaction,
 ) {
   const updated = updateStudentMileage(student.id, delta, student);
   setStudent(updated);
   addTransaction(tx);
   setTxns(prev => [...prev, tx]);
+  // 개인 랭킹 갱신
+  setAllStudents(prev => prev.map(s => s.id === student.id ? { ...s, mileage: updated.mileage } : s));
   // 반 XP 갱신
   updateClassXP(setClasses, student.classId, delta);
-  // Supabase: 학생 마일리지 + 반 XP
+  // Supabase: 학생 마일리지 + 반 XP + 트랜잭션
   updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
   updateSupabase("classes", { id: student.classId }, {
     xp: { raw: `xp + ${delta}` },
@@ -585,7 +588,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: quest.reward,
       date: today,
     };
-    addMileage(student, quest.reward, setStudent, setClasses, setTxns, tx);
+    addMileage(student, quest.reward, setStudent, setClasses, setTxns, setAllStudents, tx);
     showPointToast(`+${quest.reward}M 획득!`);
     updateBadges(student.id);
   }, [dailyQuests, student]);
@@ -635,7 +638,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: 20,
       date: new Date().toISOString().slice(0, 10),
     };
-    addMileage(student, 20, setStudent, setClasses, setTxns, tx);
+    addMileage(student, 20, setStudent, setClasses, setTxns, setAllStudents, tx);
     showPointToast("+20M QT 완료!");
     updateBadges(student.id);
     completeDailyQuest("d1");
@@ -688,7 +691,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: mission.reward,
       date: new Date().toISOString().slice(0, 10),
     };
-    addMileage(student, mission.reward, setStudent, setClasses, setTxns, tx);
+    addMileage(student, mission.reward, setStudent, setClasses, setTxns, setAllStudents, tx);
     // DB writes
     await upsertSupabase("completed_missions", { mission_id: missionId, student_id: student.id, reward: mission.reward, completed_at: completed.completedAt });
   }, [student, completedMissionIds, missions]);
@@ -711,7 +714,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: 5,
       date: new Date().toISOString().slice(0, 10),
     };
-    addMileage(student, 5, setStudent, setClasses, setTxns, tx);
+    addMileage(student, 5, setStudent, setClasses, setTxns, setAllStudents, tx);
     showPointToast("+5M 기도 참여!");
     updateBadges(student.id);
     completeDailyQuest("d3");
@@ -808,7 +811,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       amount: 10,
       date: today,
     };
-    addMileage(student, 10, setStudent, setClasses, setTxns, tx);
+    addMileage(student, 10, setStudent, setClasses, setTxns, setAllStudents, tx);
     completeDailyQuest("d2");
     // DB writes
     (async () => {
