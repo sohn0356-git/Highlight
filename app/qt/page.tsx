@@ -57,7 +57,7 @@ export default function QTContent() {
           <blockquote className="mt-3 border-l-2 border-indigo-200 pl-3.5 text-sm italic leading-relaxed text-neutral-700">
             &ldquo;{qtToday.verse}&rdquo;
           </blockquote>
-          <p className="mt-3 text-sm leading-relaxed text-neutral-600">{qtToday.content}</p>
+          <div className="mt-3 text-sm leading-relaxed text-neutral-600 whitespace-pre-line">{qtToday.content}</div>
         </Card>
       </section>
 
