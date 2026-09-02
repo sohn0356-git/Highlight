@@ -142,7 +142,7 @@ export async function addCommentToPost(comment: QTComment) {
 }
 
 /* ── QT 본문 ── */
-export async function fetchTodayQT(): Promise<{ date: string; passage: string; verse: string; content: string } | null> {
+export async function fetchTodayQT(): Promise<{ date: string; passage: string; verse: string; content: string; prayer?: string; song?: string; helper?: string; question1?: string; question2?: string } | null> {
   const today = new Date().toISOString().slice(0, 10);
   const sb = getSupabase();
   if (sb) {
@@ -154,6 +154,11 @@ export async function fetchTodayQT(): Promise<{ date: string; passage: string; v
         passage: row.passage || "",
         verse: row.verse || "",
         content: row.content || "",
+        prayer: row.prayer || "",
+        song: row.song || "",
+        helper: row.helper || "",
+        question1: row.question1 || "",
+        question2: row.question2 || "",
       };
     }
   }

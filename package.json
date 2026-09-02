@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
+    "cheerio": "^1.2.0",
+    "iconv-lite": "^0.7.3",
     "lucide-react": "^1.37.0",
     "next": "^15.5.24",
     "react": "^18.3.1",
