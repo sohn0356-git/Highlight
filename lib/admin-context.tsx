@@ -227,6 +227,45 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           }));
           setRecords(mapped);
         }
+
+        // 미션 로드
+        const { data: missionsData } = await sb.from("missions").select("*");
+        if (missionsData && missionsData.length) {
+          const mapped = missionsData.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description || "",
+            icon: r.icon || "🎯",
+            type: r.type || "weekly",
+            mileageReward: Number(r.mileage_reward || 30),
+            xpReward: Number(r.xp_reward || 30),
+            startDate: r.start_date || "",
+            endDate: r.end_date || "",
+            target: r.target || "all",
+            approvalRequired: r.approval_required || false,
+            active: r.active !== false,
+          }));
+          setMissionAdmins(mapped);
+        }
+
+        // 공지 로드
+        const { data: annData } = await sb.from("announcements").select("*");
+        if (annData && annData.length) {
+          const mapped = annData.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            content: r.content || "",
+            target: r.target || "all",
+            targetClassIds: r.target_class_ids || [],
+            targetGrades: r.target_grades || [],
+            startDate: r.start_date || "",
+            endDate: r.end_date || "",
+            important: r.important || false,
+            status: r.status || "draft",
+            createdAt: r.created_at || "",
+          }));
+          setAnnouncements(mapped);
+        }
       } catch { /* keep localStorage data */ }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -396,9 +435,23 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setQTContents(prev => prev.map(q => q.id === id ? { ...q, ...patch } : q));
   }, []);
 
-  const addMission = useCallback((m: MissionAdmin) => setMissionAdmins(prev => [...prev, m]), []);
+  const addMission = useCallback((m: MissionAdmin) => {
+    setMissionAdmins(prev => [...prev, m]);
+    if (isSupabaseReady) {
+      getSupabase()?.from("missions").upsert({
+        id: m.id, title: m.title, description: m.description, icon: m.icon,
+        type: m.type, target: m.target, active: m.active,
+      }).then(({ error }) => { if (error) console.error("missions upsert error:", error.message); });
+    }
+  }, []);
   const updateMission = useCallback((id: string, patch: Partial<MissionAdmin>) => {
     setMissionAdmins(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
+    if (isSupabaseReady) {
+      getSupabase()?.from("missions").update({
+        title: patch.title, description: patch.description, icon: patch.icon,
+        type: patch.type, target: patch.target, active: patch.active,
+      }).eq("id", id).then(({ error }) => { if (error) console.error("missions update error:", error.message); });
+    }
   }, []);
   const approveMissionCompletion = useCallback((id: string) => {
     setMissionCompletions(prev => prev.map(c => c.id === id ? { ...c, status: "approved" as const } : c));
@@ -411,9 +464,24 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setPrayers(prev => prev.map(p => p.id === id ? { ...p, status } : p));
   }, []);
 
-  const addAnnouncement = useCallback((a: Announcement) => setAnnouncements(prev => [...prev, a]), []);
+  const addAnnouncement = useCallback((a: Announcement) => {
+    setAnnouncements(prev => [...prev, a]);
+    if (isSupabaseReady) {
+      getSupabase()?.from("announcements").upsert({
+        id: a.id, title: a.title, content: a.content, target: a.target,
+        important: a.important, status: a.status, start_date: a.startDate,
+        end_date: a.endDate, created_at: a.createdAt,
+      }).then(({ error }) => { if (error) console.error("announcements upsert error:", error.message); });
+    }
+  }, []);
   const updateAnnouncement = useCallback((id: string, patch: Partial<Announcement>) => {
     setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
+    if (isSupabaseReady) {
+      getSupabase()?.from("announcements").update({
+        title: patch.title, content: patch.content, target: patch.target,
+        important: patch.important, status: patch.status,
+      }).eq("id", id).then(({ error }) => { if (error) console.error("announcements update error:", error.message); });
+    }
   }, []);
 
   const awardsMileage = useCallback((target: "student" | "class" | "grade" | "all", targetId: string, amount: number, reason: string) => {

@@ -6,7 +6,7 @@ import { mockData } from "./data";
 import { showPointToast } from "@/components/PointToast";
 import {
   fetchStudents, fetchClasses, fetchMissions, fetchBadges, fetchPrayers,
-  fetchTodayQT, fetchSeason, fetchSharedGoal, fetchActivities, fetchTeachers,
+  fetchTodayQT, fetchSeason, fetchSharedGoal, fetchActivities, fetchAnnouncements, fetchTeachers,
   fetchDailyQuests, completeDailyQuestRemote,
   updateQTRecordRemote, deleteQTRecordRemote,
   fetchTransactions, fetchQTRecords, fetchCompletedMissions,
@@ -254,15 +254,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       (async () => {
         const today = new Date().toISOString().slice(0, 10);
         try {
-          const [q, m, s, sg, a, b, cls, tch] = await Promise.all([
+          const [q, m, s, sg, a, b, cls, tch, anns] = await Promise.all([
             fetchTodayQT(), fetchMissions(), fetchSeason(), fetchSharedGoal(),
             fetchActivities(), fetchBadges(), fetchClasses(), fetchTeachers(),
+            fetchAnnouncements(),
           ]);
           setQtToday(q || { ...mockData.qt_today, date: new Date().toISOString().slice(0, 10) });
           setMissions(m as any);
           setSeason(s);
           setSharedGoal(sg);
-          setActivities(a);
+          // announcements를 activities에 병합
+          const annActivities = (anns || []).map((an: any) => ({
+            id: an.id, type: "notice",
+            message: (an.important ? "📌 " : "") + an.title + (an.content ? " — " + an.content : ""),
+            timestamp: an.createdAt ? new Date(an.createdAt).toISOString().slice(0, 10) : "",
+          }));
+          setActivities([...annActivities, ...(a || [])].slice(0, 20) as any);
           setBadges(b);
           if (cls && cls.length) {
             setClasses(cls as any[]);
@@ -889,8 +896,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshActivities = useCallback(async () => {
     if (!isSupabaseReady) return;
     try {
-      const a = await fetchActivities();
-      if (a && a.length) setActivities(a);
+      const [a, anns] = await Promise.all([fetchActivities(), fetchAnnouncements()]);
+      // announcements를 activities에 추가
+      const annActivities = (anns || []).map(an => ({
+        id: an.id,
+        type: "notice" as const,
+        message: (an.important ? "📌 " : "") + an.title + (an.content ? " — " + an.content : ""),
+        timestamp: an.createdAt ? new Date(an.createdAt).toISOString().slice(0, 10) : "",
+      }));
+      const merged = [...annActivities, ...(a || [])].slice(0, 20);
+      if (merged.length) setActivities(merged as any);
     } catch { /* keep current */ }
   }, []);
 

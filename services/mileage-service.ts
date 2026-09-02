@@ -208,6 +208,23 @@ export async function fetchActivities(): Promise<typeof mockData.activities> {
   return mockData.activities;
 }
 
+export async function fetchAnnouncements(): Promise<{id: string; title: string; content: string; important: boolean; createdAt: string}[]> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data, error } = await sb.from("announcements").select("*").eq("status", "published").order("created_at", { ascending: false }).limit(10);
+    if (!error && data && data.length) {
+      return data.map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        content: r.content || "",
+        important: r.important || false,
+        createdAt: r.created_at || "",
+      }));
+    }
+  }
+  return [];
+}
+
 export async function createActivity(type: string, message: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
