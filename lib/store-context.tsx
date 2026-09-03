@@ -5,6 +5,7 @@ import { koreaDate } from "./korea-date";
 import * as db from "./db";
 import { isSupabaseReady } from "./config";
 import { showPointToast } from "@/components/PointToast";
+import { runMigrations } from "./migrate";
 
 /* ── Types ── */
 interface AppState {
@@ -174,6 +175,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [student, today]);
 
   /* ── Mount: load data ── */
+  // Run migrations on first load
+  useEffect(() => { runMigrations(); }, []);
+
   useEffect(() => {
     if (!isSupabaseReady || !student) return;
     refreshAll();
