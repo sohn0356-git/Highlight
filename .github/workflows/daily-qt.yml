@@ -2,7 +2,6 @@ name: Daily QT Fetcher
 
 on:
   schedule:
-    # 매일 UTC 15:05 (한국시간 00:05)
     - cron: '5 15 * * *'
   workflow_dispatch:
     inputs:
@@ -20,11 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
+          node-version: 22
 
       - name: Fetch and store QT
         env:
