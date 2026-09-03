@@ -4,7 +4,7 @@ import { useApp } from "@/lib/store-context";
 import { Calendar } from "lucide-react";
 
 const DEMO_ACCOUNTS = [
-  { name: "관리자", birthDate: "2000-01-01", label: "관리자" },
+  { name: "손경주", birthDate: "1994-02-28", label: "관리자", isAdmin: true },
   { name: "허지성", birthDate: "2010-01-02", label: "고1-2반" },
   { name: "최다솔", birthDate: "2010-03-28", label: "고1-1반" },
   { name: "최종율", birthDate: "2009-02-21", label: "고2-1반" },
@@ -100,7 +100,7 @@ export default function LoginPage() {
                 >
                   <span className="text-neutral-700 font-medium">{acc.name} · {acc.birthDate}</span>
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    acc.label === "관리자" ? "bg-indigo-100 text-indigo-600" :
+                    acc.isAdmin ? "bg-indigo-100 text-indigo-600" :
                     "bg-neutral-200 text-neutral-500"
                   }`}>{acc.label}</span>
                 </button>

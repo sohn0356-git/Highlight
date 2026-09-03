@@ -9,20 +9,26 @@ export function showPointToast(msg: string) {
 
 export default function PointToast() {
   const [toast, setToast] = useState<{ msg: string; id: number } | null>(null);
-  const [exiting, setExiting] = useState(false);
+  const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearTimers = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-    if (exitTimerRef.current) { clearTimeout(exitTimerRef.current); exitTimerRef.current = null; }
+    if (fadeTimerRef.current) { clearTimeout(fadeTimerRef.current); fadeTimerRef.current = null; }
   }, []);
 
   useEffect(() => {
     _show = (msg: string) => {
       clearTimers();
-      setExiting(false);
+      setVisible(false);
       setToast({ msg, id: Date.now() });
+      // Fade in on next frame
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setVisible(true);
+        });
+      });
     };
     return () => { _show = null; clearTimers(); };
   }, [clearTimers]);
@@ -30,12 +36,11 @@ export default function PointToast() {
   useEffect(() => {
     if (!toast) return;
     timerRef.current = setTimeout(() => {
-      setExiting(true);
-      exitTimerRef.current = setTimeout(() => {
+      setVisible(false);
+      fadeTimerRef.current = setTimeout(() => {
         setToast(null);
-        setExiting(false);
-      }, 350);
-    }, 1800);
+      }, 400);
+    }, 2000);
     return () => clearTimers();
   }, [toast, clearTimers]);
 
@@ -43,18 +48,18 @@ export default function PointToast() {
   return (
     <div
       key={toast.id}
-      className="fixed left-1/2 z-[9999] pointer-events-none"
-      style={{
-        top: "calc(var(--safe-top, 0px) + 4rem)",
-        transform: "translateX(-50%)",
-        animation: exiting ? "toastOut 0.35s ease-in forwards" : "toastIn 0.3s cubic-bezier(0.22, 0.61, 0.36, 1)",
-      }}
+      className="pointer-events-none fixed inset-x-0 top-20 z-[9999] flex justify-center"
+      role="status"
+      aria-live="polite"
     >
       <div
-        className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-lg pointer-events-auto whitespace-nowrap"
+        className="pointer-events-auto flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-lg"
         style={{
           background: "linear-gradient(135deg, #f59e0b, #d97706)",
           boxShadow: "0 8px 25px -5px rgba(245, 158, 11, 0.4), 0 4px 10px -5px rgba(245, 158, 11, 0.2)",
+          opacity: visible ? 1 : 0,
+          transition: "opacity 0.35s ease-in-out",
+          willChange: "opacity",
         }}
       >
         <span className="text-base">✨</span>

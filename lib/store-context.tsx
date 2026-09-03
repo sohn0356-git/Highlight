@@ -57,6 +57,12 @@ const Ctx = createContext<AppState | null>(null);
 export function useApp() { const ctx = useContext(Ctx); if (!ctx) throw new Error("useApp must be used inside AppProvider"); return ctx; }
 
 /* ── Daily Quest Definitions ── */
+/* ── Admin check ── */
+function isAdminUser(s: Student | null): boolean {
+  return s?.role === "admin" || s?.role === "teacher" || !!s?.isTeacher;
+}
+
+/* ── Daily Quest Definitions ── */
 const DAILY_QUEST_DEFS = [
   { id: "d1", icon: "📖", title: "QT 완료하기", description: "오늘의 QT를 완료하세요", reward: 10 },
   { id: "d2", icon: "📤", title: "QT 공유하기", description: "QT를 친구와 공유하세요", reward: 10 },
@@ -234,7 +240,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /* ── QT Complete ── */
   const completeQTHandler = useCallback(async (remembered: string, application: string) => {
-    if (!student || qtDoneToday) return;
+    if (!student || qtDoneToday || isAdminUser(student)) return;
     const reward = 20;
     const rec = await db.completeQT(student.id, today, remembered, application, reward);
     if (!rec) return;
@@ -279,7 +285,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Share QT ── */
   const shareQT = useCallback(async () => {
-    if (!student || sharedQTDates.includes(today)) return false;
+    if (!student || sharedQTDates.includes(today) || isAdminUser(student)) return false;
     const post: any = {
       id: `qp_${Date.now()}`, studentId: student.id, studentName: student.name,
       classId: student.classId, passage: qtToday.passage, verse: qtToday.verse,
@@ -299,7 +305,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Comments ── */
   const addComment = useCallback(async (postId: string, content: string) => {
-    if (!student) return;
+    if (!student || isAdminUser(student)) return;
     const comment: any = {
       id: `qc_${Date.now()}`, postId, studentId: student.id,
       studentName: student.name, content: content.trim(),
@@ -324,7 +330,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Daily Quest Complete ── */
   const completeDailyQuest = useCallback(async (questId: string) => {
-    if (!student || dailyQuestIds.includes(questId)) return;
+    if (!student || dailyQuestIds.includes(questId) || isAdminUser(student)) return;
     const quest = DAILY_QUEST_DEFS.find(q => q.id === questId);
     if (!quest) return;
     await db.completeDailyQuest(student.id, questId, today, quest.reward, quest.reward);
@@ -338,7 +344,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Mission Complete ── */
   const completeMissionHandler = useCallback(async (missionId: string) => {
-    if (!student || completedMissionIds.includes(missionId)) return;
+    if (!student || completedMissionIds.includes(missionId) || isAdminUser(student)) return;
     const mission = missions.find(m => m.id === missionId);
     if (!mission) return;
     await db.completeMission(student.id, missionId, "pending");
@@ -353,7 +359,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Prayer ── */
   const prayForHandler = useCallback(async (prayerId: string) => {
-    if (!student) return;
+    if (!student || isAdminUser(student)) return;
     await db.recordPrayerParticipation(student.id, prayerId);
     const reward = 5;
     showPointToast(`+${reward}M`);
@@ -366,7 +372,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [student, today]);
 
   const addPrayerRequest = useCallback(async (content: string, anonymous: boolean) => {
-    if (!student) return;
+    if (!student || isAdminUser(student)) return;
     const prayer: any = {
       id: `pr_${Date.now()}`, studentId: student.id,
       authorName: anonymous ? "" : student.name,

@@ -1,20 +1,34 @@
 "use client";
-import { ChevronRight, ShieldCheck, Users, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronRight, ShieldCheck, Users, LogOut, Award } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
 import StatCard from "@/components/StatCard";
+import BadgeCard from "@/components/BadgeCard";
 import { useApp, useViewMode } from "@/lib/store-context";
-import { getStudentLevel, getClassLevel, getNextLevelXp } from "@/lib/db";
+import { getStudentLevel, getClassLevel, getNextLevelXp, fetchStudentBadgesWithProgress } from "@/lib/db";
 
 export default function MyContent() {
   const { student, isLoggedIn, classes, logout } = useApp();
   const { setMode } = useViewMode();
+  const [badges, setBadges] = useState<any[]>([]);
+  const [badgesLoading, setBadgesLoading] = useState(false);
+
+  useEffect(() => {
+    if (student?.id) {
+      setBadgesLoading(true);
+      fetchStudentBadgesWithProgress(student.id)
+        .then(setBadges)
+        .catch(() => setBadges([]))
+        .finally(() => setBadgesLoading(false));
+    }
+  }, [student?.id]);
+
   if (!student || !isLoggedIn) return null;
 
   const isAdmin = student.role === "teacher" || student.role === "admin" || student.isTeacher;
   const myClass = classes.find((c: any) => c.id === student.classId) as any;
-
   const studentLevel = getStudentLevel(student.xp || 0);
   const studentNextXp = getNextLevelXp(studentLevel.level, false);
   const classLevel = getClassLevel(myClass?.xp || 0);
@@ -86,6 +100,25 @@ export default function MyContent() {
           </div>
         </section>
       )}
+
+      {/* Badge Collection */}
+      <section className="mt-5 px-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Award size={18} className="text-amber-500" />
+          <h2 className="text-sm font-bold text-neutral-800">배지 컬렉션</h2>
+        </div>
+        {badgesLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2.5">
+            {badges.map((b: any) => (
+              <BadgeCard key={b.id} badge={b} />
+            ))}
+          </div>
+        )}
+      </section>
 
       {myClass?.classMessage && (
         <section className="mt-5 px-5">

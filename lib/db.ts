@@ -884,3 +884,214 @@ export async function fetchClassRankings() {
   const classes = await fetchClasses();
   return classes.sort((a, b) => (b.xp || 0) - (a.xp || 0));
 }
+
+/* ── Badge Levels (multi-level from DB) ── */
+export async function fetchBadgeLevels(badgeId?: string) {
+  const s = sb();
+  if (!s) return [];
+  let q = s.from("badge_levels").select("*").order("level");
+  if (badgeId) q = q.eq("badge_id", badgeId);
+  const { data, error } = await q;
+  if (error || !data) return [];
+  return data.map((r: any) => ({
+    id: r.id, badgeId: r.badge_id, level: r.level, threshold: r.threshold,
+    rewardMileage: r.reward_mileage || 0, rewardXp: r.reward_xp || 0,
+    title: r.title || "", description: r.description || "",
+  }));
+}
+
+export async function fetchAllBadgeLevels() {
+  const s = sb();
+  if (!s) return [];
+  const { data, error } = await s.from("badge_levels").select("*").order("badge_id").order("level");
+  if (error || !data) return [];
+  return data.map((r: any) => ({
+    id: r.id, badgeId: r.badge_id, level: r.level, threshold: r.threshold,
+    rewardMileage: r.reward_mileage || 0, rewardXp: r.reward_xp || 0,
+    title: r.title || "", description: r.description || "",
+  }));
+}
+
+export async function fetchStudentBadgeProgress(studentId: string) {
+  const s = sb();
+  if (!s) return [];
+  const { data, error } = await s.from("student_badge_progress").select("*").eq("student_id", studentId);
+  if (error || !data) return [];
+  return data.map((r: any) => ({
+    studentId: r.student_id, badgeId: r.badge_id,
+    currentLevel: r.current_level || 0, currentProgress: r.current_progress || 0,
+  }));
+}
+
+export async function updateStudentBadgeProgress(studentId: string, badgeId: string, level: number, progress: number) {
+  const s = sb();
+  if (!s) return;
+  await s.from("student_badge_progress").upsert({
+    student_id: studentId, badge_id: badgeId,
+    current_level: level, current_progress: progress,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "student_id,badge_id" });
+}
+
+/* ── Get full badge data with progress for a student ── */
+export async function fetchStudentBadgesWithProgress(studentId: string) {
+  const s = sb();
+  if (!s) return [];
+
+  // Get all active badges
+  const { data: badges } = await s.from("badges").select("*").eq("active", true).order("display_order");
+  if (!badges) return [];
+
+  // Get all badge levels
+  const { data: allLevels } = await s.from("badge_levels").select("*").order("badge_id").order("level");
+  const levelsByBadge: Record<string, any[]> = {};
+  if (allLevels) {
+    allLevels.forEach((l: any) => {
+      if (!levelsByBadge[l.badge_id]) levelsByBadge[l.badge_id] = [];
+      levelsByBadge[l.badge_id].push({
+        level: l.level, threshold: l.threshold,
+        title: l.title || "", description: l.description || "",
+        rewardMileage: l.reward_mileage || 0, rewardXp: l.reward_xp || 0,
+      });
+    });
+  }
+
+  // Get student badge progress
+  const { data: studentProgress } = await s.from("student_badge_progress").select("*").eq("student_id", studentId);
+  const progressMap: Record<string, any> = {};
+  if (studentProgress) {
+    studentProgress.forEach((p: any) => {
+      progressMap[p.badge_id] = { currentLevel: p.current_level || 0, currentProgress: p.current_progress || 0 };
+    });
+  }
+
+  return badges.map((b: any) => {
+    const levels = levelsByBadge[b.id] || [];
+    const progress = progressMap[b.id] || { currentLevel: 0, currentProgress: 0 };
+    return {
+      id: b.id, icon: b.icon || "🏅", name: b.name, description: b.description || "",
+      progress: progress.currentProgress, currentLevel: progress.currentLevel,
+      levels,
+    };
+  });
+}
+
+/* ── Recalculate all badge progress for a student ── */
+export async function recalculateBadgeProgress(studentId: string) {
+  const s = sb();
+  if (!s) return;
+
+  const { data: badges } = await s.from("badges").select("*").eq("active", true);
+  if (!badges) return;
+
+  const { data: allLevels } = await s.from("badge_levels").select("*").order("level");
+  const levelsByBadge: Record<string, any[]> = {};
+  if (allLevels) {
+    allLevels.forEach((l: any) => {
+      if (!levelsByBadge[l.badge_id]) levelsByBadge[l.badge_id] = [];
+      levelsByBadge[l.badge_id].push(l);
+    });
+  }
+
+  for (const badge of badges) {
+    const progress = await calculateBadgeProgress(studentId, badge.requirement_type);
+    const levels = levelsByBadge[badge.id] || [];
+    let currentLevel = 0;
+    for (const lvl of levels) {
+      if (progress >= lvl.threshold) currentLevel = lvl.level;
+    }
+    await updateStudentBadgeProgress(studentId, badge.id, currentLevel, progress);
+  }
+}
+
+/* ── Top 5 Mileage Ranking ── */
+export async function fetchTopMileageRanking() {
+  const s = sb();
+  if (!s) return [];
+  const { data, error } = await s.from("students")
+    .select("id, name, class_id, mileage, xp, active, role, is_teacher")
+    .eq("active", true)
+    .eq("role", "student")
+    .eq("is_teacher", false)
+    .order("mileage", { ascending: false })
+    .limit(5);
+  if (error || !data) return [];
+  return data.map((r: any, i: number) => ({
+    rank: i + 1, id: r.id, name: r.name,
+    classId: r.class_id || "", mileage: Number(r.mileage) || 0,
+  }));
+}
+
+/* ── Attendance Reward Processing ── */
+export async function processAttendanceReward(attendanceRecordId: string, studentId: string) {
+  const s = sb();
+  if (!s) return false;
+
+  // Check idempotency
+  const { data: existing } = await s.from("attendance_rewards")
+    .select("id").eq("attendance_record_id", attendanceRecordId).eq("student_id", studentId).limit(1);
+  if (existing && existing.length) return false;
+
+  // Get student info
+  const { data: student } = await s.from("students").select("*").eq("id", studentId).single();
+  if (!student || student.role !== "student" || student.is_teacher || !student.active) return false;
+
+  // Create attendance reward record
+  const { error: rewErr } = await s.from("attendance_rewards").insert({
+    id: `attrew_${attendanceRecordId}_${studentId}`,
+    attendance_record_id: attendanceRecordId, student_id: studentId,
+    amount: 20, status: 'awarded',
+  });
+  if (rewErr) return false;
+
+  // Create mileage transaction
+  const { data: record } = await s.from("attendance_records").select("*").eq("id", attendanceRecordId).single();
+  let date = koreaDate();
+  if (record) {
+    const { data: session } = await s.from("attendance_sessions").select("date").eq("id", record.session_id).single();
+    if (session) date = session.date;
+  }
+
+  await s.from("mileage_transactions").insert({
+    id: `atx_attrew_${attendanceRecordId}`,
+    student_id: studentId, student_name: student.name || "",
+    class_name: student.class_id || "", type: "attendance",
+    description: "출석 마일리지", amount: 20, date,
+    actor_name: "시스템",
+  });
+
+  // Update student mileage
+  await s.from("students").update({ mileage: (student.mileage || 0) + 20 }).eq("id", studentId);
+
+  return true;
+}
+
+export async function reverseAttendanceReward(attendanceRecordId: string, studentId: string) {
+  const s = sb();
+  if (!s) return false;
+
+  const { data: existing } = await s.from("attendance_rewards")
+    .select("*").eq("attendance_record_id", attendanceRecordId).eq("student_id", studentId).eq("status", "awarded").limit(1);
+  if (!existing || !existing.length) return false;
+
+  // Mark as reversed
+  await s.from("attendance_rewards").update({ status: "reversed", reversed_at: new Date().toISOString() })
+    .eq("id", existing[0].id);
+
+  // Create reversal transaction
+  const { data: student } = await s.from("students").select("name, class_id, mileage").eq("id", studentId).single();
+  await s.from("mileage_transactions").insert({
+    id: `atx_attrev_${attendanceRecordId}`,
+    student_id: studentId, student_name: student?.name || "",
+    class_name: student?.class_id || "", type: "attendance_reversal",
+    description: "출석 마일리지 취소", amount: -20, date: koreaDate(),
+    actor_name: "시스템",
+  });
+
+  // Update student mileage
+  if (student) {
+    await s.from("students").update({ mileage: Math.max(0, (student.mileage || 0) - 20) }).eq("id", studentId);
+  }
+
+  return true;
+}

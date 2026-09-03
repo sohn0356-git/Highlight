@@ -88,12 +88,21 @@ html, body, body > div, body > main {
 }
 
 
-@keyframes toastIn {
-  0% { opacity: 0; transform: translateY(-16px) scale(0.95); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+/* Shared popup animation - opacity only, no movement */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-@keyframes toastOut {
-  0% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Reduced motion: instant show/hide */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
