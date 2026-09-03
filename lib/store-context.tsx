@@ -65,6 +65,7 @@ const DAILY_QUEST_DEFS = [
   { id: "d5", icon: "📝", title: "기도제목 남기기", description: "기도제목을 올려보세요", reward: 10 },
   { id: "d6", icon: "💬", title: "댓글 달기", description: "QT 게시글에 댓글을 남기세요", reward: 5 },
   { id: "d7", icon: "🏆", title: "스페셜 미션 완료", description: "미션을 완료하세요", reward: 20 },
+  { id: "d8", icon: "🏠", title: "홈 탭 확인", description: "홈 탭을 확인하세요", reward: 3 },
 ];
 
 export function AppProvider({ children }: { children: React.ReactNode }) {

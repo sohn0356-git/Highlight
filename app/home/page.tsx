@@ -20,8 +20,8 @@ export default function HomeContent() {
   }, [refreshActivities]);
 
   useEffect(() => {
-    if (isLoggedIn && !dailyQuestIds.includes("d5")) {
-      completeDailyQuest("d5");
+    if (isLoggedIn && !dailyQuestIds.includes("d8")) {
+      completeDailyQuest("d8");
     }
   }, [isLoggedIn, dailyQuestIds, completeDailyQuest]);
 
