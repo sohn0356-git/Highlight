@@ -8,10 +8,12 @@ import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
 import { getStudentLevel, getNextLevelXp } from "@/lib/db";
+import StoreModal from "@/components/StoreModal";
 
 export default function HomeContent() {
   const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(false);
 
   useEffect(() => {
     refreshActivities();
@@ -80,9 +82,9 @@ export default function HomeContent() {
         </Card>
       </section>
 
-      {/* Mileage Card */}
+      {/* Mileage Card - click to open store */}
       <section className="mt-4 px-5">
-        <Card className="bg-gradient-to-br from-violet-500 to-purple-600 border-0 text-white shadow-lg shadow-purple-200">
+        <div onClick={() => setStoreOpen(true)} role="button" tabIndex={0} className="cursor-pointer rounded-2xl"><Card className="bg-gradient-to-br from-violet-500 to-purple-600 border-0 text-white shadow-lg shadow-purple-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-bold text-purple-200">내 마일리지</p>
@@ -93,6 +95,7 @@ export default function HomeContent() {
             </div>
           </div>
         </Card>
+        </div>
       </section>
 
       <section className="mt-5 px-5">
@@ -148,6 +151,7 @@ export default function HomeContent() {
           </div>
         </div>
       )}
+      <StoreModal open={storeOpen} onClose={() => setStoreOpen(false)} />
     </div>
   );
 }
