@@ -1,123 +1,19 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import type { Student, MileageTransaction, QTRecord, PrayerRequest, CompletedMission, SharedQTPost, QTComment } from "./types";
-import type { Teacher } from "./types";
-import { mockData } from "./data";
-import { showPointToast } from "@/components/PointToast";
+import type { Student, MileageTransaction, QTRecord, PrayerRequest, SharedQTPost, QTComment, Teacher, ClassRoom } from "./types";
 import { koreaDate } from "./korea-date";
-import {
-  fetchStudents, fetchClasses, fetchMissions, fetchBadges, fetchPrayers,
-  fetchTodayQT, fetchTransactions, fetchQTRecords, completeQT, fetchAttendanceCount,
-} from "./db";
-import {
-  fetchSeason, fetchSharedGoal, fetchActivities, fetchAnnouncements, fetchTeachers,
-  fetchDailyQuests, completeDailyQuestRemote,
-  updateQTRecordRemote, deleteQTRecordRemote,
-  fetchCompletedMissions,
-  fetchPrayerParticipants, prayForRemote,
-  fetchSharedQTDates, fetchSharedPosts, createSharedPost,
-  fetchComments, addCommentToPost,
-  addPrayer, updatePrayerRemote, deletePrayerRemote,
-} from "@/services/mileage-service";
-import {
-  getSession, setSession, clearSession,
-  getQTRecords, addQTRecord, updateQTRecord, deleteQTRecord, isQTCompletedToday,
-  getCompletedMissions, completeMission,
-  getPrayers, initPrayers, hasPrayed, togglePrayer,
-  getTransactions, addTransaction, updateStudentMileage,
-} from "./storage";
+import * as db from "./db";
 import { isSupabaseReady } from "./config";
-import { fetchClassStats } from "./stats-service";
-import { updateClassXP } from "./class-xp-sync";
+import { showPointToast } from "@/components/PointToast";
 
-/* ── Supabase lazy helpers ── */
-async function loadFromSupabase(table: string) {
-  if (!isSupabaseReady) return null;
-  try {
-    const mod = await import("./supabase");
-    const sb = mod.getSupabase();
-    if (!sb) return null;
-    const { data, error } = await sb.from(table).select("*");
-    if (error || !data || !data.length) return null;
-    return data;
-  } catch { return null; }
-}
-
-async function upsertSupabase(table: string, row: any) {
-  if (!isSupabaseReady) return;
-  try {
-    const mod = await import("./supabase");
-    const sb = mod.getSupabase();
-    if (!sb) return;
-    await sb.from(table).upsert(row);
-  } catch { /* ignore */ }
-}
-
-async function updateSupabase(table: string, match: Record<string, unknown>, patch: Record<string, unknown>) {
-  if (!isSupabaseReady) return;
-  try {
-    const mod = await import("./supabase");
-    const sb = mod.getSupabase();
-    if (!sb) return;
-    await sb.from(table).update(patch).match(match);
-  } catch { /* ignore */ }
-}
-
-async function insertSupabase(table: string, row: any) {
-  if (!isSupabaseReady) return;
-  try {
-    const mod = await import("./supabase");
-    const sb = mod.getSupabase();
-    if (!sb) return;
-    await sb.from(table).insert([row]);
-  } catch { /* ignore */ }
-}
-
-async function deleteSupabase(table: string, match: Record<string, unknown>) {
-  if (!isSupabaseReady) return;
-  try {
-    const mod = await import("./supabase");
-    const sb = mod.getSupabase();
-    if (!sb) return;
-    await sb.from(table).delete().match(match);
-  } catch { /* ignore */ }
-}
-
-/* ── 마일리지 추가 + 반 XP + 개인랭킹 갱신 헬퍼 ── */
-function addMileage(
-  student: Student,
-  delta: number,
-  setStudent: React.Dispatch<React.SetStateAction<Student | null>>,
-  setClasses: React.Dispatch<React.SetStateAction<any[]>>,
-  setTxns: React.Dispatch<React.SetStateAction<MileageTransaction[]>>,
-  setAllStudents: React.Dispatch<React.SetStateAction<any[]>>,
-  tx: MileageTransaction,
-) {
-  const updated = updateStudentMileage(student.id, delta, student);
-  setStudent(updated);
-  addTransaction(tx);
-  setTxns(prev => [...prev, tx]);
-  // 개인 랭킹 갱신
-  setAllStudents(prev => prev.map(s => s.id === student.id ? { ...s, mileage: updated.mileage } : s));
-  // 반 XP 갱신
-  updateClassXP(setClasses, student.classId, delta);
-  // Supabase: 학생 마일리지 + 반 XP + 트랜잭션
-  updateSupabase("students", { id: student.id }, { mileage: updated.mileage });
-  updateSupabase("classes", { id: student.classId }, {
-    xp: { raw: `xp + ${delta}` },
-    weekly_xp: { raw: `weekly_xp + ${delta}` },
-  }).catch(() => {});
-  upsertSupabase("mileage_transactions", tx);
-}
-
-/* ── Context ── */
+/* ── Types ── */
 interface AppState {
   student: Student | null;
   isLoggedIn: boolean;
   supabaseReady: boolean;
   login: (name: string, birthDate: string) => Promise<boolean>;
   logout: () => void;
-  qtToday: typeof mockData.qt_today;
+  qtToday: any;
   isQTDoneToday: boolean;
   qtRecords: QTRecord[];
   completeQT: (remembered: string, application: string) => void;
@@ -125,12 +21,12 @@ interface AppState {
   deleteQT: (id: string) => void;
   sharedQTDates: string[];
   sharedTodayQT: boolean;
-  shareQT: () => boolean;
+  shareQT: () => Promise<boolean>;
   sharedPosts: SharedQTPost[];
   addComment: (postId: string, content: string) => void;
   fetchPostComments: (postId: string) => QTComment[];
-  missions: typeof mockData.missions;
-  dailyQuests: typeof mockData.daily_quests;
+  missions: any[];
+  dailyQuests: any[];
   dailyQuestIds: string[];
   completeDailyQuest: (questId: string) => void;
   completedMissionIds: string[];
@@ -142,829 +38,397 @@ interface AppState {
   deletePrayerRequest: (prayerId: string) => void;
   todayPrayerCount: number;
   transactions: MileageTransaction[];
-  badges: typeof mockData.badges;
-  season: typeof mockData.season;
-  classes: typeof mockData.classes;
-  allStudents: typeof mockData.students;
-  activities: typeof mockData.activities;
+  badges: any[];
+  season: any;
+  classes: any[];
+  allStudents: any[];
+  activities: any[];
   refreshActivities: () => Promise<void>;
-  sharedGoal: typeof mockData.shared_goal;
+  sharedGoal: any;
   teachers: Teacher[];
+  refreshAll: () => Promise<void>;
 }
 
-export type AppViewMode = "student" | "admin";
-const ViewModeCtx = createContext<{ mode: AppViewMode; setMode: (m: AppViewMode) => void }>({
-  mode: "student",
-  setMode: () => {},
-});
-
-export function useViewMode() {
-  return useContext(ViewModeCtx);
-}
+type AppViewMode = "student" | "admin";
+const ViewModeCtx = createContext<{ mode: AppViewMode; setMode: (m: AppViewMode) => void }>({ mode: "student", setMode: () => {} });
+export function useViewMode() { return useContext(ViewModeCtx); }
 
 const Ctx = createContext<AppState | null>(null);
+export function useApp() { const ctx = useContext(Ctx); if (!ctx) throw new Error("useApp must be used inside AppProvider"); return ctx; }
 
-export function useApp() {
-  const ctx = useContext(Ctx);
-  if (!ctx) throw new Error("useApp must be used inside AppProvider");
-  return ctx;
-}
+/* ── Daily Quest Definitions ── */
+const DAILY_QUEST_DEFS = [
+  { id: "d1", icon: "📖", title: "QT 완료하기", description: "오늘의 QT를 완료하세요", reward: 10 },
+  { id: "d2", icon: "📤", title: "QT 공유하기", description: "QT를 친구와 공유하세요", reward: 10 },
+  { id: "d3", icon: "🙏", title: "기도하기", description: "기도에 참여하세요", reward: 5 },
+  { id: "d4", icon: "✅", title: "출석 체크하기", description: "출석을 체크하세요", reward: 10 },
+  { id: "d5", icon: "📝", title: "기도제목 남기기", description: "기도제목을 올려보세요", reward: 10 },
+  { id: "d6", icon: "💬", title: "댓글 달기", description: "QT 게시글에 댓글을 남기세요", reward: 5 },
+  { id: "d7", icon: "🏆", title: "스페셜 미션 완료", description: "미션을 완료하세요", reward: 20 },
+];
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<AppViewMode>(() => {
     if (typeof window === "undefined") return "student";
     return (localStorage.getItem("app_view_mode") as AppViewMode) || "student";
   });
-  const [allStudents, setAllStudents] = useState(mockData.students);
+  const [allStudents, setAllStudents] = useState<any[]>([]);
   const [student, setStudent] = useState<Student | null>(() => {
-    const s = getSession();
-    if (!s) return null;
-    const adminMap: Record<string, { role: string; assignedClassIds?: string[] }> = {
-      "홍길동": { role: "admin", assignedClassIds: ["c1"] },
-      "김선생": { role: "teacher", assignedClassIds: ["c1", "c2"] },
-      "이선생": { role: "teacher", assignedClassIds: ["c3", "c4"] },
-      "박선생": { role: "teacher", assignedClassIds: ["c5", "c6"] },
-      "최목사": { role: "admin" },
-      "관리자": { role: "admin" },
-    };
-    const known = adminMap[s.name];
-    if (known && s.role !== known.role) {
-      const fixed = { ...s, role: known.role as any, isTeacher: true, assignedClassIds: known.assignedClassIds } as Student;
-      setSession(fixed);
-      return fixed;
-    }
-    return s;
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem("mileage_session");
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !s.name) return null;
+      return s;
+    } catch { return null; }
   });
-  const [qtDoneToday, setQtDoneToday] = useState(() => isQTCompletedToday());
-  const [qtRecords, setQtRecords] = useState<QTRecord[]>(() => getQTRecords());
-  const [completedMissionIds, setCompletedMissionIds] = useState<string[]>(() =>
-    getCompletedMissions().map(m => m.missionId)
-  );
-  const [prayers, setPrayers] = useState<PrayerRequest[]>(mockData.prayers);
+  const [qtDoneToday, setQtDoneToday] = useState(false);
+  const [qtRecords, setQtRecords] = useState<QTRecord[]>([]);
+  const [completedMissionIds, setCompletedMissionIds] = useState<string[]>([]);
+  const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [txns, setTxns] = useState<MileageTransaction[]>([]);
-  const [dailyQuestIds, setDailyQuestIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    const today = koreaDate();
-    const saved = localStorage.getItem("mileage_daily_quests");
-    try {
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.date === today) return parsed.ids;
-      }
-    } catch {}
-    return [];
-  });
-  const [sharedQTDates, setSharedQTDates] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("mileage_shared_qt") || "[]"); }
-    catch { return []; }
-  });
-  const [sharedPosts, setSharedPosts] = useState<SharedQTPost[]>(() => {
-    if (typeof window === "undefined") return mockData.shared_posts || [];
-    try {
-      const local = JSON.parse(localStorage.getItem("mileage_shared_posts") || "[]");
-      return [...(mockData.shared_posts || []), ...local];
-    } catch { return mockData.shared_posts || []; }
-  });
-  const [qtComments, setQtComments] = useState<Record<string, QTComment[]>>(() => {
-    if (typeof window === "undefined") return mockData.qt_comments || {};
-    try {
-      const local = JSON.parse(localStorage.getItem("mileage_qt_comments") || "{}");
-      return { ...(mockData.qt_comments || {}), ...local };
-    } catch { return mockData.qt_comments || {}; }
-  });
-  const [qtToday, setQtToday] = useState(mockData.qt_today);
-  const [missions, setMissions] = useState(mockData.missions);
-  const [dailyQuests, setDailyQuests] = useState(mockData.daily_quests);
-  const [season, setSeason] = useState(mockData.season);
-  const [sharedGoal, setSharedGoal] = useState(mockData.shared_goal);
-  const [activities, setActivities] = useState(mockData.activities);
-  const [badges, setBadges] = useState(mockData.badges);
-  const [classes, setClasses] = useState(mockData.classes as any[]);
+  const [dailyQuestIds, setDailyQuestIds] = useState<string[]>([]);
+  const [sharedQTDates, setSharedQTDates] = useState<string[]>([]);
+  const [sharedPosts, setSharedPosts] = useState<SharedQTPost[]>([]);
+  const [qtToday, setQtToday] = useState<any>({ date: koreaDate(), passage: "", verse: "", content: "" });
+  const [missions, setMissions] = useState<any[]>([]);
+  const [dailyQuests] = useState(DAILY_QUEST_DEFS);
+  const [season, setSeason] = useState<any>({ id: "", label: "", title: "" });
+  const [sharedGoal, setSharedGoal] = useState<any>({ label: "", current: 0, target: 50000, reward: "" });
+  const [activities, setActivities] = useState<any[]>([]);
+  const [badges, setBadges] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [todayPrayerCount, setTodayPrayerCount] = useState(0);
+  const [qtComments, setQtComments] = useState<Record<string, QTComment[]>>({});
 
-  useEffect(() => {
-    const today = koreaDate();
-    setQtToday(prev => prev.date === today ? prev : { ...prev, date: today });
-  }, []);
+  const today = koreaDate();
 
-  /* ── On mount: DB-first load with localStorage fallback ── */
-  useEffect(() => {
-    initPrayers(mockData.prayers);
-    setPrayers(getPrayers());
-    setTxns(getTransactions());
-    if (isSupabaseReady) {
-      (async () => {
-        const today = koreaDate();
-        try {
-          const [q, m, s, sg, a, b, cls, tch, anns] = await Promise.all([
-            fetchTodayQT(), fetchMissions(), fetchSeason(), fetchSharedGoal(),
-            fetchActivities(), fetchBadges(), fetchClasses(), fetchTeachers(),
-            fetchAnnouncements(),
-          ]);
-          setQtToday(q || { ...mockData.qt_today, date: koreaDate() });
-          setMissions(m as any);
-          setSeason(s);
-          setSharedGoal(sg);
-          // announcements를 activities에 병합
-          const annActivities = (anns || []).map((an: any) => ({
-            id: an.id, type: "notice",
-            message: (an.important ? "📌 " : "") + an.title + (an.content ? " — " + an.content : ""),
-            timestamp: an.createdAt ? new Date(an.createdAt).toISOString().slice(0, 10) : "",
-          }));
-          setActivities([...annActivities, ...(a || [])].slice(0, 20) as any);
-          setBadges(b);
-          if (cls && cls.length) {
-            setClasses(cls as any[]);
-            // 반별 통계 실시간 계산
-            const classIds = (cls as any[]).map((c: any) => c.id);
-            const classStats = await fetchClassStats(classIds);
-            if (Object.keys(classStats).length) {
-              setClasses((prev: any[]) => prev.map((c: any) => {
-                const st = classStats[c.id];
-                if (!st) return c;
-                return {
-                  ...c,
-                  qtCount: st.qtCount,
-                  missionCount: st.missionCount,
-                  prayerCount: st.prayerCount,
-                  attendance: { attended: st.attendanceAttended, total: st.attendanceTotal },
-                };
-              }));
-            }
-          }
-          setTeachers(tch);
-          setDataLoaded(true);
-        } catch { /* keep mock fallback */ }
-
-        // Supabase real-time: students 테이블 변경 시 자동 갱신
-        if (isSupabaseReady) {
-          try {
-            const { getSupabase } = await import("./supabase");
-            const sb = getSupabase();
-            if (sb) {
-              const channel = sb.channel("students-changes")
-                .on("postgres_changes", { event: "*", schema: "public", table: "students" }, (payload: any) => {
-                  if (payload.eventType === "UPDATE" && payload.new) {
-                    const row = payload.new;
-                    setStudent(prev => {
-                      if (prev && prev.id === row.id) {
-                        return { ...prev, mileage: Number(row.mileage) || prev.mileage };
-                      }
-                      return prev;
-                    });
-                    setAllStudents(prev => prev.map((s: any) =>
-                      s.id === row.id ? { ...s, mileage: Number(row.mileage) || s.mileage } : s
-                    ));
-                  } else if (payload.eventType === "INSERT" && payload.new) {
-                    // 새 학생 추가 시 allStudents 갱신
-                    fetchStudents().then(stu => { if (stu.length) setAllStudents(stu); });
-                  }
-                })
-                .subscribe();
-              return () => { sb.removeChannel(channel); };
-            }
-          } catch { /* ignore */ }
-        }
-
-        // Load student-specific data from DB
-        if (student) {
-          try {
-            const [dbQT, dbMissions, dbTxns, dbPrayers, dbDailyIds, dbSharedPosts, dbComments, dbSharedDates, dbPrayerParts] = await Promise.all([
-              fetchQTRecords(student.id),
-              fetchCompletedMissions(student.id),
-              fetchTransactions(student.id),
-              fetchPrayers(student.id),
-              fetchDailyQuests(student.id, today),
-              fetchSharedPosts(),
-              Promise.all([]) as any,
-              fetchSharedQTDates(student.id),
-              fetchPrayerParticipants(student.id),
-            ]);
-
-            if (dbQT && dbQT.length) {
-              setQtRecords(dbQT as QTRecord[]);
-              setQtDoneToday(dbQT.some((r: any) => r.date === today));
-            } else {
-              // localStorage fallback
-              const localQT = getQTRecords();
-              if (localQT.length) setQtRecords(localQT);
-            }
-
-            if (dbMissions && dbMissions.length) {
-              setCompletedMissionIds(dbMissions);
-            } else {
-              setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
-            }
-
-            if (dbTxns && dbTxns.length) {
-              setTxns(dbTxns as MileageTransaction[]);
-            } else {
-              setTxns(getTransactions());
-            }
-
-            if (dbPrayers && dbPrayers.length) {
-              setPrayers(dbPrayers as unknown as PrayerRequest[]);
-            } else {
-              setPrayers(getPrayers());
-            }
-
-            if (dbDailyIds && dbDailyIds.length) {
-              setDailyQuestIds(dbDailyIds);
-              localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: dbDailyIds }));
-            }
-
-            if (dbSharedDates && dbSharedDates.length) {
-              setSharedQTDates(dbSharedDates);
-              localStorage.setItem("mileage_shared_qt", JSON.stringify(dbSharedDates));
-            }
-
-            if (dbSharedPosts && dbSharedPosts.length) {
-              setSharedPosts(dbSharedPosts as SharedQTPost[]);
-              localStorage.setItem("mileage_shared_posts", JSON.stringify(dbSharedPosts));
-            }
-
-            // Load comments for shared posts
-            if (dbSharedPosts && dbSharedPosts.length) {
-              const allComments: Record<string, QTComment[]> = {};
-              for (const post of dbSharedPosts) {
-                const comments = await fetchComments(post.id);
-                if (comments.length) allComments[post.id] = comments;
-              }
-              if (Object.keys(allComments).length) {
-                setQtComments(allComments);
-                localStorage.setItem("mileage_qt_comments", JSON.stringify(allComments));
-              }
-            }
-
-            // Load all students for ranking
-            const allStu = await fetchStudents();
-            if (allStu.length) setAllStudents(allStu);
-          } catch { /* keep local */ }
-        } else {
-          // No student logged in, still load prayers from DB
-          try {
-            const dbPrayers = await fetchPrayers();
-            if (dbPrayers && dbPrayers.length) {
-              setPrayers(dbPrayers as unknown as PrayerRequest[]);
-            }
-          } catch { /* ignore */ }
-        }
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /* ── LOGIN ── */
-  const login = useCallback(async (name: string, birthDate: string): Promise<boolean> => {
-    const adminMap: Record<string, { id: string; role: string; assignedClassIds?: string[] }> = {
-      "홍길동": { id: "s1", role: "admin", assignedClassIds: ["c1"] },
-      "김선생": { id: "t001", role: "teacher", assignedClassIds: ["c1", "c2"] },
-      "이선생": { id: "t002", role: "teacher", assignedClassIds: ["c3", "c4"] },
-      "박선생": { id: "t003", role: "teacher", assignedClassIds: ["c5", "c6"] },
-      "최목사": { id: "t004", role: "admin" },
-      "관리자": { id: "a001", role: "admin" },
-    };
-    const knownUser = adminMap[name.trim()];
-    if (knownUser) {
-      const t: Student = {
-        id: knownUser.id,
-        name: name.trim(),
-        birthDate: birthDate.trim(),
-        classId: "c1",
-        mileage: 0,
-        isTeacher: true,
-        role: knownUser.role as any,
-        assignedClassIds: knownUser.assignedClassIds,
-      };
-      setSession(t);
-      setStudent(t);
-      setQtDoneToday(isQTCompletedToday());
-      setQtRecords(getQTRecords());
-      setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
-      setPrayers(getPrayers());
-      setTxns(getTransactions());
-      // Load from DB for admin/teacher
-      if (isSupabaseReady) {
-        try {
-          const dbPrayers = await fetchPrayers();
-          if (dbPrayers && dbPrayers.length) setPrayers(dbPrayers as unknown as PrayerRequest[]);
-          const allStu = await fetchStudents();
-          if (allStu.length) setAllStudents(allStu);
-        } catch { /* ignore */ }
-      }
-      return true;
-    }
-
-    if (isSupabaseReady) {
-      try {
-        const mod = await import("./supabase");
-        const sb = mod.getSupabase();
-        if (sb) {
-          const { data: remoteStudents } = await sb
-            .from("students")
-            .select("*")
-            .eq("name", name.trim())
-            .eq("birth_date", birthDate.trim())
-            .limit(1);
-          if (remoteStudents && remoteStudents.length) {
-            const row = remoteStudents[0] as any;
-            const s: Student = {
-              id: row.id,
-              name: row.name,
-              birthDate: row.birth_date,
-              classId: row.class_id,
-              mileage: Number(row.mileage) || 0,
-            };
-            setSession(s);
-            setStudent(s);
-            // Load all student-specific data from DB
-            const today = koreaDate();
-            const [dbQT, dbMissions, dbTxns, dbPrayers, dbDailyIds, dbSharedPosts, dbSharedDates] = await Promise.all([
-              fetchQTRecords(s.id),
-              fetchCompletedMissions(s.id),
-              fetchTransactions(s.id),
-              fetchPrayers(s.id),
-              fetchDailyQuests(s.id, today),
-              fetchSharedPosts(),
-              fetchSharedQTDates(s.id),
-            ]);
-            if (dbQT && dbQT.length) {
-              setQtRecords(dbQT as QTRecord[]);
-              setQtDoneToday(dbQT.some((r: any) => r.date === today));
-            } else {
-              setQtDoneToday(isQTCompletedToday());
-              setQtRecords(getQTRecords());
-            }
-            if (dbMissions && dbMissions.length) setCompletedMissionIds(dbMissions);
-            else setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
-            if (dbTxns && dbTxns.length) setTxns(dbTxns as MileageTransaction[]);
-            else setTxns(getTransactions());
-            if (dbPrayers && dbPrayers.length) setPrayers(dbPrayers as unknown as PrayerRequest[]);
-            else setPrayers(getPrayers());
-            if (dbDailyIds && dbDailyIds.length) {
-              setDailyQuestIds(dbDailyIds);
-              localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: dbDailyIds }));
-            }
-            if (dbSharedDates && dbSharedDates.length) {
-              setSharedQTDates(dbSharedDates);
-              localStorage.setItem("mileage_shared_qt", JSON.stringify(dbSharedDates));
-            }
-            if (dbSharedPosts && dbSharedPosts.length) {
-              setSharedPosts(dbSharedPosts as SharedQTPost[]);
-            }
-            // Load comments
-            if (dbSharedPosts && dbSharedPosts.length) {
-              const allComments: Record<string, QTComment[]> = {};
-              for (const post of dbSharedPosts) {
-                const comments = await fetchComments(post.id);
-                if (comments.length) allComments[post.id] = comments;
-              }
-              if (Object.keys(allComments).length) setQtComments(allComments);
-            }
-            return true;
-          }
-          const { data: remoteTeachers } = await sb
-            .from("teachers")
-            .select("*")
-            .eq("name", name.trim())
-            .eq("birth_date", birthDate.trim())
-            .limit(1);
-          if (remoteTeachers && remoteTeachers.length) {
-            const trow = remoteTeachers[0] as any;
-            const s: Student = {
-              id: trow.id,
-              name: trow.name,
-              birthDate: trow.birth_date,
-              classId: trow.class_id || "c1",
-              mileage: 0,
-              isTeacher: true,
-              role: "teacher",
-            };
-            setSession(s);
-            setStudent(s);
-            setQtDoneToday(isQTCompletedToday());
-            setQtRecords(getQTRecords());
-            setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
-            const dbPrayers = await fetchPrayers();
-            if (dbPrayers && dbPrayers.length) setPrayers(dbPrayers as unknown as PrayerRequest[]);
-            else setPrayers(getPrayers());
-            setTxns(getTransactions());
-            return true;
-          }
-        }
-      } catch { /* fall through to local mock */ }
-    }
-
-    const found = mockData.students.find(
-      s => s.name === name.trim() && s.birthDate === birthDate.trim()
-    );
-    if (!found) return false;
-    setSession(found);
-    setStudent(found);
-    setQtDoneToday(isQTCompletedToday());
-    setQtRecords(getQTRecords());
-    setCompletedMissionIds(getCompletedMissions().map(m => m.missionId));
-    initPrayers(mockData.prayers);
-    setPrayers(getPrayers());
-    setTxns(getTransactions());
-    return true;
-  }, []);
-
-  /* ── LOGOUT ── */
-  const logout = useCallback(() => {
-    clearSession();
-    setStudent(null);
-    setQtRecords([]);
-    setCompletedMissionIds([]);
-    setTxns([]);
-    setPrayers(mockData.prayers);
-    setDailyQuestIds([]);
-    setSharedQTDates([]);
-    setSharedPosts([]);
-    setQtComments({});
-  }, []);
-
-  /* ── Daily Quest ── */
-  useEffect(() => {
-    const today = koreaDate();
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("mileage_daily_quests");
-      try {
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.date !== today) {
-            setDailyQuestIds([]);
-            localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: [] }));
-          }
-        } else {
-          localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: [] }));
-        }
-      } catch {
-        localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: [] }));
-      }
-    }
-  }, []);
-
-  const completeDailyQuest = useCallback((questId: string) => {
-    const today = koreaDate();
-    const quest = dailyQuests.find(q => q.id === questId);
-    if (!quest || !student) return;
-    setDailyQuestIds(prev => {
-      if (prev.includes(questId)) return prev;
-      const next = [...prev, questId];
-      // localStorage backup
-      if (typeof window !== "undefined")
-        localStorage.setItem("mileage_daily_quests", JSON.stringify({ date: today, ids: next }));
-      // DB write
-      completeDailyQuestRemote(student.id, questId, today, quest.reward);
-      return next;
-    });
-    const tx: MileageTransaction = {
-      id: "tx_" + Date.now(),
-      studentId: student.id,
-      type: "미션 완료",
-      description: quest.title,
-      amount: quest.reward,
-      date: today,
-    };
-    addMileage(student, quest.reward, setStudent, setClasses, setTxns, setAllStudents, tx);
-    showPointToast(`+${quest.reward}M 획득!`);
-    updateBadges(student.id);
-  }, [dailyQuests, student]);
-
-  // 배지 progress 자동 업데이트
-  const updateBadges = useCallback(async (sid: string) => {
-    if (!isSupabaseReady) return;
+  /* ── Refresh all data from DB ── */
+  const refreshAll = useCallback(async () => {
+    if (!isSupabaseReady || !student) return;
     try {
-      const [qtCount, missionCount, prayerPartsCount, attendanceCount] = await Promise.all([
-        fetchQTRecords(sid),
-        fetchCompletedMissions(sid),
-        fetchPrayerParticipants(sid),
-        fetchAttendanceCount(sid),
+      const [q, m, cls, tch, b, sg, a, an, pr, qr] = await Promise.all([
+        db.fetchTodayQT(), db.fetchMissions(), db.fetchClasses(),
+        db.fetchTeachers(), db.fetchBadges(), db.fetchSharedGoal(),
+        db.fetchActivities(), db.fetchAnnouncements(),
+        db.fetchPrayers(), db.fetchQTRecords(student.id),
       ]);
-      const qtTotal = qtCount.length;
-      const missionsTotal = missionCount.length;
-      const prayersTotal = prayerPartsCount.length;
-      const attendanceTotal = attendanceCount;
-      setBadges(prev => prev.map(b => {
-        let progress = b.progress;
-        if (b.id === "b1" || b.id === "b2") {
-          progress = qtTotal;
-        } else if (b.id === "b8") {
-          progress = qtTotal;
-        } else if (b.id === "b3") {
-          progress = attendanceTotal;
-        } else if (b.id === "b4") {
-          progress = prayersTotal;
-        } else if (b.id === "b5") {
-          progress = missionsTotal;
-        } else if (b.id === "b6") {
-          const s = student;
-          if (s) progress = s.mileage;
-        } else if (b.id === "b7") {
-          progress = prayersTotal;
-        }
-        return { ...b, progress };
+      setQtToday(q || { date: today, passage: "", verse: "", content: "" });
+      setMissions(m as any[]);
+      setClasses(cls);
+      setTeachers(tch as any[]);
+      setBadges(b);
+      setSharedGoal(sg);
+      const annActivities = (an || []).map((an: any) => ({
+        id: an.id, type: "notice",
+        message: (an.important ? "📌 " : "") + an.title + (an.content ? " — " + an.content : ""),
+        timestamp: an.createdAt || "",
       }));
-    } catch { /* keep current */ }
-  }, [student, isSupabaseReady]);
+      setActivities([...annActivities, ...(a || [])].slice(0, 20));
+      setPrayers(pr as PrayerRequest[]);
+      setQtRecords(qr as QTRecord[]);
 
-  /* ── QT ── */
+      // Daily quests for today
+      const dq = await db.fetchDailyQuests(student.id, today);
+      setDailyQuestIds(dq);
+
+      // Check QT done today
+      setQtDoneToday(qr.some((r: any) => r.date === today));
+
+      // Shared QT dates
+      const posts = await db.fetchSharedPosts();
+      const myShared = posts.filter((p: any) => p.student_id === student.id).map((p: any) => p.date);
+      setSharedQTDates([...new Set(myShared)]);
+
+      // Shared posts for today
+      setSharedPosts(posts.filter((p: any) => p.date === today) as SharedQTPost[]);
+
+      // Completed missions
+      const cm = await db.fetchCompletedMissions(student.id);
+      setCompletedMissionIds(cm.filter((c: any) => c.status === "approved" || c.status === "pending").map((c: any) => c.mission_id));
+
+      // Transactions
+      const tx = await db.fetchTransactions(student.id);
+      setTxns(tx as MileageTransaction[]);
+
+      // Today prayer count
+      const pc = pr.filter((p: any) => p.studentId === student.id).length;
+      setTodayPrayerCount(pc);
+
+      // Refresh student data from DB
+      const updatedStudent = await db.fetchStudentById(student.id);
+      if (updatedStudent) {
+        setStudent(updatedStudent);
+        localStorage.setItem("mileage_session", JSON.stringify(updatedStudent));
+      }
+    } catch (e) { console.error("refreshAll error", e); }
+  }, [student, today]);
+
+  /* ── Mount: load data ── */
+  useEffect(() => {
+    if (!isSupabaseReady || !student) return;
+    refreshAll();
+  }, [student?.id]);
+
+  /* ── Realtime listeners ── */
+  useEffect(() => {
+    if (!isSupabaseReady || !student) return;
+    let channel: any;
+    (async () => {
+      try {
+        const { getSupabase } = await import("./supabase");
+        const sb = getSupabase();
+        if (!sb) return;
+        channel = sb.channel("store-updates")
+          .on("postgres_changes", { event: "*", schema: "public", table: "students" }, (payload: any) => {
+            if (payload.eventType === "UPDATE" && payload.new?.id === student.id) {
+              const updated = { ...student, mileage: payload.new.mileage, xp: payload.new.xp };
+              setStudent(updated);
+              localStorage.setItem("mileage_session", JSON.stringify(updated));
+            }
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "qt_today" }, () => { refreshAll(); })
+          .on("postgres_changes", { event: "*", schema: "public", table: "announcements" }, () => { refreshAll(); })
+          .on("postgres_changes", { event: "*", schema: "public", table: "daily_quests" }, () => { refreshAll(); })
+          .on("postgres_changes", { event: "*", schema: "public", table: "prayer_requests" }, () => { refreshAll(); })
+          .on("postgres_changes", { event: "*", schema: "public", table: "shared_qt_posts" }, () => { refreshAll(); })
+          .subscribe();
+      } catch {}
+    })();
+    return () => { if (channel) channel.unsubscribe?.(); };
+  }, [student?.id]);
+
+  /* ── Date change detection ── */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = koreaDate();
+      if (now !== today && student) {
+        refreshAll();
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [today, student]);
+
+  /* ── Login ── */
+  const login = useCallback(async (name: string, birthDate: string): Promise<boolean> => {
+    if (!isSupabaseReady) return false;
+    try {
+      const students = await db.fetchStudents();
+      const found = students.find((s: any) => s.name === name && s.birthDate === birthDate && s.active !== false);
+      if (!found) return false;
+      setStudent(found as Student);
+      localStorage.setItem("mileage_session", JSON.stringify(found));
+      return true;
+    } catch { return false; }
+  }, []);
+
+  /* ── Logout ── */
+  const logout = useCallback(() => {
+    setStudent(null);
+    localStorage.removeItem("mileage_session");
+    localStorage.removeItem("app_view_mode");
+  }, []);
+
+  /* ── QT Complete ── */
   const completeQTHandler = useCallback(async (remembered: string, application: string) => {
     if (!student || qtDoneToday) return;
-    const qtDate = koreaDate();
-    // 중복 방지: DB에 먼저 시도, 실패 시(중복) 중단
-    const dbRec = await completeQT(student.id, qtDate, remembered, application, 20);
-    if (!dbRec) return; // duplicate or DB error
-    addQTRecord(dbRec);
-    setQtRecords(prev => [...prev, dbRec]);
+    const reward = 20;
+    const rec = await db.completeQT(student.id, today, remembered, application, reward);
+    if (!rec) return;
+    setQtRecords(prev => [rec as QTRecord, ...prev]);
     setQtDoneToday(true);
-    const tx: MileageTransaction = {
-      id: "tx_" + Date.now(),
-      studentId: student.id,
-      type: "QT 완료",
-      description: "오늘의 QT 완료",
-      amount: 20,
-      date: qtDate,
-    };
-    addMileage(student, 20, setStudent, setClasses, setTxns, setAllStudents, tx);
-    showPointToast("+20M QT 완료!");
-    updateBadges(student.id);
-    completeDailyQuest("d1");
-  }, [student, qtDoneToday, qtToday, completeDailyQuest]);
+    showPointToast(`+${reward}M`);
+    // Mileage + XP
+    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + reward);
+    await db.updateStudentField(student.id, "xp", (student.xp || 0) + reward);
+    await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "qt", description: "QT 완료", amount: reward, date: today });
+    await db.addActivity("qt", `${student.name}님이 QT를 완료했습니다`);
+    // Class XP
+    if (student.classId) {
+      const cls = classes.find(c => c.id === student.classId);
+      if (cls) {
+        const { getSupabase } = await import("./supabase");
+        const sb = getSupabase();
+        if (sb) {
+          await sb.from("classes").update({ xp: (cls.xp || 0) + reward, weekly_xp: (cls.weeklyXp || 0) + reward, qt_count: (cls.qtCount || 0) + 1 }).eq("id", student.classId);
+        }
+      }
+    }
+    // Daily quest d1
+    await db.completeDailyQuest(student.id, "d1", today, 10, 10);
+    setDailyQuestIds(prev => [...prev, "d1"]);
+    // Badge progress
+    await updateBadgeProgress(student.id);
+    // Refresh
+    refreshAll();
+  }, [student, qtDoneToday, today, classes]);
 
-  /* QT 기록 수정 */
+  /* ── QT Update / Delete ── */
   const updateQT = useCallback(async (id: string, patch: Partial<QTRecord>) => {
-    setQtRecords(prev => {
-      const next = prev.map(r => r.id === id ? { ...r, ...patch } : r);
-      if (typeof window !== "undefined") {
-        updateQTRecord(id, patch);
-      }
-      return next;
-    });
-    await updateQTRecordRemote(id, patch);
+    await db.updateQTRecord(id, patch);
+    setQtRecords(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
   }, []);
 
-  /* QT 기록 삭제 */
   const deleteQT = useCallback(async (id: string) => {
-    setQtRecords(prev => {
-      const next = prev.filter(r => r.id !== id);
-      if (typeof window !== "undefined") {
-        deleteQTRecord(id);
-      }
-      return next;
-    });
-    await deleteQTRecordRemote(id);
+    await db.deleteQTRecord(id);
+    setQtRecords(prev => prev.filter(r => r.id !== id));
   }, []);
 
-  /* ── MISSION ── */
+  /* ── Share QT ── */
+  const shareQT = useCallback(async () => {
+    if (!student || sharedQTDates.includes(today)) return false;
+    const post: any = {
+      id: `qp_${Date.now()}`, studentId: student.id, studentName: student.name,
+      classId: student.classId, passage: qtToday.passage, verse: qtToday.verse,
+      reward: 10, date: today, commentCount: 0, likedBy: [],
+    };
+    await db.createSharedPost(post);
+    setSharedQTDates(prev => [...prev, today]);
+    showPointToast("+10M");
+    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + 10);
+    await db.updateStudentField(student.id, "xp", (student.xp || 0) + 10);
+    await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유", description: "QT 공유", amount: 10, date: today });
+    await db.completeDailyQuest(student.id, "d2", today, 10, 10);
+    setDailyQuestIds(prev => [...prev, "d2"]);
+    refreshAll();
+    return true;
+  }, [student, sharedQTDates, today, qtToday]);
+
+  /* ── Comments ── */
+  const addComment = useCallback(async (postId: string, content: string) => {
+    if (!student) return;
+    const comment: any = {
+      id: `qc_${Date.now()}`, postId, studentId: student.id,
+      studentName: student.name, content: content.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    await db.addComment(comment);
+    const postOwner = sharedPosts.find(p => p.id === postId)?.studentId;
+    if (postOwner !== student.id) {
+      await db.completeDailyQuest(student.id, "d6", today, 5, 5);
+      setDailyQuestIds(prev => [...prev, "d6"]);
+      showPointToast("+5M");
+      await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + 5);
+      await db.updateStudentField(student.id, "xp", (student.xp || 0) + 5);
+    }
+    refreshAll();
+  }, [student, sharedPosts, today]);
+
+  const fetchPostComments = useCallback((postId: string): QTComment[] => {
+    // This will be loaded via realtime or lazy fetch
+    return qtComments[postId] || [];
+  }, [qtComments]);
+
+  /* ── Daily Quest Complete ── */
+  const completeDailyQuest = useCallback(async (questId: string) => {
+    if (!student || dailyQuestIds.includes(questId)) return;
+    const quest = DAILY_QUEST_DEFS.find(q => q.id === questId);
+    if (!quest) return;
+    await db.completeDailyQuest(student.id, questId, today, quest.reward, quest.reward);
+    setDailyQuestIds(prev => [...prev, questId]);
+    showPointToast(`+${quest.reward}M`);
+    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + quest.reward);
+    await db.updateStudentField(student.id, "xp", (student.xp || 0) + quest.reward);
+    await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "일일퀘스트", description: quest.title, amount: quest.reward, date: today });
+    refreshAll();
+  }, [student, dailyQuestIds, today]);
+
+  /* ── Mission Complete ── */
   const completeMissionHandler = useCallback(async (missionId: string) => {
     if (!student || completedMissionIds.includes(missionId)) return;
     const mission = missions.find(m => m.id === missionId);
     if (!mission) return;
-    const completed: CompletedMission = {
-      missionId,
-      studentId: student.id,
-      completedAt: new Date().toISOString(),
-      reward: mission.reward,
-    };
-    completeMission(completed);
+    await db.completeMission(student.id, missionId, "pending");
     setCompletedMissionIds(prev => [...prev, missionId]);
-    const tx: MileageTransaction = {
-      id: "tx_" + Date.now(),
-      studentId: student.id,
-      type: "미션 완료",
-      description: mission.title,
-      amount: mission.reward,
-      date: koreaDate(),
-    };
-    addMileage(student, mission.reward, setStudent, setClasses, setTxns, setAllStudents, tx);
-    // DB writes
-    await upsertSupabase("completed_missions", { mission_id: missionId, student_id: student.id, reward: mission.reward, completed_at: completed.completedAt });
-  }, [student, completedMissionIds, missions]);
+    const reward = mission.reward || 30;
+    showPointToast(`+${reward}M`);
+    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + reward);
+    await db.updateStudentField(student.id, "xp", (student.xp || 0) + reward);
+    await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "미션완료", description: mission.title, amount: reward, date: today });
+    refreshAll();
+  }, [student, completedMissionIds, missions, today]);
 
-  /* ── PRAYER ── */
+  /* ── Prayer ── */
   const prayForHandler = useCallback(async (prayerId: string) => {
     if (!student) return;
-    if (hasPrayed(prayerId, student.id)) return;
-    setPrayers(prev => {
-      const next = togglePrayer(prayerId, student.id);
-      if (typeof window !== "undefined")
-        localStorage.setItem("mileage_prayers", JSON.stringify(next));
-      return next;
-    });
-    const tx: MileageTransaction = {
-      id: "tx_" + Date.now(),
-      studentId: student.id,
-      type: "기도 참여",
-      description: "친구 기도제목에 함께 기도",
-      amount: 5,
-      date: koreaDate(),
-    };
-    addMileage(student, 5, setStudent, setClasses, setTxns, setAllStudents, tx);
-    showPointToast("+5M 기도 참여!");
-    updateBadges(student.id);
-    completeDailyQuest("d3");
-    // DB writes
-    await prayForRemote(student.id, prayerId);
-  }, [student, completeDailyQuest]);
+    await db.recordPrayerParticipation(student.id, prayerId);
+    const reward = 5;
+    showPointToast(`+${reward}M`);
+    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + reward);
+    await db.updateStudentField(student.id, "xp", (student.xp || 0) + reward);
+    await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "기도", description: "기도 참여", amount: reward, date: today });
+    await db.completeDailyQuest(student.id, "d3", today, 5, 5);
+    setDailyQuestIds(prev => [...prev, "d3"]);
+    refreshAll();
+  }, [student, today]);
 
   const addPrayerRequest = useCallback(async (content: string, anonymous: boolean) => {
     if (!student) return;
-    const newPrayer: PrayerRequest = {
-      id: "pr_" + Date.now(),
-      studentId: student.id,
-      authorName: anonymous ? null : student.name,
-      anonymous,
-      content,
-      prayerCount: 0,
-      prayedBy: [],
-      createdAt: new Date().toISOString(),
+    const prayer: any = {
+      id: `pr_${Date.now()}`, studentId: student.id,
+      authorName: anonymous ? "" : student.name,
+      anonymous, content, classId: student.classId,
     };
-    setPrayers(prev => {
-      const next = [...prev, newPrayer];
-      if (typeof window !== "undefined")
-        localStorage.setItem("mileage_prayers", JSON.stringify(next));
-      return next;
-    });
-    // DB write
-    await addPrayer(newPrayer);
-  }, [student]);
+    await db.insertPrayer(prayer);
+    await db.completeDailyQuest(student.id, "d5", today, 10, 10);
+    setDailyQuestIds(prev => [...prev, "d5"]);
+    await db.addActivity("prayer", `${anonymous ? "익명" : student.name}님이 기도제목을 올렸습니다`);
+    refreshAll();
+  }, [student, today]);
 
-  const todayPrayerCount = prayers.filter(p => p.createdAt?.startsWith(koreaDate())).length;
-
-  const updatePrayerRequest = useCallback(async (prayerId: string, newContent: string) => {
-    if (!student) return;
-    setPrayers(prev => {
-      const next = prev.map(p => p.id === prayerId ? { ...p, content: newContent } : p);
-      if (typeof window !== "undefined")
-        localStorage.setItem("mileage_prayers", JSON.stringify(next));
-      return next;
-    });
-    // DB write
-    await updatePrayerRemote(prayerId, newContent);
-  }, [student]);
+  const updatePrayerRequest = useCallback(async (prayerId: string, content: string) => {
+    await db.updatePrayer(prayerId, { content });
+    refreshAll();
+  }, []);
 
   const deletePrayerRequest = useCallback(async (prayerId: string) => {
-    if (!student) return;
-    setPrayers(prev => {
-      const next = prev.filter(p => p.id !== prayerId);
-      if (typeof window !== "undefined")
-        localStorage.setItem("mileage_prayers", JSON.stringify(next));
-      return next;
-    });
-    // DB write
-    await deletePrayerRemote(prayerId);
-  }, [student]);
-
-  /* ── SHARED QT ── */
-  const shareQT = useCallback((): boolean => {
-    if (!student) return false;
-    const today = koreaDate();
-    if (sharedQTDates.includes(today)) return false;
-    const newShared = [...sharedQTDates, today];
-    setSharedQTDates(newShared);
-    if (typeof window !== "undefined")
-      localStorage.setItem("mileage_shared_qt", JSON.stringify(newShared));
-
-    const qtRec = qtRecords.find(r => r.date === today) || null;
-    const myClass = classes.find(c => c.id === student.classId) as any;
-    const post: SharedQTPost = {
-      id: "qp_" + Date.now(),
-      studentId: student.id,
-      studentName: student.name,
-      classId: student.classId,
-      passage: qtToday.passage,
-      verse: qtToday.verse,
-      remembered: qtRec?.remembered,
-      application: qtRec?.application,
-      reward: 10,
-      date: today,
-      commentCount: 0,
-      likedBy: [],
-      ...(myClass ? { className: myClass.name } : {}),
-    };
-    setSharedPosts(prev => [post, ...prev]);
-    if (typeof window !== "undefined") {
-      const existing = JSON.parse(localStorage.getItem("mileage_shared_posts") || "[]");
-      localStorage.setItem("mileage_shared_posts", JSON.stringify([post, ...existing]));
-    }
-
-    const tx: MileageTransaction = {
-      id: "tx_" + Date.now(),
-      studentId: student.id,
-      type: "QT 공유",
-      description: "오늘의 QT를 친구와 공유",
-      amount: 10,
-      date: today,
-    };
-    addMileage(student, 10, setStudent, setClasses, setTxns, setAllStudents, tx);
-    completeDailyQuest("d2");
-    // DB writes
-    (async () => {
-      await createSharedPost(post);
-    })();
-    return true;
-  }, [student, sharedQTDates, qtToday, classes, completeDailyQuest, qtRecords]);
-
-  /* ── QT 공유 댓글 ── */
-  const addComment = useCallback((postId: string, content: string) => {
-    if (!student) return;
-    const comment: QTComment = {
-      id: "qc_" + Date.now(),
-      postId,
-      studentId: student.id,
-      studentName: student.name,
-      content: content.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    // 자기 QT 게시글에 댓글 달면 미션(d7) 성공 안 됨
-    const postOwner = sharedPosts.find(p => p.id === postId)?.studentId;
-    setQtComments(prev => {
-      const next = { ...prev, [postId]: [...(prev[postId] || []), comment] };
-      if (typeof window !== "undefined")
-        localStorage.setItem("mileage_qt_comments", JSON.stringify(next));
-      return next;
-    });
-    setSharedPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p));
-    if (typeof window !== "undefined") {
-      const posts = JSON.parse(localStorage.getItem("mileage_shared_posts") || "[]")
-        .map((p: SharedQTPost) => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p);
-      localStorage.setItem("mileage_shared_posts", JSON.stringify(posts));
-    }
-    if (postOwner !== student.id) {
-      completeDailyQuest("d7");
-    }
-    // DB write
-    addCommentToPost(comment);
-  }, [student, completeDailyQuest, sharedPosts]);
-
-  const fetchPostComments = useCallback((postId: string): QTComment[] => {
-    return qtComments[postId] || [];
-  }, [qtComments]);
+    await db.deletePrayer(prayerId);
+    refreshAll();
+  }, []);
 
   const refreshActivities = useCallback(async () => {
-    if (!isSupabaseReady) return;
-    try {
-      const [a, anns] = await Promise.all([fetchActivities(), fetchAnnouncements()]);
-      // announcements를 activities에 추가
-      const annActivities = (anns || []).map(an => ({
-        id: an.id,
-        type: "notice" as const,
-        message: (an.important ? "📌 " : "") + an.title + (an.content ? " — " + an.content : ""),
-        timestamp: an.createdAt ? new Date(an.createdAt).toISOString().slice(0, 10) : "",
-      }));
-      const merged = [...annActivities, ...(a || [])].slice(0, 20);
-      if (merged.length) setActivities(merged as any);
-    } catch { /* keep current */ }
+    const a = await db.fetchActivities();
+    setActivities(a);
   }, []);
 
   return (
     <ViewModeCtx.Provider value={{ mode, setMode: (m) => { if (typeof window !== "undefined") localStorage.setItem("app_view_mode", m); setMode(m); } }}>
     <Ctx.Provider value={{
-      student,
-      isLoggedIn: !!student,
-      supabaseReady: isSupabaseReady,
-      login,
-      logout,
-      qtToday: { ...qtToday, date: koreaDate() },
-      isQTDoneToday: qtDoneToday,
-      qtRecords,
-      completeQT: completeQTHandler,
-      updateQT,
-      deleteQT,
-      sharedQTDates,
-      sharedTodayQT: sharedQTDates.includes(koreaDate()),
-      shareQT,
-      sharedPosts: sharedPosts.filter(p => p.date === koreaDate()),
-      addComment,
-      fetchPostComments,
-      missions,
-      dailyQuests,
-      dailyQuestIds,
-      completeDailyQuest,
-      completedMissionIds,
-      completeMission: completeMissionHandler,
+      student, isLoggedIn: !!student, supabaseReady: isSupabaseReady,
+      login, logout,
+      qtToday: { ...qtToday, date: today }, isQTDoneToday: qtDoneToday,
+      qtRecords, completeQT: completeQTHandler, updateQT, deleteQT,
+      sharedQTDates, sharedTodayQT: sharedQTDates.includes(today),
+      shareQT, sharedPosts: sharedPosts.filter(p => p.date === today),
+      addComment, fetchPostComments,
+      missions, dailyQuests, dailyQuestIds, completeDailyQuest,
+      completedMissionIds, completeMission: completeMissionHandler,
       prayers: [...prayers].sort((a, b) => b.prayerCount - a.prayerCount),
-      prayFor: prayForHandler,
-      addPrayerRequest,
-      updatePrayerRequest,
-      deletePrayerRequest,
-      todayPrayerCount,
-      transactions: txns,
-      badges,
-      season,
-      classes,
-      allStudents,
-      activities,
-      refreshActivities,
-      sharedGoal,
-      teachers,
+      prayFor: prayForHandler, addPrayerRequest, updatePrayerRequest, deletePrayerRequest,
+      todayPrayerCount, transactions: txns,
+      badges, season, classes, allStudents, activities,
+      refreshActivities, sharedGoal, teachers, refreshAll,
     }}>
       {children}
     </Ctx.Provider>
     </ViewModeCtx.Provider>
   );
+}
+
+/* ── Badge Progress Helper ── */
+async function updateBadgeProgress(studentId: string) {
+  try {
+    const badges = await db.fetchBadges();
+    for (const badge of badges) {
+      const progress = await db.calculateBadgeProgress(studentId, badge.requirement_type);
+      const thresholds = badge.level_thresholds || [10, 30, 60, 100, 200];
+      let level = 0;
+      for (let i = 0; i < thresholds.length; i++) {
+        if (progress >= thresholds[i]) level = i + 1;
+      }
+      await db.upsertStudentBadge(studentId, badge.id, level, progress);
+    }
+  } catch {}
 }

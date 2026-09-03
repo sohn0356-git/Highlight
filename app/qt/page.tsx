@@ -20,8 +20,8 @@ export default function QTContent() {
 
   if (!student || !isLoggedIn) return null;
 
-  const handleShare = () => {
-    const ok = shareQT();
+  const handleShare = async () => {
+    const ok = await shareQT();
     if (ok) {
       setSharedMsg("QT 공유 완료! +10M");
     } else {

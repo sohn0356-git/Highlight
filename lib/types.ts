@@ -1,12 +1,21 @@
 export interface Student {
   id: string;
   name: string;
-  birthDate: string; // YYYY-MM-DD
+  birthDate: string;
   classId: string;
+  grade?: number;
+  className?: string;
   mileage: number;
+  xp: number;
+  weeklyXp: number;
   isTeacher?: boolean;
   role?: "student" | "teacher" | "admin";
   assignedClassIds?: string[];
+  phone?: string;
+  guardianPhone?: string;
+  memo?: string;
+  active?: boolean;
+  enrollmentStatus?: string;
 }
 
 export interface ClassRoom {
@@ -20,6 +29,7 @@ export interface ClassRoom {
   missionCount: number;
   prayerCount: number;
   classMessage: string;
+  grade?: number;
 }
 
 export interface SchoolClass {
@@ -56,6 +66,9 @@ export interface Mission {
   description: string;
   reward: number;
   category: "weekly" | "special";
+  xpReward?: number;
+  approvalRequired?: boolean;
+  target?: string;
 }
 
 export interface CompletedMission {
@@ -95,15 +108,20 @@ export interface PrayerRequest {
   createdAt: string;
   prayedBy: string[];
   studentId?: string;
+  classId?: string;
+  status?: string;
 }
 
 export interface MileageTransaction {
   id: string;
   studentId: string;
+  studentName?: string;
+  className?: string;
   type: string;
   description: string;
   amount: number;
   date: string;
+  actorName?: string;
 }
 
 export interface Season {
@@ -150,7 +168,10 @@ export interface Teacher {
   id: string;
   name: string;
   birthDate: string;
+  role?: string;
   classId?: string;
+  assignedClassIds?: string[];
+  active?: boolean;
 }
 
 export interface TodayQT {

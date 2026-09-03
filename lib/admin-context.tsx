@@ -2,35 +2,9 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { AdminStudent, AdminTeacher, AttendanceSession, AttendanceRecordAdmin, QTContent, MissionAdmin, MissionCompletionAdmin, Announcement, Reward, RewardRedemption, SeasonAdmin, BadgeAdmin, AuditLog, AdminSettings, MileageActionType } from "./admin-types";
 import type { PrayerRequestAdmin } from "./admin-types";
-import { seedUsers, seedAdminStudents, seedAdminTeachers, seedAttendanceSessions, seedAttendanceRecords, seedQTContent, seedMissionAdmins, seedAnnouncements, seedRewards, seedRedemptions, seedSeasonAdmin, seedBadgeAdmins, seedAuditLogs, seedAdminSettings } from "./admin-seed-data";
+import { koreaDate } from "./korea-date";
 import { isSupabaseReady } from "./config";
-import { getSupabase } from "./supabase";
-import { createActivity } from "@/services/mileage-service";
-
-function loadArray<T>(key: string, fallback: T[]): T[] {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
-  } catch { return fallback; }
-}
-
-function saveArray<T>(key: string, data: T[]) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(key, JSON.stringify(data));
-  }
-}
-
-function loadObject<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch { return fallback; }
-}
+import * as db from "./db";
 
 interface AdminState {
   currentUser: { id: string; name: string; role: string; assignedClassIds?: string[] } | null;
@@ -51,9 +25,9 @@ interface AdminState {
   attendanceRecords: AttendanceRecordAdmin[];
   addAttendanceRecord: (r: AttendanceRecordAdmin) => void;
   updateAttendanceRecord: (id: string, patch: Partial<AttendanceRecordAdmin>) => void;
-  bulkMarkAttendance: (studentIds: string[], sessionId: string, state: AttendanceStateType) => void;
+  bulkMarkAttendance: (studentIds: string[], sessionId: string, state: string) => void;
   getStudentAttendanceCount: (studentId: string, year?: number, month?: number) => number;
-  markStudentAttendance: (studentId: string, sessionId: string, state: AttendanceStateType) => void;
+  markStudentAttendance: (studentId: string, sessionId: string, state: string) => void;
 
   qtContents: QTContent[];
   addQTContent: (q: QTContent) => void;
@@ -67,20 +41,20 @@ interface AdminState {
   rejectMissionCompletion: (id: string) => void;
 
   prayers: PrayerRequestAdmin[];
-  updatePrayerStatus: (id: string, status: PrayerStatusType) => void;
+  updatePrayerStatus: (id: string, status: string) => void;
 
   announcements: Announcement[];
   addAnnouncement: (a: Announcement) => void;
   updateAnnouncement: (id: string, patch: Partial<Announcement>) => void;
 
-  awardsMileage: (target: "student" | "class" | "grade" | "all", targetId: string, amount: number, reason: string) => void;
-  allTransactions: MileageTransactionRecord[];
+  awardsMileage: (target: string, targetId: string, amount: number, reason: string) => void;
+  allTransactions: any[];
 
   rewards: Reward[];
   addReward: (r: Reward) => void;
   updateReward: (id: string, patch: Partial<Reward>) => void;
   redemptions: RewardRedemption[];
-  updateRedemption: (id: string, status: "approved" | "completed" | "cancelled") => void;
+  updateRedemption: (id: string, status: string) => void;
 
   season: SeasonAdmin;
   updateSeason: (patch: Partial<SeasonAdmin>) => void;
@@ -99,23 +73,7 @@ interface AdminState {
   resetToSeedData: () => void;
 }
 
-type AttendanceStateType = "present" | "late" | "online" | "absent";
-type PrayerStatusType = "active" | "hidden" | "reported" | "deleted";
-
-interface MileageTransactionRecord {
-  id: string;
-  studentId: string;
-  studentName: string;
-  className: string;
-  type: MileageActionType;
-  description: string;
-  amount: number;
-  date: string;
-  actorName: string;
-}
-
 const AdminCtx = createContext<AdminState | null>(null);
-
 export function useAdmin() {
   const ctx = useContext(AdminCtx);
   if (!ctx) throw new Error("useAdmin must be inside AdminProvider");
@@ -124,513 +82,431 @@ export function useAdmin() {
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<AdminState["currentUser"]>(null);
-  const [students, setStudents] = useState<AdminStudent[]>(() => loadArray("admin_students", seedAdminStudents));
-  const [teachers, setTeachers] = useState<AdminTeacher[]>(() => loadArray("admin_teachers", seedAdminTeachers));
-  const [sessions, setSessions] = useState<AttendanceSession[]>(() => loadArray("admin_attendance_sessions", seedAttendanceSessions));
-  const [records, setRecords] = useState<AttendanceRecordAdmin[]>(() => loadArray("admin_attendance_records", seedAttendanceRecords));
-  const [qtContents, setQTContents] = useState<QTContent[]>(() => loadArray("admin_qt_contents", seedQTContent));
-  const [missionAdmins, setMissionAdmins] = useState<MissionAdmin[]>(() => loadArray("admin_missions", seedMissionAdmins));
-  const [missionCompletions, setMissionCompletions] = useState<MissionCompletionAdmin[]>(() => loadArray("admin_mission_completions", []));
-  const [prayers, setPrayers] = useState<PrayerRequestAdmin[]>(() => loadArray("admin_prayers", []));
-  const [announcements, setAnnouncements] = useState<Announcement[]>(() => loadArray("admin_announcements", seedAnnouncements));
-  const [allTx, setAllTx] = useState<MileageTransactionRecord[]>(() => loadArray("admin_mileage_tx", []));
-  const [rewards, setRewards] = useState<Reward[]>(() => loadArray("admin_rewards", seedRewards));
-  const [redemptions, setRedemptions] = useState<RewardRedemption[]>(() => loadArray("admin_redemptions", seedRedemptions));
-  const [season, setSeason] = useState<SeasonAdmin>(() => loadArray("admin_season", [seedSeasonAdmin])[0]);
-  const [badges, setBadges] = useState<BadgeAdmin[]>(() => loadArray("admin_badges", seedBadgeAdmins));
-  const [studentBadges, setStudentBadges] = useState<Record<string, string[]>>(() => loadObject("admin_student_badges", {}));
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => loadArray("admin_audit_logs", seedAuditLogs));
-  const [settings, setSettings] = useState<AdminSettings>(() => loadArray("admin_settings", [seedAdminSettings])[0]);
+  const [students, setStudents] = useState<AdminStudent[]>([]);
+  const [teachers, setTeachers] = useState<AdminTeacher[]>([]);
+  const [sessions, setSessions] = useState<AttendanceSession[]>([]);
+  const [records, setRecords] = useState<AttendanceRecordAdmin[]>([]);
+  const [qtContents, setQTContents] = useState<QTContent[]>([]);
+  const [missionAdmins, setMissionAdmins] = useState<MissionAdmin[]>([]);
+  const [missionCompletions, setMissionCompletions] = useState<MissionCompletionAdmin[]>([]);
+  const [prayers, setPrayers] = useState<PrayerRequestAdmin[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [allTx, setAllTx] = useState<any[]>([]);
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [redemptions, setRedemptions] = useState<RewardRedemption[]>([]);
+  const [season, setSeason] = useState<SeasonAdmin>({ id: "", name: "시즌", subtitle: "", startDate: koreaDate(), endDate: "", active: true, sharedGoalXp: 50000, sharedReward: "" });
+  const [badges, setBadges] = useState<BadgeAdmin[]>([]);
+  const [studentBadges, setStudentBadges] = useState<Record<string, string[]>>({});
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [settings, setSettings] = useState<AdminSettings>({
+    defaultAttendanceMileage: 20, defaultQTMileage: 20, prayerMileage: 5,
+    weeklyMissionReward: 30, nameDisplayPolicy: "full", anonymousPrayerEnabled: true, mileageShopEnabled: true,
+  });
 
-  // Persist every change
-  useEffect(() => { saveArray("admin_students", students); }, [students]);
-  useEffect(() => { saveArray("admin_teachers", teachers); }, [teachers]);
-  useEffect(() => { saveArray("admin_attendance_sessions", sessions); }, [sessions]);
-  useEffect(() => { saveArray("admin_attendance_records", records); }, [records]);
-  useEffect(() => { saveArray("admin_qt_contents", qtContents); }, [qtContents]);
-  useEffect(() => { saveArray("admin_missions", missionAdmins); }, [missionAdmins]);
-  useEffect(() => { saveArray("admin_mission_completions", missionCompletions); }, [missionCompletions]);
-  useEffect(() => { saveArray("admin_prayers", prayers); }, [prayers]);
-  useEffect(() => { saveArray("admin_announcements", announcements); }, [announcements]);
-  useEffect(() => { saveArray("admin_mileage_tx", allTx); }, [allTx]);
-  useEffect(() => { saveArray("admin_rewards", rewards); }, [rewards]);
-  useEffect(() => { saveArray("admin_redemptions", redemptions); }, [redemptions]);
-  useEffect(() => { saveArray("admin_season", [season]); }, [season]);
-  useEffect(() => { saveArray("admin_badges", badges); }, [badges]);
-  useEffect(() => { if (typeof window !== "undefined") localStorage.setItem("admin_student_badges", JSON.stringify(studentBadges)); }, [studentBadges]);
-  useEffect(() => { saveArray("admin_audit_logs", auditLogs); }, [auditLogs]);
-  useEffect(() => { saveArray("admin_settings", [settings]); }, [settings]);
-
-  // Supabase에서 학생/출석 데이터 로드 (마운트 시 1회)
+  /* ── Load all data from Supabase ── */
   useEffect(() => {
     if (!isSupabaseReady) return;
     (async () => {
       try {
-        const sb = getSupabase();
-        if (!sb) return;
+        // Students
+        const sData = await db.fetchStudents();
+        if (sData.length) setStudents(sData.map((s: any) => ({
+          id: s.id, name: s.name, birthDate: s.birthDate, classId: s.classId,
+          mileage: s.mileage, role: "student" as "student", active: s.active !== false,
+          phone: s.phone || "", guardianPhone: s.guardianPhone || "", memo: s.memo || "",
+        })));
 
-        // 학생 로드
-        const { data: studentsData } = await sb.from("students").select("*").order("name");
-        if (studentsData && studentsData.length) {
-          const mapped = studentsData.map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            birthDate: r.birth_date || "",
-            classId: r.class_id || "",
-            mileage: Number(r.mileage) || 0,
-            role: r.role || "student",
-            active: r.active !== false,
-          }));
-          setStudents(mapped);
-        }
+        // Teachers
+        const tData = await db.fetchTeachers();
+        if (tData.length) setTeachers(tData.map((t: any) => ({
+          id: t.id, name: t.name, birthDate: t.birthDate, role: (t.role || "teacher") as "teacher" | "admin",
+          assignedClassIds: t.assignedClassIds || [], active: t.active !== false,
+        })));
 
-        // 교사 로드
-        const { data: teachersData } = await sb.from("teachers").select("*").order("name");
-        if (teachersData && teachersData.length) {
-          const mapped = teachersData.map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            birthDate: r.birth_date || "",
-            role: "teacher" as "teacher" | "admin",
-            assignedClassIds: r.assigned_class_ids || [],
-            active: r.active !== false,
-          }));
-          setTeachers(mapped);
-        }
+        // Attendance sessions
+        const sessData = await db.fetchAttendanceSessions();
+        if (sessData.length) setSessions(sessData.map((s: any) => ({
+          id: s.id, eventName: s.eventName, date: s.date, startTime: s.startTime,
+          endTime: s.endTime, active: s.active, mileageReward: s.mileageReward, xpReward: s.xpReward,
+        })));
 
-        // 출석 세션 로드
-        const { data: sessionsData } = await sb.from("attendance_sessions").select("*").order("date", { ascending: false });
-        if (sessionsData && sessionsData.length) {
-          const mapped = sessionsData.map((r: any) => ({
-            id: r.id,
-            eventName: r.event_name || r.eventName || "주일예배",
-            date: r.date,
-            startTime: r.start_time || r.startTime || "10:00",
-            endTime: r.end_time || r.endTime || "12:00",
-            active: r.active || false,
-            mileageReward: Number(r.mileage_reward || 0),
-            xpReward: Number(r.xp_reward || 0),
-          }));
-          setSessions(mapped);
-        }
+        // Attendance records
+        const recData = await db.fetchAttendanceRecords();
+        if (recData.length) setRecords(recData.map((r: any) => ({
+          id: r.id, studentId: r.studentId, sessionId: r.sessionId,
+          state: r.state as any, checkTime: r.checkTime, method: r.method as "manual",
+        })));
 
-        // 출석 기록 로드
-        const { data: recordsData } = await sb.from("attendance_records").select("*");
-        if (recordsData && recordsData.length) {
-          const mapped = recordsData.map((r: any) => ({
-            id: r.id,
-            sessionId: r.session_id,
-            studentId: r.student_id,
-            state: r.state,
-            checkTime: r.check_time || r.checkTime || new Date().toISOString(),
-            method: (r.method as "manual") || "manual",
-          }));
-          setRecords(mapped);
-        }
+        // QT contents
+        const qtData = await db.fetchAllMissions ? await (async () => {
+          const { data } = await (await import("./supabase")).getSupabase()?.from("qt_today").select("*").order("date", { ascending: false }) || { data: [] };
+          return data || [];
+        })() : [];
+        if (qtData.length) setQTContents(qtData.map((r: any) => ({
+          id: r.id || `qt_${r.date}`, date: r.date, title: r.title || "",
+          passage: r.passage || "", verse: r.verse || "", content: r.content || "",
+          question1: r.question1 || "", question2: r.question2 || "",
+          mileageReward: Number(r.mileage_reward) || 20, active: true,
+          status: r.status || "active",
+        })));
 
-        // 미션 로드
-        const { data: missionsData } = await sb.from("missions").select("*");
-        if (missionsData && missionsData.length) {
-          const mapped = missionsData.map((r: any) => ({
-            id: r.id,
-            title: r.title,
-            description: r.description || "",
-            icon: r.icon || "🎯",
-            type: r.type || "weekly",
-            mileageReward: Number(r.mileage_reward || 30),
-            xpReward: Number(r.xp_reward || 30),
-            startDate: r.start_date || "",
-            endDate: r.end_date || "",
-            target: r.target || "all",
-            approvalRequired: r.approval_required || false,
-            active: r.active !== false,
-          }));
-          setMissionAdmins(mapped);
-        }
+        // Missions from DB
+        const mData = await db.fetchAllMissions();
+        if (mData.length) setMissionAdmins(mData.map((m: any) => ({
+          id: m.id, title: m.title, description: m.description || "",
+          icon: m.icon || "🎯", type: m.type || "weekly",
+          mileageReward: Number(m.mileage_reward) || 30, xpReward: Number(m.xp_reward) || 30,
+          startDate: m.start_date || "", endDate: m.end_date || "",
+          target: m.target || "all", approvalRequired: !!m.approval_required,
+          active: m.active !== false,
+        })));
 
-        // 공지 로드
-        const { data: annData } = await sb.from("announcements").select("*");
-        if (annData && annData.length) {
-          const mapped = annData.map((r: any) => ({
-            id: r.id,
-            title: r.title,
-            content: r.content || "",
-            target: r.target || "all",
-            targetClassIds: r.target_class_ids || [],
-            targetGrades: r.target_grades || [],
-            startDate: r.start_date || "",
-            endDate: r.end_date || "",
-            important: r.important || false,
-            status: r.status || "draft",
-            createdAt: r.created_at || "",
-          }));
-          setAnnouncements(mapped);
-        }
-      } catch { /* keep localStorage data */ }
+        // Mission completions
+        const cmData = await db.fetchCompletedMissions();
+        if (cmData.length) setMissionCompletions(cmData.map((c: any) => ({
+          id: c.id, missionId: c.mission_id, studentId: c.student_id,
+          status: c.status || "pending", completedAt: c.completed_at || "",
+        })));
+
+        // Prayers
+        const prData = await db.fetchPrayers();
+        if (prData.length) setPrayers(prData.map((p: any) => ({
+          id: p.id, studentId: p.studentId, authorName: p.authorName || null,
+          anonymous: p.anonymous, content: p.content,
+          prayerCount: p.prayerCount, classId: p.classId || "",
+          createdAt: p.createdAt, status: p.status || "active",
+        })));
+
+        // Announcements
+        const annData = await db.fetchAnnouncements();
+        if (annData.length) setAnnouncements(annData.map((a: any) => ({
+          id: a.id, title: a.title, content: a.content,
+          target: a.target || "all", targetClassIds: a.targetClassIds || [],
+          targetGrades: a.targetGrades || [],
+          startDate: a.startDate, endDate: a.endDate,
+          important: a.important, status: a.status, createdAt: a.createdAt,
+        })));
+
+        // Rewards
+        const rwData = await db.fetchAllRewards();
+        if (rwData.length) setRewards(rwData.map((r: any) => ({
+          id: r.id, name: r.name, description: r.description || "",
+          mileageCost: r.mileage_cost || 0, inventory: r.inventory || 0,
+          active: r.active !== false, redemptionLimit: r.redemption_limit || 1,
+          category: r.category || "",
+        })));
+
+        // Redemptions
+        const rdData = await db.fetchRedemptions();
+        if (rdData.length) setRedemptions(rdData.map((r: any) => ({
+          id: r.id, studentId: r.student_id, studentName: r.student_name || "",
+          rewardId: r.reward_id, rewardName: r.reward_name || "",
+          mileageCost: r.mileage_cost || 0, status: r.status || "requested",
+          createdAt: r.created_at || "",
+        })));
+
+        // Badges
+        const bData = await db.fetchBadges();
+        if (bData.length) setBadges(bData.map((b: any) => ({
+          id: b.id, name: b.name, description: b.description || "",
+          icon: b.icon || "🏅", requirementType: b.requirement_type || "qt_count",
+          requirementValue: Number(b.requirement_value) || 10,
+          active: b.active !== false, mileageReward: Number(b.mileage_reward) || 0,
+          levelThresholds: b.level_thresholds || [10, 30, 60, 100, 200],
+        })));
+
+        // Season
+        const seData = await db.fetchSeason();
+        if (seData) setSeason({
+          id: seData.id, name: seData.name, subtitle: seData.subtitle,
+          startDate: seData.startDate, endDate: seData.endDate, active: true,
+          sharedGoalXp: seData.sharedGoalXp, sharedReward: seData.sharedReward,
+        });
+
+        // Settings
+        const stData = await db.fetchSettings();
+        if (stData) setSettings(stData);
+
+        // Transactions
+        const txData = await db.fetchAllTransactions();
+        if (txData.length) setAllTx(txData);
+
+        // Audit logs
+        const alData = await db.fetchAuditLogs();
+        if (alData.length) setAuditLogs(alData);
+      } catch (e) { console.error("Admin data load error:", e); }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const addStudent = useCallback((s: AdminStudent) => setStudents(prev => [...prev, s]), []);
-  const updateStudent = useCallback((id: string, patch: Partial<AdminStudent>) => {
+  /* ── Students CRUD (DB-backed) ── */
+  const addStudent = useCallback(async (s: AdminStudent) => {
+    await db.upsertStudent({ ...s, grade: Number(s.classId?.match(/_g(\d)_/)?.[1]) || 1 });
+    setStudents(prev => [...prev, s]);
+  }, []);
+
+  const updateStudent = useCallback(async (id: string, patch: Partial<AdminStudent>) => {
     setStudents(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
+    await db.upsertStudent({ id, ...patch });
   }, []);
-  const deactivateStudent = useCallback((id: string) => {
+
+  const deactivateStudent = useCallback(async (id: string) => {
     setStudents(prev => prev.map(s => s.id === id ? { ...s, active: false } : s));
+    await db.updateStudentField(id, "active", false);
   }, []);
 
-  const addTeacher = useCallback((t: AdminTeacher) => setTeachers(prev => [...prev, t]), []);
-  const updateTeacher = useCallback((id: string, patch: Partial<AdminTeacher>) => {
+  /* ── Teachers CRUD (DB-backed) ── */
+  const addTeacher = useCallback(async (t: AdminTeacher) => {
+    await db.upsertTeacher(t);
+    setTeachers(prev => [...prev, t]);
+  }, []);
+
+  const updateTeacher = useCallback(async (id: string, patch: Partial<AdminTeacher>) => {
     setTeachers(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+    await db.upsertTeacher({ id, ...patch });
   }, []);
 
-  const addAttendanceSession = useCallback((s: AttendanceSession) => {
+  /* ── Attendance (DB-backed) ── */
+  const addAttendanceSession = useCallback(async (s: AttendanceSession) => {
     setSessions(prev => [...prev, s]);
-    // Supabase
-    if (isSupabaseReady) {
-      getSupabase()?.from("attendance_sessions").insert([{
-        id: s.id, event_name: s.eventName, date: s.date,
-        start_time: s.startTime, end_time: s.endTime,
-        active: s.active, mileage_reward: s.mileageReward, xp_reward: s.xpReward,
-      }]); /* sb write */ void 0;
-    }
+    await db.insertAttendanceSession(s);
   }, []);
-  const closeAttendanceSession = useCallback((id: string) => {
+
+  const closeAttendanceSession = useCallback(async (id: string) => {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, active: false } : s));
+    await db.updateAttendanceSession(id, { active: false });
   }, []);
-  const addAttendanceRecord = useCallback((r: AttendanceRecordAdmin) => {
+
+  const addAttendanceRecord = useCallback(async (r: AttendanceRecordAdmin) => {
     setRecords(prev => {
       const exists = prev.some(x => x.studentId === r.studentId && x.sessionId === r.sessionId);
-      if (exists) return prev;
+      if (exists) return prev.map(x => x.studentId === r.studentId && x.sessionId === r.sessionId ? { ...x, state: r.state } : x);
       return [...prev, r];
     });
-    // Supabase
-    if (isSupabaseReady) {
-      getSupabase()?.from("attendance_records").upsert({
-        id: r.id, session_id: r.sessionId, student_id: r.studentId,
-        state: r.state, check_time: r.checkTime, method: r.method,
-      }, { onConflict: "session_id,student_id" }); /* sb write */ void 0;
+    await db.upsertAttendanceRecord(r);
+  }, []);
+
+  const updateAttendanceRecord = useCallback(async (id: string, patch: Partial<AttendanceRecordAdmin>) => {
+    setRecords(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
+    if (patch.state) await db.updateAttendanceRecord(id, patch);
+  }, []);
+
+  const bulkMarkAttendance = useCallback(async (studentIds: string[], sessionId: string, state: string) => {
+    const newRecords: AttendanceRecordAdmin[] = studentIds.map(studentId => ({
+      id: `ar_${studentId}_${sessionId}`, studentId, sessionId,
+      state: state as any, checkTime: new Date().toISOString(), method: "manual" as const,
+    }));
+    setRecords(prev => {
+      const updated = prev.filter(r => r.sessionId !== sessionId);
+      return [...updated, ...newRecords];
+    });
+    for (const r of newRecords) {
+      await db.upsertAttendanceRecord(r);
     }
   }, []);
-  const updateAttendanceRecord = useCallback((id: string, patch: Partial<AttendanceRecordAdmin>) => {
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
-  }, []);
-  // 학생별 연/월 출석 횟수 계산
+
   const getStudentAttendanceCount = useCallback((studentId: string, year?: number, month?: number): number => {
-    const targetYear = year || new Date().getFullYear();
-    const targetMonth = month; // undefined면 연간 전체
     return records.filter(r => {
       if (r.studentId !== studentId) return false;
-      if (r.state !== "present" && r.state !== "late" && r.state !== "online") return false;
+      if (r.state !== "present" && r.state !== "late") return false;
       const session = sessions.find(s => s.id === r.sessionId);
       if (!session) return false;
-      const d = new Date(session.date);
-      if (d.getFullYear() !== targetYear) return false;
-      if (targetMonth !== undefined && d.getMonth() + 1 !== targetMonth) return false;
+      if (year && month) {
+        const d = new Date(session.date);
+        return d.getFullYear() === year && d.getMonth() + 1 === month;
+      }
       return true;
     }).length;
   }, [records, sessions]);
 
-  const bulkMarkAttendance = useCallback((studentIds: string[], sessionId: string, state: AttendanceStateType) => {
-    const now = new Date().toISOString();
-    const today = new Date().toISOString().slice(0, 10);
-    setRecords(prev => {
-      const existing = new Set(prev.filter(r => r.sessionId === sessionId).map(r => r.studentId));
-      const newRecords = studentIds.filter(id => !existing.has(id)).map(id => ({
-        id: "ar_" + Date.now() + "_" + id,
-        studentId: id,
-        sessionId,
-        state,
-        checkTime: now,
-        method: "manual" as const,
-      }));
-      // Supabase
-      if (isSupabaseReady && newRecords.length) {
-        const rows = newRecords.map(r => ({
-          id: r.id, session_id: r.sessionId, student_id: r.studentId,
-          state: r.state, check_time: r.checkTime, method: r.method,
-        }));
-        getSupabase()?.from("attendance_records").upsert(rows, { onConflict: "session_id,student_id" }); /* sb write */ void 0;
-      }
-
-      // 출석 마일리지 자동 지급 (present/late = 20M)
-      if (state === "present" || state === "late" || state === "online") {
-        const attendanceMileage = state === "present" ? 20 : state === "late" ? 15 : 10;
-        setStudents(prev => prev.map(s => {
-          if (!newRecords.some(r => r.studentId === s.id)) return s;
-          return { ...s, mileage: s.mileage + attendanceMileage };
-        }));
-        // 트랜잭션 + Supabase
-        newRecords.forEach(r => {
-          const stu = students.find(s => s.id === r.studentId);
-          if (!stu) return;
-          const tx: MileageTransactionRecord = {
-            id: "atx_att_" + Date.now() + "_" + stu.id,
-            studentId: stu.id, studentName: stu.name,
-            className: stu.classId, type: "attendance",
-            description: state === "present" ? "주일 예배 출석" : state === "late" ? "주일 예배 지각" : "주일 예배 온라인",
-            amount: attendanceMileage, date: today, actorName: "시스템",
-          };
-          setAllTx(prev => [...prev, tx]);
-          if (isSupabaseReady) {
-            const sb = getSupabase();
-            if (sb) {
-              sb.from("students").update({ mileage: stu.mileage + attendanceMileage }).eq("id", stu.id); void 0;
-              sb.from("mileage_transactions").insert([{ id: tx.id, student_id: tx.studentId, type: tx.type, description: tx.description, amount: tx.amount, date: tx.date }]); void 0;
-            }
-          }
-        });
-      }
-
-      return [...prev, ...newRecords];
-    });
-  }, [students]);
-
-
-  // 개별 학생 출석 체크 (마일리지 포함)
-  const markStudentAttendance = useCallback((studentId: string, sessionId: string, state: AttendanceStateType) => {
-    const now = new Date().toISOString();
-    const today = now.slice(0, 10);
-    setRecords(prev => {
-      const exists = prev.some(r => r.sessionId === sessionId && r.studentId === studentId);
-      const newRecord = {
-        id: exists ? prev.find(r => r.sessionId === sessionId && r.studentId === studentId)!.id : "ar_" + Date.now() + "_" + studentId,
-        studentId, sessionId, state, checkTime: now, method: "manual" as const,
-      };
-      const next = exists ? prev.map(r => r.sessionId === sessionId && r.studentId === studentId ? { ...r, state, checkTime: now } : r) : [...prev, newRecord];
-      if (isSupabaseReady) {
-        getSupabase()?.from("attendance_records").upsert({
-          id: newRecord.id, session_id: sessionId, student_id: studentId,
-          state, check_time: now, method: "manual",
-        }, { onConflict: "session_id,student_id" }); void 0;
-      }
-      return next;
-    });
-    // 마일리지 (출석=20, 지각=15, 온라인=10, 결석=0)
-    if (state === "present" || state === "late" || state === "online") {
-      const mileage = state === "present" ? 20 : state === "late" ? 15 : 10;
-      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, mileage: s.mileage + mileage } : s));
-      const stu = students.find(s => s.id === studentId);
-      if (stu) {
-        const tx: MileageTransactionRecord = {
-          id: "atx_att_" + Date.now() + "_" + studentId, studentId: stu.id, studentName: stu.name,
-          className: stu.classId, type: "attendance",
-          description: state === "present" ? "주일 예배 출석" : state === "late" ? "주일 예배 지각" : "주일 예배 온라인",
-          amount: mileage, date: today, actorName: "시스템",
-        };
-        setAllTx(prev => [...prev, tx]);
-        if (isSupabaseReady) {
-          const sb = getSupabase();
-          if (sb) {
-            sb.from("students").update({ mileage: stu.mileage + mileage }).eq("id", stu.id); void 0;
-            sb.from("mileage_transactions").insert([{ id: tx.id, student_id: tx.studentId, type: tx.type, description: tx.description, amount: tx.amount, date: tx.date }]); void 0;
-          }
-        }
-      }
-    }
-  }, [students]);
-
-  const addQTContent = useCallback((q: QTContent) => setQTContents(prev => [...prev, q]), []);
-  const updateQTContent = useCallback((id: string, patch: Partial<QTContent>) => {
-    setQTContents(prev => prev.map(q => q.id === id ? { ...q, ...patch } : q));
-  }, []);
-
-  const addMission = useCallback((m: MissionAdmin) => {
-    setMissionAdmins(prev => [...prev, m]);
-    if (isSupabaseReady) {
-      getSupabase()?.from("missions").upsert({
-        id: m.id, title: m.title, description: m.description, icon: m.icon,
-        type: m.type, target: m.target, active: m.active,
-      }).then(({ error }) => { if (error) console.error("missions upsert error:", error.message); });
-    }
-  }, []);
-  const updateMission = useCallback((id: string, patch: Partial<MissionAdmin>) => {
-    setMissionAdmins(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
-    if (isSupabaseReady) {
-      getSupabase()?.from("missions").update({
-        title: patch.title, description: patch.description, icon: patch.icon,
-        type: patch.type, target: patch.target, active: patch.active,
-      }).eq("id", id).then(({ error }) => { if (error) console.error("missions update error:", error.message); });
-    }
-  }, []);
-  const approveMissionCompletion = useCallback((id: string) => {
-    setMissionCompletions(prev => prev.map(c => c.id === id ? { ...c, status: "approved" as const } : c));
-  }, []);
-  const rejectMissionCompletion = useCallback((id: string) => {
-    setMissionCompletions(prev => prev.map(c => c.id === id ? { ...c, status: "rejected" as const } : c));
-  }, []);
-
-  const updatePrayerStatus = useCallback((id: string, status: PrayerStatusType) => {
-    setPrayers(prev => prev.map(p => p.id === id ? { ...p, status } : p));
-  }, []);
-
-  const addAnnouncement = useCallback((a: Announcement) => {
-    setAnnouncements(prev => [...prev, a]);
-    if (isSupabaseReady) {
-      getSupabase()?.from("announcements").upsert({
-        id: a.id, title: a.title, content: a.content, target: a.target,
-        important: a.important, status: a.status, start_date: a.startDate,
-        end_date: a.endDate, created_at: a.createdAt,
-      }).then(({ error }) => { if (error) console.error("announcements upsert error:", error.message); });
-    }
-  }, []);
-  const updateAnnouncement = useCallback((id: string, patch: Partial<Announcement>) => {
-    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
-    if (isSupabaseReady) {
-      getSupabase()?.from("announcements").update({
-        title: patch.title, content: patch.content, target: patch.target,
-        important: patch.important, status: patch.status,
-      }).eq("id", id).then(({ error }) => { if (error) console.error("announcements update error:", error.message); });
-    }
-  }, []);
-
-  const awardsMileage = useCallback((target: "student" | "class" | "grade" | "all", targetId: string, amount: number, reason: string) => {
-    const actorName = currentUser?.name || "관리자";
-    // 홈탭 공지 생성
-    if (isSupabaseReady) {
-      const targetLabel = target === "student"
-        ? (students.find(s => s.id === targetId)?.name || "학생")
-        : target === "class"
-          ? "반"
-          : target === "grade"
-            ? `고${targetId.replace(/\D/g, "")}학년`
-            : "전체";
-      const action = amount >= 0 ? `+${amount}M 지급` : `${amount}M 차감`;
-      createActivity("mileage", `${targetLabel} ${action} · ${reason}`);
-    }
-    if (target === "student") {
-      setStudents(prev => prev.map(s => s.id === targetId ? { ...s, mileage: s.mileage + amount } : s));
-      const stu = students.find(s => s.id === targetId);
-      if (stu) {
-        const tx: MileageTransactionRecord = {
-          id: "atx_" + Date.now(), studentId: targetId, studentName: stu.name,
-          className: stu.classId, type: amount > 0 ? "manual_bonus" : "manual_deduction",
-          description: reason, amount, date: new Date().toISOString().slice(0, 10), actorName,
-        };
-        setAllTx(prev => [...prev, tx]);
-      }
+  const markStudentAttendance = useCallback(async (studentId: string, sessionId: string, state: string) => {
+    const existing = records.find(r => r.studentId === studentId && r.sessionId === sessionId);
+    if (existing) {
+      await updateAttendanceRecord(existing.id, { state: state as any });
     } else {
-      let targets: AdminStudent[] = [];
-      if (target === "class") {
-        targets = students.filter(s => s.classId === targetId && s.active);
-      } else if (target === "grade") {
-        targets = students.filter(s => s.classId.startsWith(targetId) && s.active);
-      } else {
-        targets = students.filter(s => s.active);
-      }
-      setStudents(prev => prev.map(s => {
-        if (targets.some(t => t.id === s.id)) return { ...s, mileage: s.mileage + amount };
-        return s;
-      }));
-      targets.forEach(stu => {
-        const tx: MileageTransactionRecord = {
-          id: "atx_" + Date.now() + "_" + stu.id, studentId: stu.id, studentName: stu.name,
-          className: stu.classId, type: amount > 0 ? "manual_bonus" : "manual_deduction",
-          description: reason, amount, date: new Date().toISOString().slice(0, 10), actorName,
-        };
-        setAllTx(prev => [...prev, tx]);
-        // Supabase
-        if (isSupabaseReady) {
-          const sb = getSupabase();
-          if (sb) {
-            sb.from("students").update({ mileage: stu.mileage + amount }).eq("id", stu.id); /* sb write */ void 0;
-            sb.from("mileage_transactions").insert([{ id: tx.id, student_id: tx.studentId, type: tx.type, description: tx.description, amount: tx.amount, date: tx.date }]); /* sb write */ void 0;
-          }
-        }
+      await addAttendanceRecord({
+        id: `ar_${studentId}_${sessionId}_${Date.now()}`, studentId, sessionId,
+        state: state as any, checkTime: new Date().toISOString(), method: "manual",
       });
     }
-  }, [currentUser, students]);
+  }, [records, updateAttendanceRecord, addAttendanceRecord]);
 
-  const addReward = useCallback((r: Reward) => setRewards(prev => [...prev, r]), []);
-  const updateReward = useCallback((id: string, patch: Partial<Reward>) => {
+  /* ── QT Contents (DB-backed) ── */
+  const addQTContent = useCallback(async (q: QTContent) => {
+    setQTContents(prev => [q, ...prev]);
+    const sb = (await import("./supabase")).getSupabase();
+    if (sb) {
+      await sb.from("qt_today").upsert({
+        id: `qt_${q.date}`, date: q.date, title: q.title,
+        passage: q.passage, verse: q.verse, content: q.content,
+        question1: q.question1, question2: q.question2,
+        mileage_reward: q.mileageReward, status: q.status || "active",
+      });
+    }
+  }, []);
+
+  const updateQTContent = useCallback(async (id: string, patch: Partial<QTContent>) => {
+    setQTContents(prev => prev.map(q => q.id === id ? { ...q, ...patch } : q));
+    const sb = (await import("./supabase")).getSupabase();
+    if (sb) {
+      const update: any = {};
+      if (patch.title !== undefined) update.title = patch.title;
+      if (patch.passage !== undefined) update.passage = patch.passage;
+      if (patch.verse !== undefined) update.verse = patch.verse;
+      if (patch.content !== undefined) update.content = patch.content;
+      if (patch.status !== undefined) update.status = patch.status;
+      update.updated_at = new Date().toISOString();
+      await sb.from("qt_today").update(update).eq("id", id);
+    }
+  }, []);
+
+  /* ── Missions (DB-backed) ── */
+  const addMission = useCallback(async (m: MissionAdmin) => {
+    setMissionAdmins(prev => [m, ...prev]);
+    await db.insertMission(m);
+  }, []);
+
+  const updateMission = useCallback(async (id: string, patch: Partial<MissionAdmin>) => {
+    setMissionAdmins(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
+    await db.updateMission(id, patch);
+  }, []);
+
+  /* ── Mission Completions (DB-backed) ── */
+  const approveMissionCompletion = useCallback(async (id: string) => {
+    setMissionCompletions(prev => prev.map(c => c.id === id ? { ...c, status: "approved" } : c));
+    const sb = (await import("./supabase")).getSupabase();
+    if (sb) {
+      const { data } = await sb.from("completed_missions").select("*").eq("id", id).single();
+      if (data) {
+        await sb.from("completed_missions").update({ status: "approved", reviewed_at: new Date().toISOString() }).eq("id", id);
+        const mission = missionAdmins.find(m => m.id === data.mission_id);
+        if (mission) {
+          await db.updateStudentField(data.student_id, "mileage", (students.find(s => s.id === data.student_id)?.mileage || 0) + mission.mileageReward);
+          await db.addTransaction({ studentId: data.student_id, studentName: students.find(s => s.id === data.student_id)?.name || "", type: "미션승인", description: mission.title, amount: mission.mileageReward });
+        }
+      }
+    }
+  }, [missionAdmins, students]);
+
+  const rejectMissionCompletion = useCallback(async (id: string) => {
+    setMissionCompletions(prev => prev.map(c => c.id === id ? { ...c, status: "rejected" } : c));
+    const sb = (await import("./supabase")).getSupabase();
+    if (sb) await sb.from("completed_missions").update({ status: "rejected", reviewed_at: new Date().toISOString() }).eq("id", id);
+  }, []);
+
+  /* ── Prayers (DB-backed) ── */
+  const updatePrayerStatus = useCallback(async (id: string, status: string) => {
+    setPrayers(prev => prev.map(p => p.id === id ? { ...p, status: status as any } : p));
+    await db.updatePrayer(id, { status });
+  }, []);
+
+  /* ── Announcements (DB-backed) ── */
+  const addAnnouncement = useCallback(async (a: Announcement) => {
+    setAnnouncements(prev => [a, ...prev]);
+    await db.insertAnnouncement(a);
+  }, []);
+
+  const updateAnnouncement = useCallback(async (id: string, patch: Partial<Announcement>) => {
+    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
+  }, []);
+
+  /* ── Mileage Award ── */
+  const awardsMileage = useCallback(async (target: string, targetId: string, amount: number, reason: string) => {
+    const date = koreaDate();
+    if (target === "student") {
+      const stu = students.find(s => s.id === targetId);
+      if (!stu) return;
+      await db.updateStudentField(targetId, "mileage", stu.mileage + amount);
+      setStudents(prev => prev.map(s => s.id === targetId ? { ...s, mileage: s.mileage + amount } : s));
+      const tx = { id: `atx_${Date.now()}`, studentId: targetId, studentName: stu.name, className: stu.classId, type: "manual_bonus" as MileageActionType, description: reason, amount, date, actorName: "관리자" };
+      setAllTx(prev => [tx, ...prev]);
+      await db.addTransaction(tx);
+    } else if (target === "class") {
+      const clsStudents = students.filter(s => s.classId === targetId);
+      for (const stu of clsStudents) {
+        await db.updateStudentField(stu.id, "mileage", stu.mileage + amount);
+      }
+      setStudents(prev => prev.map(s => s.classId === targetId ? { ...s, mileage: s.mileage + amount } : s));
+    } else if (target === "all") {
+      for (const stu of students) {
+        await db.updateStudentField(stu.id, "mileage", stu.mileage + amount);
+      }
+      setStudents(prev => prev.map(s => ({ ...s, mileage: s.mileage + amount })));
+    }
+  }, [students]);
+
+  /* ── Rewards (DB-backed) ── */
+  const addReward = useCallback(async (r: Reward) => {
+    setRewards(prev => [r, ...prev]);
+    await db.insertReward(r);
+  }, []);
+
+  const updateReward = useCallback(async (id: string, patch: Partial<Reward>) => {
     setRewards(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
   }, []);
-  const updateRedemption = useCallback((id: string, status: "approved" | "completed" | "cancelled") => {
-    setRedemptions(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+
+  const updateRedemption = useCallback(async (id: string, status: string) => {
+    setRedemptions(prev => prev.map(r => r.id === id ? { ...r, status: status as any } : r));
+    await db.updateRedemption(id, status);
   }, []);
 
-  const updateSeason = useCallback((patch: Partial<SeasonAdmin>) => {
+  /* ── Season (DB-backed) ── */
+  const updateSeason = useCallback(async (patch: Partial<SeasonAdmin>) => {
     setSeason(prev => ({ ...prev, ...patch }));
+    await db.updateSeason(patch);
   }, []);
 
-  const addBadge = useCallback((b: BadgeAdmin) => setBadges(prev => [...prev, b]), []);
-  const updateBadge = useCallback((id: string, patch: Partial<BadgeAdmin>) => {
+  /* ── Badges (DB-backed) ── */
+  const addBadge = useCallback(async (b: BadgeAdmin) => {
+    setBadges(prev => [b, ...prev]);
+    const sb = (await import("./supabase")).getSupabase();
+    if (sb) {
+      await sb.from("badges").insert([{
+        id: b.id, name: b.name, description: b.description, icon: b.icon,
+        requirement_type: b.requirementType, requirement_value: b.requirementValue,
+        active: true, mileage_reward: b.mileageReward, display_order: badges.length + 1,
+      }]);
+    }
+  }, [badges.length]);
+
+  const updateBadge = useCallback(async (id: string, patch: Partial<BadgeAdmin>) => {
     setBadges(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
   }, []);
 
   const earnBadge = useCallback((studentId: string, badgeId: string) => {
-    // 이미 획득한 배지인지 확인
     const existing = studentBadges[studentId] || [];
     if (existing.includes(badgeId)) return;
-
-    // 배지 정보 조회
+    setStudentBadges(prev => ({ ...prev, [studentId]: [...(prev[studentId] || []), badgeId] }));
     const badge = badges.find(b => b.id === badgeId);
-    if (!badge) return;
-
-    // 배지 획득 기록 추가
-    setStudentBadges(prev => ({
-      ...prev,
-      [studentId]: [...(prev[studentId] || []), badgeId],
-    }));
-
-    // 마일리지 지급
-    if (badge.mileageReward > 0) {
-      setStudents(prev => prev.map(s =>
-        s.id === studentId ? { ...s, mileage: s.mileage + badge.mileageReward } : s
-      ));
+    if (badge && badge.mileageReward > 0) {
       const stu = students.find(s => s.id === studentId);
       if (stu) {
-        const tx: MileageTransactionRecord = {
-          id: "atx_" + Date.now(),
-          studentId,
-          studentName: stu.name,
-          className: stu.classId,
-          type: "badge",
-          description: "배지 획득: " + badge.name,
-          amount: badge.mileageReward,
-          date: new Date().toISOString().slice(0, 10),
-          actorName: "시스템",
-        };
-        setAllTx(prev => [...prev, tx]);
+        db.updateStudentField(studentId, "mileage", stu.mileage + badge.mileageReward);
+        setStudents(prev => prev.map(s => s.id === studentId ? { ...s, mileage: s.mileage + badge.mileageReward } : s));
       }
     }
   }, [studentBadges, badges, students]);
 
-  const addAuditLog = useCallback((log: Omit<AuditLog, "id" | "timestamp">) => {
-    const entry: AuditLog = {
-      ...log,
-      id: "al_" + Date.now(),
-      timestamp: new Date().toISOString(),
-    };
+  /* ── Audit Logs (DB-backed) ── */
+  const addAuditLog = useCallback(async (log: Omit<AuditLog, "id" | "timestamp">) => {
+    const entry: AuditLog = { ...log, id: `al_${Date.now()}`, timestamp: new Date().toISOString() };
     setAuditLogs(prev => [entry, ...prev]);
+    await db.addAuditLog(log);
   }, []);
 
-  const updateSettings = useCallback((patch: Partial<AdminSettings>) => {
+  /* ── Settings (DB-backed) ── */
+  const updateSettings = useCallback(async (patch: Partial<AdminSettings>) => {
     setSettings(prev => ({ ...prev, ...patch }));
+    await db.updateSettings(patch);
   }, []);
 
+  /* ── Reset ── */
   const resetToSeedData = useCallback(() => {
-    setStudents(seedAdminStudents);
-    setTeachers(seedAdminTeachers);
-    setSessions(seedAttendanceSessions);
-    setRecords([]);
-    setQTContents(seedQTContent);
-    setMissionAdmins(seedMissionAdmins);
-    setMissionCompletions([]);
-    setPrayers([]);
-    setAnnouncements(seedAnnouncements);
-    setAllTx([]);
-    setRewards(seedRewards);
-    setRedemptions(seedRedemptions);
-    setSeason(seedSeasonAdmin);
-    setBadges(seedBadgeAdmins);
-    setStudentBadges({});
-    setAuditLogs(seedAuditLogs);
-    setSettings(seedAdminSettings);
-    // Clear localStorage
-    if (typeof window !== "undefined") {
-      Object.keys(localStorage).filter(k => k.startsWith("admin_")).forEach(k => localStorage.removeItem(k));
-    }
+    setStudents([]); setTeachers([]); setSessions([]); setRecords([]);
+    setQTContents([]); setMissionAdmins([]); setMissionCompletions([]);
+    setPrayers([]); setAnnouncements([]); setAllTx([]);
+    setRewards([]); setRedemptions([]); setBadges([]);
+    setStudentBadges({}); setAuditLogs([]);
+    setSettings({ defaultAttendanceMileage: 20, defaultQTMileage: 20, prayerMileage: 5, weeklyMissionReward: 30, nameDisplayPolicy: "full", anonymousPrayerEnabled: true, mileageShopEnabled: true });
   }, []);
 
   return (
@@ -646,8 +522,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       prayers, updatePrayerStatus,
       announcements, addAnnouncement, updateAnnouncement,
       awardsMileage, allTransactions: allTx,
-      rewards, addReward, updateReward,
-      redemptions, updateRedemption,
+      rewards, addReward, updateReward, redemptions, updateRedemption,
       season, updateSeason,
       badges, addBadge, updateBadge, studentBadges, earnBadge,
       auditLogs, addAuditLog,
