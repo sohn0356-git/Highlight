@@ -1,22 +1,36 @@
 /**
- * 드라노 QT 자동 가져오기 스크립트
- * GitHub Actions에서 매일 실행, supabase에 저장
+ * 드라노 QT 자동 가져오기 스크립트 (plain fetch 사용 - supabase-js 불필요)
+ * GitHub Actions에서 매일 실행, supabase REST API에 저장
  */
-import { createClient } from "@supabase/supabase-js";
-
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
-const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error("Missing SUPABASE_URL or SUPABASE_KEY env vars");
   process.exit(1);
 }
 
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-
 function koreaDateStr(d) {
   const date = d || new Date();
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(date);
+}
+
+async function sbRest(method, path, body) {
+  const headers = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json",
+    "Prefer": method === "POST" ? "return=representation" : "return=representation",
+  };
+  const url = `${SUPABASE_URL}${path}`;
+  const resp = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const text = await resp.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!resp.ok) {
+    throw new Error(`Supabase ${method} ${path} -> ${resp.status}: ${JSON.stringify(data)}`);
+  }
+  return data;
 }
 
 async function fetchDurannoHTML(qtDate) {
@@ -139,34 +153,31 @@ function parseDurannoHTML(html, qtDate) {
 }
 
 async function storeQT(qtData, qtDate) {
-  try {
-    const { data: existing } = await sb.from("qt_today").select("id").eq("date", qtDate).limit(1);
-    const payload = {
-      date: qtDate,
-      passage: qtData.passage || "",
-      verse: qtData.verse || "",
-      content: qtData.content || "",
-      prayer: qtData.prayer || "",
-      song: qtData.song || "",
-      helper: qtData.helper || "",
-      question1: qtData.question1 || "",
-      question2: qtData.question2 || "",
-      source: "duranno",
-      updated_at: new Date().toISOString(),
-    };
+  // Check existing
+  const existing = await sbRest("GET", `/rest/v1/qt_today?select=id&date=eq.${qtDate}&limit=1`);
+  const hasExisting = Array.isArray(existing) && existing.length > 0;
 
-    if (existing && existing.length) {
-      const { data, error } = await sb.from("qt_today").update(payload).eq("date", qtDate).select().single();
-      if (error) return { ok: false, error: error.message };
-      return { ok: true, data, action: "updated" };
-    } else {
-      const row = { id: crypto.randomUUID(), ...payload, created_at: new Date().toISOString() };
-      const { data, error } = await sb.from("qt_today").insert([row]).select().single();
-      if (error) return { ok: false, error: error.message };
-      return { ok: true, data, action: "inserted" };
-    }
-  } catch (e) {
-    return { ok: false, error: e.message };
+  const payload = {
+    date: qtDate,
+    passage: qtData.passage || "",
+    verse: qtData.verse || "",
+    content: qtData.content || "",
+    prayer: qtData.prayer || "",
+    song: qtData.song || "",
+    helper: qtData.helper || "",
+    question1: qtData.question1 || "",
+    question2: qtData.question2 || "",
+    source: "duranno",
+    updated_at: new Date().toISOString(),
+  };
+
+  if (hasExisting) {
+    const data = await sbRest("PATCH", `/rest/v1/qt_today?date=eq.${qtDate}`, payload);
+    return { ok: true, data, action: "updated" };
+  } else {
+    const row = { id: crypto.randomUUID(), ...payload, created_at: new Date().toISOString() };
+    const data = await sbRest("POST", "/rest/v1/qt_today", [row]);
+    return { ok: true, data, action: "inserted" };
   }
 }
 
@@ -188,13 +199,13 @@ async function main() {
   console.log(`[QT Fetcher] Song length: ${parsed.song.length}`);
   console.log(`[QT Fetcher] Helper length: ${parsed.helper.length}`);
 
-  const result = await storeQT(parsed, targetDate);
-  if (result.ok) {
+  try {
+    const result = await storeQT(parsed, targetDate);
     console.log(`[QT Fetcher] SUCCESS (${result.action}) for ${targetDate}`);
     console.log(JSON.stringify({ passage: parsed.passage, verse: parsed.verse, contentLength: parsed.content.length }, null, 2));
     process.exit(0);
-  } else {
-    console.error(`[QT Fetcher] FAILED: ${result.error}`);
+  } catch (e) {
+    console.error(`[QT Fetcher] FAILED: ${e.message}`);
     process.exit(1);
   }
 }
