@@ -68,11 +68,8 @@ function isAdminUser(s: Student | null): boolean {
 const DAILY_QUEST_DEFS = [
   { id: "d1", icon: "📖", title: "QT 완료하기", description: "오늘의 QT를 완료하세요", reward: 10 },
   { id: "d2", icon: "📤", title: "QT 공유하기", description: "QT를 친구와 공유하세요", reward: 10 },
-  { id: "d3", icon: "🙏", title: "기도하기", description: "기도에 참여하세요", reward: 5 },
-  { id: "d4", icon: "✅", title: "출석 체크하기", description: "출석을 체크하세요", reward: 10 },
   { id: "d5", icon: "📝", title: "기도제목 남기기", description: "기도제목을 올려보세요", reward: 10 },
   { id: "d6", icon: "💬", title: "댓글 달기", description: "QT 게시글에 댓글을 남기세요", reward: 5 },
-  { id: "d7", icon: "🏆", title: "스페셜 미션 완료", description: "미션을 완료하세요", reward: 20 },
   { id: "d8", icon: "🏠", title: "홈 탭 확인", description: "홈 탭을 확인하세요", reward: 3 },
 ];
 
@@ -412,8 +409,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + reward);
     await db.updateStudentField(student.id, "xp", (student.xp || 0) + reward);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "기도", description: "기도 참여", amount: reward, date: today });
-    await db.completeDailyQuest(student.id, "d3", today, 5, 5);
-    setDailyQuestIds(prev => [...prev, "d3"]);
     refreshAll();
   }, [student, today]);
 

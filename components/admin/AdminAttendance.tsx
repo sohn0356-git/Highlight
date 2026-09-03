@@ -68,17 +68,20 @@ export default function AdminAttendance() {
     }).length;
   };
 
+  const [historyYear, setHistoryYear] = useState(thisYear);
+  const [historyMonth, setHistoryMonth] = useState(new Date().getMonth() + 1);
+
   const historyRecords = useMemo(() => {
     return attendanceRecords.filter(r => {
       const session = attendanceSessions.find(s => s.id === r.sessionId);
       if (!session) return false;
       const d = new Date(session.date + "T00:00:00");
       if (historyMode === "month") {
-        return d.getFullYear() === thisYear && d.getMonth() + 1 === selectedMonth;
+        return d.getFullYear() === historyYear && d.getMonth() + 1 === historyMonth;
       }
-      return d.getFullYear() === thisYear;
+      return d.getFullYear() === historyYear;
     });
-  }, [attendanceRecords, attendanceSessions, historyMode, thisYear, selectedMonth]);
+  }, [attendanceRecords, attendanceSessions, historyMode, historyYear, historyMonth]);
 
   const historySummary = useMemo(() => ({
     present: historyRecords.filter(r => r.state === "present").length,
@@ -207,6 +210,44 @@ export default function AdminAttendance() {
             ))}
           </div>
 
+          <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-3 shadow-sm">
+            <button
+              onClick={() => {
+                if (historyMode === "month") {
+                  setHistoryMonth(m => {
+                    if (m <= 1) { setHistoryYear(y => y - 1); return 12; }
+                    return m - 1;
+                  });
+                } else {
+                  setHistoryYear(y => y - 1);
+                }
+              }}
+              className="rounded-lg p-2 hover:bg-neutral-100"
+              aria-label="이전"
+            >
+              <ChevronLeft size={16} className="text-neutral-500" />
+            </button>
+            <p className="text-sm font-bold text-neutral-700">
+              {historyMode === "month" ? `${historyYear}년 ${historyMonth}월` : `${historyYear}년`}
+            </p>
+            <button
+              onClick={() => {
+                if (historyMode === "month") {
+                  setHistoryMonth(m => {
+                    if (m >= 12) { setHistoryYear(y => y + 1); return 1; }
+                    return m + 1;
+                  });
+                } else {
+                  setHistoryYear(y => y + 1);
+                }
+              }}
+              className="rounded-lg p-2 hover:bg-neutral-100"
+              aria-label="다음"
+            >
+              <ChevronRight size={16} className="text-neutral-500" />
+            </button>
+          </div>
+
           <div className="grid grid-cols-4 gap-2">
             <div className="rounded-xl bg-emerald-50 p-3 text-center">
               <p className="text-lg font-bold text-emerald-600">{historySummary.present}</p>
@@ -229,7 +270,7 @@ export default function AdminAttendance() {
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
             <div className="bg-neutral-50 px-3 py-2 border-b border-neutral-200">
               <p className="text-xs font-bold text-neutral-500">
-                학생별 출석 현황 ({historyMode === "month" ? `${selectedMonth}월` : `${thisYear}년`})
+                {historyMode === "month" ? `${historyYear}년 ${historyMonth}월` : `${historyYear}년`}
               </p>
             </div>
             <div className="divide-y divide-neutral-100">
@@ -240,7 +281,7 @@ export default function AdminAttendance() {
                 </div>
               )}
               {filteredStudents.map(stu => {
-                const count = getStudentCount(stu.id, thisYear, historyMode === "month" ? selectedMonth : undefined);
+                const count = getStudentCount(stu.id, historyYear, historyMode === "month" ? historyMonth : undefined);
                 const stuClass = classes.find((c: any) => c.id === stu.classId);
                 return (
                   <div key={stu.id} className="flex items-center gap-3 px-3 py-2.5">

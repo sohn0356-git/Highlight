@@ -39,7 +39,7 @@ export default function PointToast() {
       fadeTimerRef.current = setTimeout(() => {
         setToast(null);
       }, 500);
-    }, 2500);
+    }, 2000);
     return () => clearTimers();
   }, [toast, clearTimers]);
 
@@ -47,21 +47,21 @@ export default function PointToast() {
   return (
     <div
       key={toast.id}
-      className="pointer-events-none fixed inset-x-0 top-20 z-[9999] flex justify-center"
+      className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center"
       role="status"
       aria-live="polite"
     >
       <div
-        className="pointer-events-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white shadow-lg"
+        className="pointer-events-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold text-white shadow-lg"
         style={{
           background: "linear-gradient(135deg, #f59e0b, #d97706)",
-          boxShadow: "0 4px 15px -3px rgba(245, 158, 11, 0.4)",
+          boxShadow: "0 4px 12px -2px rgba(245, 158, 11, 0.5)",
           opacity: visible ? 1 : 0,
           transition: "opacity 0.4s ease-in-out",
           willChange: "opacity",
         }}
       >
-        <span className="text-sm">✨</span>
+        <span className="text-xs">✨</span>
         <span>{toast.msg}</span>
       </div>
     </div>

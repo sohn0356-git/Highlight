@@ -109,8 +109,26 @@ export default function HomeContent() {
         </Card>
       </section>
 
+      {/* Personal Mileage + Level */}
+      <section className="mt-3 px-5">
+        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-amber-500">내 마일리지 & 레벨</p>
+              <div className="mt-1 flex items-baseline gap-3">
+                <p className="text-xl font-extrabold text-amber-700">{(student.mileage || 0).toLocaleString()}<span className="text-sm font-bold text-amber-400 ml-1">M</span></p>
+                <p className="text-sm font-bold text-indigo-600">LV.{studentLevel.level}</p>
+              </div>
+            </div>
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-lg">
+              💎
+            </div>
+          </div>
+        </Card>
+      </section>
+
       {/* Mileage Card - click to open store */}
-      <section className="mt-4 px-5">
+      <section className="mt-3 px-5">
         <div onClick={() => setStoreOpen(true)} role="button" tabIndex={0} className="cursor-pointer rounded-2xl">
           <Card className="bg-gradient-to-br from-violet-500 to-purple-600 border-0 text-white shadow-lg shadow-purple-200">
             <div className="flex items-center justify-between">
