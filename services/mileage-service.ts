@@ -1,5 +1,6 @@
 "use client";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { fetchStudents as dbFetchStudents, fetchTodayQT as dbFetchTodayQT } from "@/lib/db";
 import { mockData } from "@/lib/data";
 import type {
   Student, ClassRoom, Mission, Badge, PrayerRequest,
@@ -12,24 +13,9 @@ import type {
  * 그렇지 않으면 로컬 mock 데이터(localStorage)로 동작합니다.
  */
 
+// fetchStudents는 db.ts에서 관리합니다.
 export async function fetchStudents(): Promise<Student[]> {
-  const sb = getSupabase();
-  if (sb) {
-    const { data, error } = await sb.from("students").select("*");
-    if (!error && data && data.length) {
-      return data.map((row: any) => ({
-        id: row.id,
-        name: row.name,
-        birthDate: row.birth_date || row.birthDate || "",
-        classId: row.class_id || row.classId || "",
-        mileage: Number(row.mileage) || 0,
-        isTeacher: row.is_teacher || row.isTeacher || false,
-        role: row.role || "student",
-        assignedClassIds: row.assigned_class_ids || row.assignedClassIds || [],
-      })) as Student[];
-    }
-  }
-  return mockData.students;
+  return dbFetchStudents();
 }
 
 export async function fetchClasses(): Promise<ClassRoom[]> {
@@ -142,27 +128,9 @@ export async function addCommentToPost(comment: QTComment) {
 }
 
 /* ── QT 본문 ── */
-export async function fetchTodayQT(): Promise<{ date: string; passage: string; verse: string; content: string; prayer?: string; song?: string; helper?: string; question1?: string; question2?: string } | null> {
-  const today = new Date().toISOString().slice(0, 10);
-  const sb = getSupabase();
-  if (sb) {
-    const { data, error } = await sb.from("qt_today").select("*").eq("date", today).limit(1);
-    if (!error && data && data.length) {
-      const row = data[0] as any;
-      return {
-        date: today,
-        passage: row.passage || "",
-        verse: row.verse || "",
-        content: row.content || "",
-        prayer: row.prayer || "",
-        song: row.song || "",
-        helper: row.helper || "",
-        question1: row.question1 || "",
-        question2: row.question2 || "",
-      };
-    }
-  }
-  return { ...mockData.qt_today, date: today };
+// fetchTodayQT는 db.ts에서 관리합니다.
+export async function fetchTodayQT() {
+  return dbFetchTodayQT();
 }
 
 /* ── 시즌 ── */

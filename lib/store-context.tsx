@@ -4,12 +4,16 @@ import type { Student, MileageTransaction, QTRecord, PrayerRequest, CompletedMis
 import type { Teacher } from "./types";
 import { mockData } from "./data";
 import { showPointToast } from "@/components/PointToast";
+import { koreaDate } from "./korea-date";
 import {
   fetchStudents, fetchClasses, fetchMissions, fetchBadges, fetchPrayers,
-  fetchTodayQT, fetchSeason, fetchSharedGoal, fetchActivities, fetchAnnouncements, fetchTeachers,
+  fetchTodayQT, fetchTransactions, fetchQTRecords, completeQT, fetchAttendanceCount,
+} from "./db";
+import {
+  fetchSeason, fetchSharedGoal, fetchActivities, fetchAnnouncements, fetchTeachers,
   fetchDailyQuests, completeDailyQuestRemote,
   updateQTRecordRemote, deleteQTRecordRemote,
-  fetchTransactions, fetchQTRecords, fetchCompletedMissions,
+  fetchCompletedMissions,
   fetchPrayerParticipants, prayForRemote,
   fetchSharedQTDates, fetchSharedPosts, createSharedPost,
   fetchComments, addCommentToPost,
@@ -200,7 +204,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [txns, setTxns] = useState<MileageTransaction[]>([]);
   const [dailyQuestIds, setDailyQuestIds] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = koreaDate();
     const saved = localStorage.getItem("mileage_daily_quests");
     try {
       if (saved) {
@@ -241,7 +245,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = koreaDate();
     setQtToday(prev => prev.date === today ? prev : { ...prev, date: today });
   }, []);
 
@@ -252,14 +256,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTxns(getTransactions());
     if (isSupabaseReady) {
       (async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = koreaDate();
         try {
           const [q, m, s, sg, a, b, cls, tch, anns] = await Promise.all([
             fetchTodayQT(), fetchMissions(), fetchSeason(), fetchSharedGoal(),
             fetchActivities(), fetchBadges(), fetchClasses(), fetchTeachers(),
             fetchAnnouncements(),
           ]);
-          setQtToday(q || { ...mockData.qt_today, date: new Date().toISOString().slice(0, 10) });
+          setQtToday(q || { ...mockData.qt_today, date: koreaDate() });
           setMissions(m as any);
           setSeason(s);
           setSharedGoal(sg);
@@ -476,7 +480,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setSession(s);
             setStudent(s);
             // Load all student-specific data from DB
-            const today = new Date().toISOString().slice(0, 10);
+            const today = koreaDate();
             const [dbQT, dbMissions, dbTxns, dbPrayers, dbDailyIds, dbSharedPosts, dbSharedDates] = await Promise.all([
               fetchQTRecords(s.id),
               fetchCompletedMissions(s.id),
@@ -584,7 +588,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Daily Quest ── */
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = koreaDate();
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("mileage_daily_quests");
       try {
@@ -604,7 +608,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const completeDailyQuest = useCallback((questId: string) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = koreaDate();
     const quest = dailyQuests.find(q => q.id === questId);
     if (!quest || !student) return;
     setDailyQuestIds(prev => {
@@ -631,41 +635,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [dailyQuests, student]);
 
   // 배지 progress 자동 업데이트
-  const updateBadges = useCallback((sid: string) => {
-    setBadges(prev => prev.map(b => {
-      let progress = b.progress;
-      if (b.id === "b1" || b.id === "b2" || b.id === "b8") {
-        const qtCount = qtRecords.filter(r => r.studentId === sid).length + 1;
-        progress = qtCount;
-      } else if (b.id === "b3") {
-        progress = (progress || 0) + 1;
-      } else if (b.id === "b4" || b.id === "b7") {
-        progress = (progress || 0) + 1;
-      } else if (b.id === "b5") {
-        progress = (progress || 0) + 1;
-      } else if (b.id === "b6") {
-        const s = student;
-        if (s) progress = s.mileage;
-      }
-      return { ...b, progress };
-    }));
-  }, [student, qtRecords]);
+  const updateBadges = useCallback(async (sid: string) => {
+    if (!isSupabaseReady) return;
+    try {
+      const [qtCount, missionCount, prayerPartsCount, attendanceCount] = await Promise.all([
+        fetchQTRecords(sid),
+        fetchCompletedMissions(sid),
+        fetchPrayerParticipants(sid),
+        fetchAttendanceCount(sid),
+      ]);
+      const qtTotal = qtCount.length;
+      const missionsTotal = missionCount.length;
+      const prayersTotal = prayerPartsCount.length;
+      const attendanceTotal = attendanceCount;
+      setBadges(prev => prev.map(b => {
+        let progress = b.progress;
+        if (b.id === "b1" || b.id === "b2") {
+          progress = qtTotal;
+        } else if (b.id === "b8") {
+          progress = qtTotal;
+        } else if (b.id === "b3") {
+          progress = attendanceTotal;
+        } else if (b.id === "b4") {
+          progress = prayersTotal;
+        } else if (b.id === "b5") {
+          progress = missionsTotal;
+        } else if (b.id === "b6") {
+          const s = student;
+          if (s) progress = s.mileage;
+        } else if (b.id === "b7") {
+          progress = prayersTotal;
+        }
+        return { ...b, progress };
+      }));
+    } catch { /* keep current */ }
+  }, [student, isSupabaseReady]);
 
   /* ── QT ── */
   const completeQTHandler = useCallback(async (remembered: string, application: string) => {
     if (!student || qtDoneToday) return;
-    const rec: QTRecord = {
-      id: "qt_" + Date.now(),
-      studentId: student.id,
-      date: new Date().toISOString().slice(0, 10),
-      passage: qtToday.passage,
-      verse: qtToday.verse,
-      remembered,
-      application,
-      reward: 20,
-    };
-    addQTRecord(rec);
-    setQtRecords(prev => [...prev, rec]);
+    const qtDate = koreaDate();
+    // 중복 방지: DB에 먼저 시도, 실패 시(중복) 중단
+    const dbRec = await completeQT(student.id, qtDate, remembered, application, 20);
+    if (!dbRec) return; // duplicate or DB error
+    addQTRecord(dbRec);
+    setQtRecords(prev => [...prev, dbRec]);
     setQtDoneToday(true);
     const tx: MileageTransaction = {
       id: "tx_" + Date.now(),
@@ -673,14 +687,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       type: "QT 완료",
       description: "오늘의 QT 완료",
       amount: 20,
-      date: new Date().toISOString().slice(0, 10),
+      date: qtDate,
     };
     addMileage(student, 20, setStudent, setClasses, setTxns, setAllStudents, tx);
     showPointToast("+20M QT 완료!");
     updateBadges(student.id);
     completeDailyQuest("d1");
-    // DB writes
-    await upsertSupabase("qt_records", rec);
   }, [student, qtDoneToday, qtToday, completeDailyQuest]);
 
   /* QT 기록 수정 */
@@ -726,7 +738,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       type: "미션 완료",
       description: mission.title,
       amount: mission.reward,
-      date: new Date().toISOString().slice(0, 10),
+      date: koreaDate(),
     };
     addMileage(student, mission.reward, setStudent, setClasses, setTxns, setAllStudents, tx);
     // DB writes
@@ -749,7 +761,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       type: "기도 참여",
       description: "친구 기도제목에 함께 기도",
       amount: 5,
-      date: new Date().toISOString().slice(0, 10),
+      date: koreaDate(),
     };
     addMileage(student, 5, setStudent, setClasses, setTxns, setAllStudents, tx);
     showPointToast("+5M 기도 참여!");
@@ -781,7 +793,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await addPrayer(newPrayer);
   }, [student]);
 
-  const todayPrayerCount = prayers.filter(p => p.createdAt?.startsWith(new Date().toISOString().slice(0, 10))).length;
+  const todayPrayerCount = prayers.filter(p => p.createdAt?.startsWith(koreaDate())).length;
 
   const updatePrayerRequest = useCallback(async (prayerId: string, newContent: string) => {
     if (!student) return;
@@ -810,7 +822,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   /* ── SHARED QT ── */
   const shareQT = useCallback((): boolean => {
     if (!student) return false;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = koreaDate();
     if (sharedQTDates.includes(today)) return false;
     const newShared = [...sharedQTDates, today];
     setSharedQTDates(newShared);
@@ -917,16 +929,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       supabaseReady: isSupabaseReady,
       login,
       logout,
-      qtToday: { ...qtToday, date: new Date().toISOString().slice(0, 10) },
+      qtToday: { ...qtToday, date: koreaDate() },
       isQTDoneToday: qtDoneToday,
       qtRecords,
       completeQT: completeQTHandler,
       updateQT,
       deleteQT,
       sharedQTDates,
-      sharedTodayQT: sharedQTDates.includes(new Date().toISOString().slice(0, 10)),
+      sharedTodayQT: sharedQTDates.includes(koreaDate()),
       shareQT,
-      sharedPosts: sharedPosts.filter(p => p.date === new Date().toISOString().slice(0, 10)),
+      sharedPosts: sharedPosts.filter(p => p.date === koreaDate()),
       addComment,
       fetchPostComments,
       missions,
