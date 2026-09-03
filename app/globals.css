@@ -87,7 +87,13 @@ html, body, body > div, body > main {
   }
 }
 
+
 @keyframes toastIn {
   0% { opacity: 0; transform: translateY(-16px) scale(0.95); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-20px) scale(0.9); }
 }
