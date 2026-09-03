@@ -985,42 +985,94 @@ export async function fetchStudentBadgesWithProgress(studentId: string) {
   const s = sb();
   if (!s) return [];
 
-  // Get all active badges
-  const { data: badges } = await s.from("badges").select("*").eq("active", true).order("display_order");
-  if (!badges) return [];
+  try {
+    // Get all active badges
+    const { data: badgesData } = await s.from("badges").select("*").order("display_order");
+    let badges = (badgesData || []).filter((b: any) => b.active !== false);
+    if (!badges.length) return [];
 
-  // Get all badge levels
-  const { data: allLevels } = await s.from("badge_levels").select("*").order("badge_id").order("level");
-  const levelsByBadge: Record<string, any[]> = {};
-  if (allLevels) {
-    allLevels.forEach((l: any) => {
-      if (!levelsByBadge[l.badge_id]) levelsByBadge[l.badge_id] = [];
-      levelsByBadge[l.badge_id].push({
-        level: l.level, threshold: l.threshold,
-        title: l.title || "", description: l.description || "",
-        rewardMileage: l.reward_mileage || 0, rewardXp: l.reward_xp || 0,
+    // Try to get badge levels from badge_levels table (may not exist)
+    let allLevels: any[] = [];
+    const { data: levelData } = await s.from("badge_levels").select("*");
+    if (levelData && levelData.length) allLevels = levelData;
+
+    const levelsByBadge: Record<string, any[]> = {};
+    if (allLevels.length) {
+      allLevels.forEach((l: any) => {
+        if (!levelsByBadge[l.badge_id]) levelsByBadge[l.badge_id] = [];
+        levelsByBadge[l.badge_id].push({
+          level: l.level, threshold: l.threshold,
+          title: l.title || "", description: l.description || "",
+          rewardMileage: l.reward_mileage || 0, rewardXp: l.reward_xp || 0,
+        });
       });
-    });
-  }
+    }
 
-  // Get student badge progress
-  const { data: studentProgress } = await s.from("student_badge_progress").select("*").eq("student_id", studentId);
-  const progressMap: Record<string, any> = {};
-  if (studentProgress) {
-    studentProgress.forEach((p: any) => {
-      progressMap[p.badge_id] = { currentLevel: p.current_level || 0, currentProgress: p.current_progress || 0 };
-    });
-  }
+    // Calculate actual progress from activity records for each badge
+    const dbClient = s;
+    if (!dbClient) return [];
 
-  return badges.map((b: any) => {
-    const levels = levelsByBadge[b.id] || [];
-    const progress = progressMap[b.id] || { currentLevel: 0, currentProgress: 0 };
-    return {
-      id: b.id, icon: b.icon || "🏅", name: b.name, description: b.description || "",
-      progress: progress.currentProgress, currentLevel: progress.currentLevel,
-      levels,
-    };
-  });
+    async function calcProgress(badge: any): Promise<number> {
+      const type = (badge.id || "").toString();
+      // Mapping by badge id
+      if (type === "b1") { // QT count
+        const { data } = await dbClient.from("qt_records").select("id").eq("student_id", studentId);
+        return data?.length || 0;
+      }
+      if (type === "b2") { // Attendance count
+        const { data } = await dbClient.from("attendance_records").select("id, state").eq("student_id", studentId);
+        return data?.filter((r: any) => r.state === "present" || r.state === "late" || r.state === "online").length || 0;
+      }
+      if (type === "b3") { // Prayer count
+        const { data } = await dbClient.from("prayer_participants").select("id").eq("student_id", studentId);
+        return data?.length || 0;
+      }
+      if (type === "b4") { // Mission count
+        const { data } = await dbClient.from("completed_missions").select("id").eq("student_id", studentId);
+        return data?.length || 0;
+      }
+      if (type === "b5") { // Mileage total
+        const { data } = await dbClient.from("students").select("mileage").eq("id", studentId).single();
+        return Number(data?.mileage) || 0;
+      }
+      if (type === "b6") { // XP total
+        const { data } = await dbClient.from("students").select("xp").eq("id", studentId).single();
+        return Number(data?.xp) || 0;
+      }
+      return 0;
+    }
+
+    const result: any[] = [];
+    for (const b of badges) {
+      let levels = levelsByBadge[b.id] || [];
+      
+      // Fallback: build levels from badge.level_thresholds array
+      if (levels.length === 0 && b.level_thresholds && Array.isArray(b.level_thresholds)) {
+        const titles = ["입문", "수련", "전문", "달인", "마스터"];
+        levels = b.level_thresholds.map((t: number, i: number) => ({
+          level: i + 1, threshold: t,
+          title: `${b.name} Lv.${i + 1}`, 
+          description: `${b.name} ${t}회 달성`,
+          rewardMileage: (i + 1) * 10, rewardXp: (i + 1) * 10,
+        }));
+      }
+
+      const progress = await calcProgress(b);
+      
+      // Compute current level from progress vs thresholds
+      let currentLevel = 0;
+      for (const lvl of levels) {
+        if (progress >= lvl.threshold) currentLevel = lvl.level;
+      }
+      currentLevel = Math.min(currentLevel, levels.length);
+
+      result.push({
+        id: b.id, icon: b.icon || "🏅", name: b.name || "", description: b.description || "",
+        progress, currentLevel, levels,
+      });
+    }
+    return result;
+  } catch { return []; }
 }
 
 /* ── Recalculate all badge progress for a student ── */
