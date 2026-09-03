@@ -2,13 +2,14 @@
 import { useState } from "react";
 import { TrendingUp, Trophy } from "lucide-react";
 import type { SchoolClass } from "@/lib/types";
+import { getStudentLevel } from "@/lib/db";
 
 type RankTab = "class" | "personal";
 
 export default function ClassRankingCard({ classes, myClassId, students, myStudentId }: {
   classes: SchoolClass[];
   myClassId: string;
-  students?: { id: string; name: string; classId: string; mileage: number }[];
+  students?: { id: string; name: string; classId: string; mileage: number; xp?: number }[];
   myStudentId?: string;
 }) {
   const [tab, setTab] = useState<RankTab>("class");
@@ -17,7 +18,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
   const top = sorted[0];
 
   const sortedStudents = students
-    ? [...students].sort((a, b) => b.mileage - a.mileage).slice(0, 10)
+    ? [...students].sort((a, b) => (b.xp || b.mileage) - (a.xp || a.mileage)).slice(0, 10)
     : [];
   const topStudent = sortedStudents[0];
 
@@ -90,13 +91,15 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
               );
             })}
           </div>
-          <div className="mt-4 flex items-center gap-2 rounded-xl bg-orange-50 px-3.5 py-3">
-            <TrendingUp size={16} className="text-orange-500" />
-            <p className="text-sm text-orange-700">
-              <span className="font-bold">🔥 이번 주 가장 많이 성장한 반</span>{" "}
-              {top.name} +{top.weeklyXp.toLocaleString()} XP
-            </p>
-          </div>
+          {top && (
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-orange-50 px-3.5 py-3">
+              <TrendingUp size={16} className="text-orange-500" />
+              <p className="text-sm text-orange-700">
+                <span className="font-bold">🔥 이번 주 가장 많이 성장한 반</span>{" "}
+                {top.name} +{top.weeklyXp.toLocaleString()} XP
+              </p>
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -106,9 +109,11 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
             )}
             {sortedStudents.map((s, i) => {
               const isMine = s.id === myStudentId;
-              const pct = topStudent && topStudent.mileage > 0 ? (s.mileage / topStudent.mileage) * 100 : 0;
+              const sXp = s.xp || s.mileage;
+              const pct = topStudent && (topStudent.xp || topStudent.mileage) > 0 ? (sXp / (topStudent.xp || topStudent.mileage)) * 100 : 0;
               const medal = getMedal(i);
               const rs = getRankStyle(i, isMine);
+              const level = getStudentLevel(s.xp || 0);
 
               return (
                 <div key={s.id} className={`rounded-xl px-3.5 py-2.5 ${isMine ? "bg-indigo-50 ring-1 ring-indigo-200" : rs.glow || "bg-neutral-50"} ${i === 2 ? "shadow-sm" : ""}`}>
@@ -121,12 +126,14 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
                         {s.name} {isMine && <span className="ml-1 rounded-full bg-indigo-500 px-1.5 py-0.5 text-[10px] font-bold text-white">나</span>}
                       </span>
                     </div>
-                    <span className={`text-sm font-bold ${isMine ? "text-indigo-700" : "text-neutral-700"}`}>{s.mileage.toLocaleString()}M</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-indigo-500">LV.{level.level}</span>
+                      <span className={`text-sm font-bold ${isMine ? "text-indigo-700" : "text-neutral-700"}`}>{sXp.toLocaleString()} XP</span>
+                    </div>
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/80">
                     <div className={`h-full rounded-full ${rs.bar}`} style={{ width: `${pct}%` }} />
                   </div>
-
                 </div>
               );
             })}

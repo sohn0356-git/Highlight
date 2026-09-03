@@ -5,6 +5,7 @@ import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
 import StatCard from "@/components/StatCard";
 import { useApp, useViewMode } from "@/lib/store-context";
+import { getStudentLevel, getClassLevel, getNextLevelXp } from "@/lib/db";
 
 export default function MyContent() {
   const { student, isLoggedIn, classes, logout } = useApp();
@@ -13,7 +14,11 @@ export default function MyContent() {
 
   const isAdmin = student.role === "teacher" || student.role === "admin" || student.isTeacher;
   const myClass = classes.find((c: any) => c.id === student.classId) as any;
-  const nextLevelXp = 15000;
+
+  const studentLevel = getStudentLevel(student.xp || 0);
+  const studentNextXp = getNextLevelXp(studentLevel.level, false);
+  const classLevel = getClassLevel(myClass?.xp || 0);
+  const classNextXp = getNextLevelXp(classLevel.level, true);
 
   return (
     <div>
@@ -21,22 +26,52 @@ export default function MyContent() {
         <PageHeader title="우리 반" showBack subtitle="서로를 위해, 함께 걸어요" right={<Users size={18} className="text-indigo-400" />} />
       </div>
 
+      {/* Student XP & Level Card */}
+      <section className="mt-3 px-5">
+        <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 border-0 text-white shadow-lg shadow-indigo-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-indigo-200">내 레벨</p>
+              <p className="mt-1 text-2xl font-extrabold">LV.{studentLevel.level}</p>
+              <p className="mt-0.5 text-xs text-indigo-200">총 {(student.xp || 0).toLocaleString()} XP</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-extrabold">{(student.mileage || 0).toLocaleString()}<span className="text-sm font-bold text-indigo-200 ml-1">M</span></p>
+              <p className="text-xs text-indigo-200">내 마일리지</p>
+            </div>
+          </div>
+          {studentNextXp < Infinity && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[11px] text-indigo-200">
+                <span>LV.{studentLevel.level}</span>
+                <span>LV.{studentLevel.level + 1}</span>
+              </div>
+              <ProgressBar value={student.xp || 0} max={studentNextXp} className="bg-white/20" barClassName="bg-white" />
+              <p className="mt-1 text-[10px] text-indigo-200 text-right">{studentNextXp - (student.xp || 0)} XP 남음</p>
+            </div>
+          )}
+        </Card>
+      </section>
+
       {myClass && (
         <section className="mt-3 px-5">
           <Card className="bg-gradient-to-br from-amber-400 to-orange-400 border-0 text-white shadow-lg shadow-amber-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-extrabold">{myClass.name}</p>
-                <p className="mt-1 text-sm text-amber-50">LV.{myClass.level ?? 1}</p>
+                <p className="mt-1 text-sm text-amber-50">LV.{classLevel.level}</p>
               </div>
               <div className="text-right">
                 <p className="text-lg font-extrabold">{(myClass.xp ?? 0).toLocaleString()} XP</p>
                 <p className="text-xs text-amber-50">다음 레벨까지</p>
               </div>
             </div>
-            <div className="mt-4">
-              <ProgressBar value={myClass.xp ?? 0} max={nextLevelXp} className="bg-white/30" barClassName="bg-white" />
-            </div>
+            {classNextXp < Infinity && (
+              <div className="mt-4">
+                <ProgressBar value={myClass.xp ?? 0} max={classNextXp} className="bg-white/30" barClassName="bg-white" />
+                <p className="mt-1 text-[10px] text-amber-100 text-right">{classNextXp - (myClass.xp || 0)} XP 남음</p>
+              </div>
+            )}
           </Card>
         </section>
       )}
@@ -66,7 +101,7 @@ export default function MyContent() {
           <span className="text-sm">👤</span>
           <div>
             <p className="text-sm font-bold text-neutral-800">{student.name}</p>
-            <p className="text-[11px] text-neutral-400">{student.classId}</p>
+            <p className="text-[11px] text-neutral-400">{myClass?.name || student.classId}</p>
           </div>
         </div>
       </section>

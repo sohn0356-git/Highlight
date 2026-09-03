@@ -7,17 +7,16 @@ import ProgressBar from "@/components/ProgressBar";
 import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
+import { getStudentLevel, getNextLevelXp } from "@/lib/db";
 
 export default function HomeContent() {
   const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
 
-  // 홈탭 열릴 때 최신 공지(활동) 갱신
   useEffect(() => {
     refreshActivities();
   }, [refreshActivities]);
 
-  // 홈 확인 일일 퀘스트 자동 달성
   useEffect(() => {
     if (isLoggedIn && !dailyQuestIds.includes("d5")) {
       completeDailyQuest("d5");
@@ -26,6 +25,8 @@ export default function HomeContent() {
 
   if (!student || !isLoggedIn) return null;
   const myClass = classes.find(c => c.id === student.classId);
+  const studentLevel = getStudentLevel(student.xp || 0);
+  const nextXp = getNextLevelXp(studentLevel.level, false);
 
   return (
     <div>
@@ -50,31 +51,42 @@ export default function HomeContent() {
         />
       </div>
 
+      {/* Class + Student Level Card */}
       <section className="mt-2 px-5">
         <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 border-0 text-white shadow-lg shadow-indigo-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-lg font-extrabold">{myClass?.name}</p>
               <p className="mt-0.5 text-sm text-indigo-100">
-                현재 {myClass?.xp.toLocaleString()} XP
+                XP {myClass?.xp.toLocaleString()}
               </p>
               <p className="mt-0.5 text-sm font-semibold text-amber-200">
                 이번 주 +{myClass?.weeklyXp.toLocaleString()} XP
               </p>
             </div>
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/20 text-2xl">
-              <Flame className="text-amber-300" size={26} />
+            <div className="text-right">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/20">
+                <Flame className="text-amber-300" size={26} />
+              </div>
+              <p className="mt-1 text-[10px] text-indigo-200">내 LV.{studentLevel.level}</p>
             </div>
           </div>
+          {nextXp < Infinity && (
+            <div className="mt-3">
+              <ProgressBar value={student.xp || 0} max={nextXp} className="bg-white/20" barClassName="bg-white" />
+              <p className="mt-1 text-[10px] text-indigo-200 text-right">다음 레벨까지 {nextXp - (student.xp || 0)} XP</p>
+            </div>
+          )}
         </Card>
       </section>
 
+      {/* Mileage Card */}
       <section className="mt-4 px-5">
         <Card className="bg-gradient-to-br from-violet-500 to-purple-600 border-0 text-white shadow-lg shadow-purple-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-bold text-purple-200">내 마일리지</p>
-              <p className="mt-1 text-2xl font-extrabold">{student.mileage.toLocaleString()}<span className="text-base font-bold text-purple-200 ml-1">M</span></p>
+              <p className="mt-1 text-2xl font-extrabold">{(student.mileage || 0).toLocaleString()}<span className="text-base font-bold text-purple-200 ml-1">M</span></p>
             </div>
             <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/20 text-2xl">
               <span>💎</span>
