@@ -110,10 +110,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       try {
         // Students
         const sData = await db.fetchStudents();
-        if (sData.length) setStudents(sData.map((s: any) => ({
-          id: s.id, name: s.name, birthDate: s.birthDate, classId: s.classId,
-          mileage: s.mileage, role: "student" as "student", active: s.active !== false,
+        setStudents(sData.map((s: any) => ({
+          id: s.id, name: s.name, birthDate: s.birthDate || "", classId: s.classId || "",
+          mileage: s.mileage || 0, xp: s.xp || 0, grade: s.grade || 1,
+          role: (s.role || "student") as "student" | "teacher" | "admin",
+          active: s.active !== false,
           phone: s.phone || "", guardianPhone: s.guardianPhone || "", memo: s.memo || "",
+          enrollmentStatus: s.enrollmentStatus || "active",
         })));
 
         // Teachers
@@ -138,10 +141,15 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         })));
 
         // QT contents
-        const qtData = await db.fetchAllMissions ? await (async () => {
-          const { data } = await (await import("./supabase")).getSupabase()?.from("qt_today").select("*").order("date", { ascending: false }) || { data: [] };
-          return data || [];
-        })() : [];
+        let qtData: any[] = [];
+        try {
+          const { getSupabase } = await import("./supabase");
+          const sb = getSupabase();
+          if (sb) {
+            const { data } = await sb.from("qt_today").select("*").order("date", { ascending: false });
+            qtData = data || [];
+          }
+        } catch {}
         if (qtData.length) setQTContents(qtData.map((r: any) => ({
           id: r.id || `qt_${r.date}`, date: r.date, title: r.title || "",
           passage: r.passage || "", verse: r.verse || "", content: r.content || "",
@@ -162,11 +170,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         })));
 
         // Mission completions
-        const cmData = await db.fetchCompletedMissions();
-        if (cmData.length) setMissionCompletions(cmData.map((c: any) => ({
-          id: c.id, missionId: c.mission_id, studentId: c.student_id,
-          status: c.status || "pending", completedAt: c.completed_at || "",
-        })));
+        try {
+          const cmData = await db.fetchCompletedMissions();
+          setMissionCompletions(cmData.map((c: any) => ({
+            id: c.id, missionId: c.mission_id, studentId: c.student_id,
+            status: c.status || "approved", completedAt: c.completed_at || "",
+          })));
+        } catch {}
 
         // Prayers
         const prData = await db.fetchPrayers();
@@ -188,16 +198,19 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         })));
 
         // Rewards
-        const rwData = await db.fetchAllRewards();
-        if (rwData.length) setRewards(rwData.map((r: any) => ({
-          id: r.id, name: r.name, description: r.description || "",
-          mileageCost: r.mileage_cost || 0, inventory: r.inventory || 0,
-          active: r.active !== false, redemptionLimit: r.redemption_limit || 1,
-          category: r.category || "",
-        })));
+        try {
+          const rwData = await db.fetchAllRewards();
+          setRewards(rwData.map((r: any) => ({
+            id: r.id, name: r.name, description: r.description || "",
+            mileageCost: r.mileage_cost || 0, inventory: r.inventory || 0,
+            active: r.active !== false, redemptionLimit: r.redemption_limit || 1,
+            category: r.category || "",
+          })));
+        } catch {}
 
         // Redemptions
-        const rdData = await db.fetchRedemptions();
+        let rdData: any[] = [];
+        try { rdData = await db.fetchRedemptions(); } catch {}
         if (rdData.length) setRedemptions(rdData.map((r: any) => ({
           id: r.id, studentId: r.student_id, studentName: r.student_name || "",
           rewardId: r.reward_id, rewardName: r.reward_name || "",
@@ -232,7 +245,8 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         if (txData.length) setAllTx(txData);
 
         // Audit logs
-        const alData = await db.fetchAuditLogs();
+        let alData: any[] = [];
+        try { alData = await db.fetchAuditLogs(); } catch {}
         if (alData.length) setAuditLogs(alData);
       } catch (e) { console.error("Admin data load error:", e); }
     })();

@@ -23,7 +23,6 @@ export default function PointToast() {
       clearTimers();
       setVisible(false);
       setToast({ msg, id: Date.now() });
-      // Fade in on next frame
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setVisible(true);
@@ -39,8 +38,8 @@ export default function PointToast() {
       setVisible(false);
       fadeTimerRef.current = setTimeout(() => {
         setToast(null);
-      }, 400);
-    }, 2000);
+      }, 500);
+    }, 2500);
     return () => clearTimers();
   }, [toast, clearTimers]);
 
@@ -53,16 +52,16 @@ export default function PointToast() {
       aria-live="polite"
     >
       <div
-        className="pointer-events-auto flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-lg"
+        className="pointer-events-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white shadow-lg"
         style={{
           background: "linear-gradient(135deg, #f59e0b, #d97706)",
-          boxShadow: "0 8px 25px -5px rgba(245, 158, 11, 0.4), 0 4px 10px -5px rgba(245, 158, 11, 0.2)",
+          boxShadow: "0 4px 15px -3px rgba(245, 158, 11, 0.4)",
           opacity: visible ? 1 : 0,
-          transition: "opacity 0.35s ease-in-out",
+          transition: "opacity 0.4s ease-in-out",
           willChange: "opacity",
         }}
       >
-        <span className="text-base">✨</span>
+        <span className="text-sm">✨</span>
         <span>{toast.msg}</span>
       </div>
     </div>

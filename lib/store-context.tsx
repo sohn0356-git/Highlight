@@ -60,7 +60,8 @@ export function useApp() { const ctx = useContext(Ctx); if (!ctx) throw new Erro
 /* ── Daily Quest Definitions ── */
 /* ── Admin check ── */
 function isAdminUser(s: Student | null): boolean {
-  return s?.role === "admin" || s?.role === "teacher" || !!s?.isTeacher;
+  if (!s) return false;
+  return s.role === "admin" || s.role === "teacher" || !!s.isTeacher;
 }
 
 /* ── Daily Quest Definitions ── */
@@ -117,12 +118,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshAll = useCallback(async () => {
     if (!isSupabaseReady || !student) return;
     try {
-      const [q, m, cls, tch, b, sg, a, an, pr, qr] = await Promise.all([
-        db.fetchTodayQT(), db.fetchMissions(), db.fetchClasses(),
-        db.fetchTeachers(), db.fetchBadges(), db.fetchSharedGoal(),
-        db.fetchActivities(), db.fetchAnnouncements(),
-        db.fetchPrayers(), db.fetchQTRecords(student.id),
+      const safe = async (fn: () => Promise<any>): Promise<any> => {
+        try { return await fn(); } catch { return []; }
+      };
+      const results = await Promise.all([
+        safe(() => db.fetchTodayQT()),
+        safe(() => db.fetchMissions()),
+        safe(() => db.fetchClasses()),
+        safe(() => db.fetchTeachers()),
+        safe(() => db.fetchBadges()),
+        safe(() => db.fetchSharedGoal()),
+        safe(() => db.fetchActivities()),
+        safe(() => db.fetchAnnouncements()),
+        safe(() => db.fetchPrayers()),
+        safe(() => db.fetchQTRecords(student.id)),
       ]);
+      const [q, m, cls, tch, b, sg, a, an, pr, qr] = results as any[];
       setQtToday(q || { date: today, passage: "", verse: "", content: "" });
       setMissions(m as any[]);
       setClasses(cls);
@@ -226,14 +237,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (name: string, birthDate: string): Promise<boolean> => {
     if (!isSupabaseReady) return false;
     try {
+      // Check teachers table first (for admin/teacher accounts)
+      const teachers = await db.fetchTeachers();
+      const foundTeacher = teachers.find((t: any) => t.name === name);
+      if (foundTeacher) {
+        const isAdmin = foundTeacher.role === "admin";
+        const sess: Student = {
+          id: foundTeacher.id, name: foundTeacher.name,
+          birthDate: foundTeacher.birthDate || birthDate,
+          classId: "", grade: 0, className: "",
+          mileage: 0, xp: 0, weeklyXp: 0,
+          isTeacher: true, role: foundTeacher.role || "teacher",
+          assignedClassIds: foundTeacher.assignedClassIds || [],
+          phone: "", guardianPhone: "", memo: "",
+          active: foundTeacher.active !== false,
+          enrollmentStatus: "active",
+        };
+        setStudent(sess);
+        localStorage.setItem("mileage_session", JSON.stringify(sess));
+        if (isAdmin) {
+          setMode("admin");
+          localStorage.setItem("app_view_mode", "admin");
+        }
+        return true;
+      }
+
+      // Check students table
       const students = await db.fetchStudents();
-      const found = students.find((s: any) => s.name === name && s.birthDate === birthDate && s.active !== false);
+      const found = students.find((s: any) => {
+        if (s.name !== name) return false;
+        if (s.birthDate && birthDate && s.birthDate === birthDate) return true;
+        if (!s.birthDate || s.birthDate === "2010-01-01") return s.name === name;
+        return false;
+      });
       if (!found) return false;
       setStudent(found as Student);
       localStorage.setItem("mileage_session", JSON.stringify(found));
       return true;
     } catch { return false; }
-  }, []);
+  }, [setMode]);
 
   /* ── Logout ── */
   const logout = useCallback(() => {

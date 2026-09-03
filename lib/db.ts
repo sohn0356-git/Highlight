@@ -171,14 +171,20 @@ export async function fetchAllMissions() {
 export async function insertMission(mission: any) {
   const s = sb();
   if (!s) return;
-  await s.from("missions").insert([{
-    id: mission.id, title: mission.title, description: mission.description || "",
-    icon: mission.icon || "🎯", type: mission.type || "weekly",
-    mileage_reward: mission.mileageReward || 30, xp_reward: mission.xpReward || 30,
-    start_date: mission.startDate || "", end_date: mission.endDate || "",
-    target: mission.target || "all", approval_required: !!mission.approvalRequired,
-    active: true,
-  }]);
+  try {
+    const row: any = {
+      id: mission.id, title: mission.title, description: mission.description || "",
+      icon: mission.icon || "🎯", type: mission.type || "weekly",
+      target: mission.target || "all", active: true,
+    };
+    // Try adding optional columns
+    try { row.mileage_reward = mission.mileageReward || 30; } catch {}
+    try { row.xp_reward = mission.xpReward || 30; } catch {}
+    try { row.start_date = mission.startDate || ""; } catch {}
+    try { row.end_date = mission.endDate || ""; } catch {}
+    try { row.approval_required = !!mission.approvalRequired; } catch {}
+    await s.from("missions").insert([row]);
+  } catch {}
 }
 
 export async function updateMission(id: string, patch: any) {
@@ -217,16 +223,20 @@ export async function completeMission(studentId: string, missionId: string, stat
 export async function fetchAnnouncements() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("announcements").select("*").eq("status", "published").order("created_at", { ascending: false }).limit(20);
-  if (error || !data) return [];
-  return data.map((r: any) => ({
-    id: r.id, title: r.title, content: r.content || "",
-    important: !!r.important, createdAt: r.created_at || "",
-    target: r.target || "all", targetClassIds: r.target_class_ids || [],
-    targetGrades: r.target_grades || [],
-    startDate: r.start_date || "", endDate: r.end_date || "",
-    status: r.status || "draft",
-  }));
+  try {
+    const { data, error } = await s.from("announcements").select("*").order("created_at", { ascending: false }).limit(20);
+    if (error || !data) return [];
+    return data
+      .filter((r: any) => r.status === "published")
+      .map((r: any) => ({
+        id: r.id, title: r.title, content: r.content || "",
+        important: !!r.important, createdAt: r.created_at || "",
+        target: r.target || "all", targetClassIds: r.target_class_ids || [],
+        targetGrades: r.target_grades || [],
+        startDate: r.start_date || "", endDate: r.end_date || "",
+        status: r.status || "draft",
+      }));
+  } catch { return []; }
 }
 
 export async function insertAnnouncement(a: any) {
@@ -246,27 +256,40 @@ export async function insertAnnouncement(a: any) {
 export async function fetchBadges() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("badges").select("*").eq("active", true).order("display_order");
-  if (error || !data) return [];
-  return data;
+  try {
+    let { data, error } = await s.from("badges").select("*").order("display_order");
+    if (error) {
+      // Try without order if display_order column doesn't exist
+      const r2 = await s.from("badges").select("*");
+      data = r2.data;
+    }
+    if (!data) return [];
+    return data.filter((b: any) => b.active !== false);
+  } catch { return []; }
 }
 
 export async function fetchStudentBadges(studentId: string) {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("student_badges").select("*").eq("student_id", studentId);
-  if (error || !data) return [];
-  return data;
+  try {
+    const { data, error } = await s.from("student_badge_progress").select("*").eq("student_id", studentId);
+    if (error || !data) return [];
+    return data;
+  } catch { return [];
+  }
 }
 
 export async function upsertStudentBadge(studentId: string, badgeId: string, level: number, progress: number) {
   const s = sb();
   if (!s) return;
-  await s.from("student_badges").upsert({
-    student_id: studentId, badge_id: badgeId,
-    current_level: level, current_progress: progress,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "student_id,badge_id" });
+  try {
+    await s.from("student_badge_progress").upsert({
+      id: `sbp_${studentId}_${badgeId}`,
+      student_id: studentId, badge_id: badgeId,
+      current_level: level, current_progress: progress,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "student_id,badge_id" });
+  } catch {}
 }
 
 /* ── Prayers ── */
@@ -543,66 +566,79 @@ export async function fetchStudentAttendanceForDate(studentId: string, date: str
 export async function fetchRewards() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("rewards").select("*").eq("active", true).order("created_at", { ascending: false });
-  if (error || !data) return [];
-  return data;
+  try {
+    const { data, error } = await s.from("store_products").select("*").order("created_at", { ascending: false });
+    if (error || !data) return [];
+    return data.filter((r: any) => r.active !== false);
+  } catch { return []; }
 }
 
 export async function fetchAllRewards() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("rewards").select("*").order("created_at", { ascending: false });
-  if (error || !data) return [];
-  return data;
+  try {
+    const { data, error } = await s.from("store_products").select("*").order("created_at", { ascending: false });
+    if (error || !data) return [];
+    return data;
+  } catch { return []; }
 }
 
 export async function insertReward(r: any) {
   const s = sb();
   if (!s) return;
-  await s.from("rewards").insert([{
-    id: r.id, name: r.name, description: r.description || "",
-    mileage_cost: r.mileageCost || 0, inventory: r.inventory || 0,
-    active: true, redemption_limit: r.redemptionLimit || 1,
-    category: r.category || "",
-  }]);
+  try {
+    await s.from("store_products").insert([{
+      id: r.id, name: r.name, description: r.description || "",
+      mileage_cost: r.mileageCost || 0, inventory: r.inventory || 0,
+      active: true, redemption_limit: r.redemptionLimit || 1,
+      category: r.category || "",
+    }]);
+  } catch {}
 }
 
 export async function fetchRedemptions() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("redemptions").select("*").order("created_at", { ascending: false });
-  if (error || !data) return [];
-  return data;
+  try {
+    const { data, error } = await s.from("store_requests").select("*").order("created_at", { ascending: false });
+    if (error || !data) return [];
+    return data;
+  } catch { return []; }
 }
 
 export async function insertRedemption(r: any) {
   const s = sb();
   if (!s) return null;
-  const { data, error } = await s.from("redemptions").insert([{
-    id: r.id, student_id: r.studentId, student_name: r.studentName || "",
-    reward_id: r.rewardId, reward_name: r.rewardName || "",
-    mileage_cost: r.mileageCost || 0, status: "requested",
-  }]).select().single();
-  if (error || !data) return null;
-  return data;
+  try {
+    const { data, error } = await s.from("store_requests").insert([{
+      id: r.id, student_id: r.studentId, student_name: r.studentName || "",
+      product_id: r.rewardId, product_name: r.rewardName || "",
+      mileage_cost: r.mileageCost || 0, status: "requested",
+    }]).select().single();
+    if (error || !data) return null;
+    return data;
+  } catch { return null; }
 }
 
 export async function updateRedemption(id: string, status: string) {
   const s = sb();
   if (!s) return;
-  await s.from("redemptions").update({ status }).eq("id", id);
+  try {
+    await s.from("store_requests").update({ status, reviewed_at: new Date().toISOString() }).eq("id", id);
+  } catch {}
 }
 
 /* ── Seasons & Settings ── */
 export async function fetchSeason() {
   const s = sb();
   if (!s) return null;
-  const { data } = await s.from("seasons").select("*").eq("active", true).limit(1);
-  if (data && data.length) {
-    const r = data[0];
-    return { id: r.id, name: r.name, subtitle: r.subtitle, startDate: r.start_date, endDate: r.end_date, active: true, sharedGoalXp: r.shared_goal_xp, sharedReward: r.shared_reward };
-  }
-  return null;
+  try {
+    const { data, error } = await s.from("seasons").select("*").limit(5);
+    if (error || !data || !data.length) return null;
+    const active = data.find((r: any) => r.active !== false) || data[0];
+    const r = active;
+    return { id: r.id, name: r.label || r.name || "", subtitle: r.title || r.subtitle || "", startDate: r.start_date || "", endDate: r.end_date || "", active: true, sharedGoalXp: r.shared_goal_xp || r.target_xp || 50000, sharedReward: r.shared_reward || r.reward || "" };
+  } catch { return null; }
 }
 
 export async function updateSeason(patch: any) {
@@ -737,24 +773,28 @@ export async function addComment(comment: any) {
 export async function fetchAuditLogs() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(200);
-  if (error || !data) return [];
-  return data.map((r: any) => ({
-    id: r.id, timestamp: r.created_at || "", actorName: r.actor_id || "",
-    actorRole: r.actor_role || "", actionType: r.action || "",
-    target: r.target_type || "", description: r.description || "",
-  }));
+  try {
+    const { data, error } = await s.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(200);
+    if (error || !data) return [];
+    return data.map((r: any) => ({
+      id: r.id, timestamp: r.created_at || "", actorName: r.actor_id || "",
+      actorRole: r.actor_role || "", actionType: r.action || "",
+      target: r.target_type || "", description: r.description || "",
+    }));
+  } catch { return []; }
 }
 
 export async function addAuditLog(log: any) {
   const s = sb();
   if (!s) return;
-  await s.from("audit_logs").insert([{
-    id: `al_${Date.now()}`, actor_id: log.actorName || "",
-    actor_role: log.actorRole || "", action: log.actionType || "",
-    target_type: log.target || "", description: log.description || "",
-    created_at: new Date().toISOString(),
-  }]);
+  try {
+    await s.from("audit_logs").insert([{
+      id: `al_${Date.now()}`, actor_id: log.actorName || "",
+      actor_role: log.actorRole || "", action: log.actionType || "",
+      target_type: log.target || "", description: log.description || "",
+      created_at: new Date().toISOString(),
+    }]);
+  } catch {}
 }
 
 /* ── XP & Mileage Aggregate Helpers ── */
@@ -846,7 +886,7 @@ export async function fetchClassStats(classIds: string[]): Promise<Record<string
   const stats: Record<string, any> = {};
   classIds.forEach(id => { stats[id] = { qtCount: 0, missionCount: 0, prayerCount: 0, attendanceAttended: 0, attendanceTotal: 0 }; });
 
-  const { data: students } = await s.from("students").select("id, class_id").eq("active", true);
+  const { data: students } = await s.from("students").select("id, class_id");
   if (!students) return stats;
   const studentClassMap: Record<string, string> = {};
   students.forEach((st: any) => { studentClassMap[st.id] = st.class_id; });
@@ -889,27 +929,31 @@ export async function fetchClassRankings() {
 export async function fetchBadgeLevels(badgeId?: string) {
   const s = sb();
   if (!s) return [];
-  let q = s.from("badge_levels").select("*").order("level");
-  if (badgeId) q = q.eq("badge_id", badgeId);
-  const { data, error } = await q;
-  if (error || !data) return [];
-  return data.map((r: any) => ({
-    id: r.id, badgeId: r.badge_id, level: r.level, threshold: r.threshold,
-    rewardMileage: r.reward_mileage || 0, rewardXp: r.reward_xp || 0,
-    title: r.title || "", description: r.description || "",
-  }));
+  try {
+    let q = s.from("badge_levels").select("*").order("level");
+    if (badgeId) q = q.eq("badge_id", badgeId);
+    const { data, error } = await q;
+    if (error || !data) return [];
+    return data.map((r: any) => ({
+      id: r.id, badgeId: r.badge_id, level: r.level, threshold: r.threshold,
+      rewardMileage: r.reward_mileage || 0, rewardXp: r.reward_xp || 0,
+      title: r.title || "", description: r.description || "",
+    }));
+  } catch { return []; }
 }
 
 export async function fetchAllBadgeLevels() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("badge_levels").select("*").order("badge_id").order("level");
-  if (error || !data) return [];
-  return data.map((r: any) => ({
-    id: r.id, badgeId: r.badge_id, level: r.level, threshold: r.threshold,
-    rewardMileage: r.reward_mileage || 0, rewardXp: r.reward_xp || 0,
-    title: r.title || "", description: r.description || "",
-  }));
+  try {
+    const { data, error } = await s.from("badge_levels").select("*").order("badge_id").order("level");
+    if (error || !data) return [];
+    return data.map((r: any) => ({
+      id: r.id, badgeId: r.badge_id, level: r.level, threshold: r.threshold,
+      rewardMileage: r.reward_mileage || 0, rewardXp: r.reward_xp || 0,
+      title: r.title || "", description: r.description || "",
+    }));
+  } catch { return []; }
 }
 
 export async function fetchStudentBadgeProgress(studentId: string) {
@@ -926,11 +970,14 @@ export async function fetchStudentBadgeProgress(studentId: string) {
 export async function updateStudentBadgeProgress(studentId: string, badgeId: string, level: number, progress: number) {
   const s = sb();
   if (!s) return;
-  await s.from("student_badge_progress").upsert({
-    student_id: studentId, badge_id: badgeId,
-    current_level: level, current_progress: progress,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "student_id,badge_id" });
+  try {
+    await s.from("student_badge_progress").upsert({
+      id: `sbp_${studentId}_${badgeId}`,
+      student_id: studentId, badge_id: badgeId,
+      current_level: level, current_progress: progress,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "student_id,badge_id" });
+  } catch {}
 }
 
 /* ── Get full badge data with progress for a student ── */
@@ -981,45 +1028,61 @@ export async function recalculateBadgeProgress(studentId: string) {
   const s = sb();
   if (!s) return;
 
-  const { data: badges } = await s.from("badges").select("*").eq("active", true);
-  if (!badges) return;
+  try {
+    let { data: badges } = await s.from("badges").select("*");
+    if (!badges) return;
+    badges = badges.filter((b: any) => b.active !== false);
 
-  const { data: allLevels } = await s.from("badge_levels").select("*").order("level");
-  const levelsByBadge: Record<string, any[]> = {};
-  if (allLevels) {
-    allLevels.forEach((l: any) => {
-      if (!levelsByBadge[l.badge_id]) levelsByBadge[l.badge_id] = [];
-      levelsByBadge[l.badge_id].push(l);
-    });
-  }
-
-  for (const badge of badges) {
-    const progress = await calculateBadgeProgress(studentId, badge.requirement_type);
-    const levels = levelsByBadge[badge.id] || [];
-    let currentLevel = 0;
-    for (const lvl of levels) {
-      if (progress >= lvl.threshold) currentLevel = lvl.level;
+    let { data: allLevels } = await s.from("badge_levels").select("*").order("level");
+    const levelsByBadge: Record<string, any[]> = {};
+    if (allLevels) {
+      allLevels.forEach((l: any) => {
+        if (!levelsByBadge[l.badge_id]) levelsByBadge[l.badge_id] = [];
+        levelsByBadge[l.badge_id].push(l);
+      });
     }
-    await updateStudentBadgeProgress(studentId, badge.id, currentLevel, progress);
-  }
+
+    for (const badge of badges) {
+      const progress = await calculateBadgeProgress(studentId, badge.requirement_type);
+      let levels = levelsByBadge[badge.id] || [];
+      // Fallback from badge.level_thresholds
+      if (levels.length === 0 && badge.level_thresholds) {
+        const thresholds = Array.isArray(badge.level_thresholds) ? badge.level_thresholds : [];
+        levels = thresholds.map((t: number, i: number) => ({ level: i + 1, threshold: t }));
+      }
+      let currentLevel = 0;
+      for (const lvl of levels) {
+        if (progress >= lvl.threshold) currentLevel = lvl.level;
+      }
+      await updateStudentBadgeProgress(studentId, badge.id, currentLevel, progress);
+    }
+  } catch {}
 }
 
 /* ── Top 5 Mileage Ranking ── */
 export async function fetchTopMileageRanking() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("students")
-    .select("id, name, class_id, mileage, xp, active, role, is_teacher")
-    .eq("active", true)
-    .eq("role", "student")
-    .eq("is_teacher", false)
-    .order("mileage", { ascending: false })
-    .limit(5);
-  if (error || !data) return [];
-  return data.map((r: any, i: number) => ({
-    rank: i + 1, id: r.id, name: r.name,
-    classId: r.class_id || "", mileage: Number(r.mileage) || 0,
-  }));
+  try {
+    const { data, error } = await s.from("students")
+      .select("id, name, class_id, mileage, xp")
+      .order("mileage", { ascending: false })
+      .limit(10);
+    if (error || !data) return [];
+    return data
+      .filter((r: any) => {
+        const name = (r.name || "").trim();
+        if (!name) return false;
+        // Filter out teachers/admins by naming patterns
+        if (name.includes("선생님") || name.includes("목사")) return false;
+        return true;
+      })
+      .slice(0, 5)
+      .map((r: any, i: number) => ({
+        rank: i + 1, id: r.id, name: r.name,
+        classId: r.class_id || "", mileage: Number(r.mileage) || 0,
+      }));
+  } catch { return []; }
 }
 
 /* ── Attendance Reward Processing ── */
@@ -1034,7 +1097,9 @@ export async function processAttendanceReward(attendanceRecordId: string, studen
 
   // Get student info
   const { data: student } = await s.from("students").select("*").eq("id", studentId).single();
-  if (!student || student.role !== "student" || student.is_teacher || !student.active) return false;
+  if (!student) return false;
+  // Skip if teacher/admin (check by name patterns as fallback)
+  if (student.role === "admin" || student.role === "teacher" || student.is_teacher) return false;
 
   // Create attendance reward record
   const { error: rewErr } = await s.from("attendance_rewards").insert({
