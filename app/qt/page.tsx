@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import SharedQTFeed from "@/components/SharedQTFeed";
 import { useApp } from "@/lib/store-context";
+import { koreaDate } from "@/lib/korea-date";
 
 export default function QTContent() {
   const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, sharedQTDates } = useApp();
@@ -101,7 +102,7 @@ export default function QTContent() {
             </div>
             <p className="mt-3 text-lg font-bold text-emerald-700">🌱 오늘의 QT 완료!</p>
             <p className="mt-1 text-sm text-emerald-600">
-              이번 달 {qtRecords.filter(r => r.date.startsWith(new Date().toISOString().slice(0, 7))).length}번째 QT예요.
+              이번 달 {qtRecords.filter(r => r.date.startsWith(koreaDate().slice(0, 7))).length}번째 QT예요.
             </p>
             <div className="mt-4 rounded-xl bg-emerald-100/60 px-4 py-2 text-sm font-semibold text-emerald-700">+20M 적립 완료</div>
           </Card>

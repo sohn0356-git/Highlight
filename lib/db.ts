@@ -673,7 +673,7 @@ export async function fetchActivities() {
   if (error || !data) return [];
   return data.map((r: any) => ({
     id: r.id, type: r.type, message: r.message,
-    timestamp: r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : "",
+    timestamp: r.created_at ? (r.created_at.slice(0, 10)) : "",
   }));
 }
 

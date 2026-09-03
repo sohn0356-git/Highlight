@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Target, Megaphone, Plus, X } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
+import { koreaDate, addDays } from "@/lib/korea-date";
 import type { MissionAdmin, Announcement } from "@/lib/admin-types";
 
 type ContentTab = "mission" | "announcement";
@@ -18,7 +19,7 @@ export default function AdminContent() {
     type: "weekly" as "weekly" | "special" | "event" | "class-only",
     mileageReward: 30,
     xpReward: 30,
-    startDate: new Date().toISOString().slice(0, 10),
+    startDate: koreaDate(),
     endDate: "",
     target: "all" as "all" | "grade1" | "grade2" | "grade3" | "custom",
     approvalRequired: false,
@@ -45,7 +46,7 @@ export default function AdminContent() {
     };
     addMission(newMission);
     setShowForm(false);
-    setMissionForm({ title: "", description: "", icon: "🎯", type: "weekly", mileageReward: 30, xpReward: 30, startDate: new Date().toISOString().slice(0, 10), endDate: "", target: "all", approvalRequired: false });
+    setMissionForm({ title: "", description: "", icon: "🎯", type: "weekly", mileageReward: 30, xpReward: 30, startDate: koreaDate(), endDate: "", target: "all", approvalRequired: false });
   }
 
   function submitAnnouncement() {
@@ -53,8 +54,8 @@ export default function AdminContent() {
     const newAnn: Announcement = {
       id: "an_" + Date.now(),
       ...announcementForm,
-      startDate: new Date().toISOString().slice(0, 10),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      startDate: koreaDate(),
+      endDate: addDays(koreaDate(), 30),
       status: "published",
       createdAt: new Date().toISOString(),
     };

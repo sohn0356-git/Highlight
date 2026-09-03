@@ -1,32 +1,38 @@
 "use client";
 import {
   Users, CalendarCheck, BookOpen, Target, HandHeart, Coins, ArrowUpRight,
-  PlusCircle, Send, FilePlus2, Megaphone, ChevronRight, TrendingUp,
+  FilePlus2, Megaphone, ChevronRight, TrendingUp,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
 import { fetchRecentActivities, type RecentActivity } from "@/lib/admin-activity-service";
+import { koreaDate } from "@/lib/korea-date";
 import type { AdminPageId } from "@/lib/admin-types";
 
 export default function AdminDashboard({ onNavigate }: { onNavigate: (page: AdminPageId) => void }) {
   const { students, teachers, attendanceSessions, attendanceRecords, qtContents, missions, missionCompletions, prayers, allTransactions, season } = useAdmin();
   const { classes } = useApp();
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const today = koreaDate();
 
   useEffect(() => {
     fetchRecentActivities().then(setRecentActivities);
   }, []);
 
-  const activeSessions = attendanceSessions.filter(s => s.active);
   const todayRecords = attendanceRecords.filter(r => {
-    const today = new Date().toISOString().slice(0, 10);
     const session = attendanceSessions.find(s => s.id === r.sessionId);
     return session?.date === today;
   });
   const thisWeekQT = qtContents.filter(q => q.active);
   const pendingMissions = missionCompletions.filter(m => m.status === "pending");
   const weekBonus = allTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+  const activeStudents = students.filter(s => s.active);
+  const presentToday = todayRecords.filter(r => r.state === "present" || r.state === "late").length;
+  const approvedMissions = missionCompletions.filter(m => m.status === "approved").length;
+  const approvedMissionStudents = missionCompletions.filter(m => m.status === "approved").map(m => m.studentId);
+  const prayerParticipations = new Set(approvedMissionStudents).size;
+  const totalMileageAwarded = allTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
 
   const quickActions = [
     { label: "출석 직접 입력", icon: CalendarCheck, page: "attendance" as AdminPageId, tone: "bg-emerald-500" },
@@ -37,12 +43,12 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
   ];
 
   const stats = [
-    { label: "재적", value: students.filter(s => s.active).length + "명", icon: <Users size={16} />, tone: "bg-neutral-100 text-neutral-700" },
-    { label: "주일 출석", value: `${todayRecords.filter(r => r.state === "present" || r.state === "late").length}명`, icon: <CalendarCheck size={16} />, tone: "bg-emerald-50 text-emerald-600" },
+    { label: "재적", value: `${activeStudents.length}명`, icon: <Users size={16} />, tone: "bg-neutral-100 text-neutral-700" },
+    { label: "오늘 출석", value: `${presentToday}명`, icon: <CalendarCheck size={16} />, tone: "bg-emerald-50 text-emerald-600" },
     { label: "이번 주 QT", value: `${thisWeekQT.length * 3}회`, icon: <BookOpen size={16} />, tone: "bg-indigo-50 text-indigo-600" },
-    { label: "미션 완료", value: `${missionCompletions.filter(m => m.status === "approved").length}회`, icon: <Target size={16} />, tone: "bg-sky-50 text-sky-600" },
-    { label: "기도 참여", value: `${prayers.length * 8}회`, icon: <HandHeart size={16} />, tone: "bg-rose-50 text-rose-600" },
-    { label: "마일리지 지급", value: `${weekBonus.toLocaleString()}M`, icon: <Coins size={16} />, tone: "bg-amber-50 text-amber-600" },
+    { label: "미션 완료", value: `${approvedMissions}회`, icon: <Target size={16} />, tone: "bg-sky-50 text-sky-600" },
+    { label: "기도 참여", value: `${prayerParticipations}명`, icon: <HandHeart size={16} />, tone: "bg-rose-50 text-rose-600" },
+    { label: "마일리지 지급", value: `${totalMileageAwarded.toLocaleString()}M`, icon: <Coins size={16} />, tone: "bg-amber-50 text-amber-600" },
   ];
 
   return (
@@ -92,7 +98,6 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
             <div key={i} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className={`grid h-8 w-8 place-items-center rounded-lg ${s.tone}`}>{s.icon}</span>
-                <TrendingUp size={14} className="text-emerald-500" />
               </div>
               <p className="mt-3 text-lg font-bold text-neutral-900">{s.value}</p>
               <p className="text-xs text-neutral-400">{s.label}</p>
