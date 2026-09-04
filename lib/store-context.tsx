@@ -247,6 +247,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { if (channel) channel.unsubscribe?.(); };
   }, [student?.id]);
 
+  /* ── Refresh on tab focus ── */
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && student) {
+        refreshAll();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [student?.id, refreshAll]);
+
   /* ── Date change detection ── */
   useEffect(() => {
     const interval = setInterval(() => {

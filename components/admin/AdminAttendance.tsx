@@ -148,15 +148,7 @@ export default function AdminAttendance() {
             </div>
           )}
 
-          {thisWeekSession && (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-emerald-700">출석 세션 활성</p>
-                <p className="text-[11px] text-emerald-600">{fmt(anchorSunday)} · 20M 마일리지</p>
-              </div>
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-400 text-white text-sm">✓</span>
-            </div>
-          )}
+
 
           {/* Student list */}
           {thisWeekSession && (
