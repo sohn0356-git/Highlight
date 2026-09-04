@@ -8,14 +8,14 @@ import { useApp } from "@/lib/store-context";
 import { fetchStudentBadgesWithProgress } from "@/lib/db";
 
 export default function MissionsContent() {
-  const { student, isLoggedIn, missions, completedMissionIds, completeMission, dailyQuests, dailyQuestIds, completeDailyQuest } = useApp();
+  const { student, isLoggedIn, missions, completedMissionIds, completeMission, dailyQuests, dailyQuestIds, completeDailyQuest, badgeRefreshKey } = useApp();
   const [badges, setBadges] = useState<any[]>([]);
 
   useEffect(() => {
     if (student?.id) {
       fetchStudentBadgesWithProgress(student.id).then(setBadges).catch(() => setBadges([]));
     }
-  }, [student?.id]);
+  }, [student?.id, badgeRefreshKey]);
 
   // (d6 제거됨 - 더 이상 미션 탭 방문으로 자동 달성하지 않음)
 

@@ -53,6 +53,7 @@ interface AppState {
   sharedGoal: any;
   teachers: Teacher[];
   refreshAll: () => Promise<void>;
+  badgeRefreshKey: number;
 }
 
 type AppViewMode = "student" | "admin";
@@ -114,6 +115,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [classes, setClasses] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [todayPrayerCount, setTodayPrayerCount] = useState(0);
+  const [badgeRefreshKey, setBadgeRefreshKey] = useState(0);
   const [qtComments, setQtComments] = useState<Record<string, QTComment[]>>({});
 
   const today = koreaDate();
@@ -385,6 +387,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDailyQuestIds(prev => [...prev, "d1"]);
     // Badge progress
     await updateBadgeProgress(student.id);
+    setBadgeRefreshKey(k => k + 1);
     // Refresh
     refreshAll();
   }, [student, qtDoneToday, today, classes, dailyQuestIds]);
@@ -495,6 +498,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.updateStudentField(student.id, "mileage", newTotal);
     await db.updateStudentField(student.id, "xp", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "일일퀘스트", description: quest.title, amount: quest.reward, date: today });
+    setBadgeRefreshKey(k => k + 1);
     refreshAll();
   }, [student, dailyQuestIds, today]);
 
@@ -511,6 +515,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.updateStudentField(student.id, "mileage", newTotal);
     await db.updateStudentField(student.id, "xp", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "미션완료", description: mission.title, amount: reward, date: today });
+    setBadgeRefreshKey(k => k + 1);
     refreshAll();
   }, [student, completedMissionIds, missions, today]);
 
@@ -524,6 +529,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.updateStudentField(student.id, "mileage", newTotal);
     await db.updateStudentField(student.id, "xp", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "기도", description: "기도 참여", amount: reward, date: today });
+    setBadgeRefreshKey(k => k + 1);
     refreshAll();
   }, [student, today]);
 
@@ -573,7 +579,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prayFor: prayForHandler, addPrayerRequest, updatePrayerRequest, deletePrayerRequest,
       todayPrayerCount, transactions: txns,
       badges, season, classes, allStudents, activities,
-      refreshActivities, sharedGoal, teachers, refreshAll,
+      refreshActivities, sharedGoal, teachers, refreshAll, badgeRefreshKey,
     }}>
       {children}
     </Ctx.Provider>
@@ -586,7 +592,9 @@ async function updateBadgeProgress(studentId: string) {
   try {
     const badges = await db.fetchBadges();
     for (const badge of badges) {
-      const progress = await db.calculateBadgeProgress(studentId, badge.requirement_type);
+      const metricType = db.getBadgeMetricType(badge.id);
+      if (!metricType) continue;
+      const progress = await db.calculateBadgeProgress(studentId, metricType);
       const thresholds = badge.level_thresholds || [10, 30, 60, 100, 200];
       let level = 0;
       for (let i = 0; i < thresholds.length; i++) {

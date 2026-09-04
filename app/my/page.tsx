@@ -10,7 +10,7 @@ import { useApp, useViewMode } from "@/lib/store-context";
 import { getStudentLevel, getClassLevel, getNextLevelXp, fetchStudentBadgesWithProgress } from "@/lib/db";
 
 export default function MyContent() {
-  const { student, isLoggedIn, classes, logout } = useApp();
+  const { student, isLoggedIn, classes, logout, badgeRefreshKey } = useApp();
   const { setMode } = useViewMode();
   const [badges, setBadges] = useState<any[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(false);
@@ -23,7 +23,7 @@ export default function MyContent() {
         .catch(() => setBadges([]))
         .finally(() => setBadgesLoading(false));
     }
-  }, [student?.id]);
+  }, [student?.id, badgeRefreshKey]);
 
   if (!student || !isLoggedIn) return null;
 

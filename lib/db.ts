@@ -305,13 +305,13 @@ export async function fetchPrayers(studentId?: string) {
   const s = sb();
   if (!s) return [];
   let q = s.from("prayer_requests").select("*").order("created_at", { ascending: false });
-  if (studentId) q = q.eq("student_id", studentId);
+  if (studentId) q = q.eq("author_id", studentId);
   const { data, error } = await q;
   if (error || !data) return [];
   return data.map((r: any) => ({
     id: r.id, authorName: r.author_name || "", anonymous: !!r.anonymous,
     content: r.content || "", prayerCount: Number(r.prayer_count) || 0,
-    createdAt: r.created_at || "", prayedBy: [], studentId: r.student_id,
+    createdAt: r.created_at || "", prayedBy: [], studentId: r.author_id,
     classId: r.class_id || "", status: r.status || "active",
   }));
 }
@@ -837,7 +837,10 @@ export async function addComment(comment: any) {
     created_at: comment.createdAt || new Date().toISOString(),
   }]);
   // Increment comment_count
-  await s.from("shared_qt_posts").update({ comment_count: { raw: "comment_count + 1" } }).eq("id", comment.postId);
+  try {
+    const { data: post } = await s.from("shared_qt_posts").select("comment_count").eq("id", comment.postId).single();
+    await s.from("shared_qt_posts").update({ comment_count: ((post?.comment_count || 0) + 1) }).eq("id", comment.postId);
+  } catch {}
 }
 
 export async function updateComment(commentId: string, content: string) {
@@ -850,7 +853,10 @@ export async function deleteComment(commentId: string, postId: string) {
   const s = sb();
   if (!s) return;
   await s.from("qt_comments").delete().eq("id", commentId);
-  await s.from("shared_qt_posts").update({ comment_count: { raw: "GREATEST(comment_count - 1, 0)" } }).eq("id", postId);
+  try {
+    const { data: post } = await s.from("shared_qt_posts").select("comment_count").eq("id", postId).single();
+    await s.from("shared_qt_posts").update({ comment_count: Math.max(0, (post?.comment_count || 0) - 1) }).eq("id", postId);
+  } catch {}
 }
 
 /* ── All Mileage Transactions (for admin audit) ── */
@@ -989,6 +995,16 @@ export async function calculateQTStreak(studentId: string): Promise<number> {
   return maxStreak;
 }
 
+/* ── Badge ID to Metric Type Mapping ── */
+const BADGE_METRIC_MAP: Record<string, string> = {
+  b1: "qt_count", b2: "attendance_count", b3: "prayer_count",
+  b4: "mission_count", b5: "mileage_total", b6: "qt_streak",
+};
+
+export function getBadgeMetricType(badgeId: string): string {
+  return BADGE_METRIC_MAP[badgeId] || "";
+}
+
 /* ── Badge Progress Calculation ── */
 export async function calculateBadgeProgress(studentId: string, badgeType: string): Promise<number> {
   const s = sb();
@@ -1000,15 +1016,22 @@ export async function calculateBadgeProgress(studentId: string, badgeType: strin
     }
     case "attendance_count": {
       const { data } = await s.from("attendance_records").select("id, state").eq("student_id", studentId);
-      return data?.filter((r: any) => r.state === "present" || r.state === "late").length || 0;
+      return data?.filter((r: any) => r.state === "present" || r.state === "late" || r.state === "online").length || 0;
     }
     case "prayer_count": {
       const { data } = await s.from("prayer_participants").select("id").eq("student_id", studentId);
       return data?.length || 0;
     }
     case "mission_count": {
-      const { data } = await s.from("completed_missions").select("id").eq("student_id", studentId).eq("status", "approved");
+      const { data } = await s.from("completed_missions").select("id").eq("student_id", studentId);
       return data?.length || 0;
+    }
+    case "mileage_total": {
+      const { data } = await s.from("students").select("mileage").eq("id", studentId).single();
+      return Number(data?.mileage) || 0;
+    }
+    case "qt_streak": {
+      return await calculateQTStreak(studentId);
     }
     default: return 0;
   }
@@ -1029,7 +1052,7 @@ export async function fetchClassStats(classIds: string[]): Promise<Record<string
   const { data: qtRecords } = await s.from("qt_records").select("student_id");
   if (qtRecords) qtRecords.forEach((r: any) => { const cid = studentClassMap[r.student_id]; if (cid && stats[cid]) stats[cid].qtCount++; });
 
-  const { data: missions } = await s.from("completed_missions").select("student_id").eq("status", "approved");
+  const { data: missions } = await s.from("completed_missions").select("student_id");
   if (missions) missions.forEach((r: any) => { const cid = studentClassMap[r.student_id]; if (cid && stats[cid]) stats[cid].missionCount++; });
 
   const { data: prayers } = await s.from("prayer_participants").select("student_id");
@@ -1229,7 +1252,8 @@ export async function recalculateBadgeProgress(studentId: string) {
     }
 
     for (const badge of badges) {
-      const progress = await calculateBadgeProgress(studentId, badge.requirement_type);
+      const metricType = getBadgeMetricType(badge.id) || badge.requirement_type || "";
+      const progress = await calculateBadgeProgress(studentId, metricType);
       let levels = levelsByBadge[badge.id] || [];
       // Fallback from badge.level_thresholds
       if (levels.length === 0 && badge.level_thresholds) {
