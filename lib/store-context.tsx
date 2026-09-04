@@ -26,6 +26,8 @@ interface AppState {
   shareQT: () => Promise<boolean>;
   sharedPosts: SharedQTPost[];
   addComment: (postId: string, content: string) => void;
+  updateComment: (commentId: string, postId: string, content: string) => void;
+  deleteComment: (commentId: string, postId: string) => void;
   fetchPostComments: (postId: string) => QTComment[];
   missions: any[];
   dailyQuests: any[];
@@ -165,6 +167,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Shared posts
       setSharedPosts(posts as SharedQTPost[]);
+      // Load comments for all shared posts
+      for (const p of posts) {
+        const comments = await db.fetchComments(p.id);
+        setQtComments(prev => ({ ...prev, [p.id]: comments }));
+      }
 
       // Completed missions
       const cm = await db.fetchCompletedMissions(student.id);
@@ -364,28 +371,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [student, sharedQTDates, today, qtToday, qtRecords]);
 
   /* ── Comments ── */
+  const loadComments = useCallback(async (postId: string) => {
+    const comments = await db.fetchComments(postId);
+    setQtComments(prev => ({ ...prev, [postId]: comments }));
+  }, []);
+
   const addComment = useCallback(async (postId: string, content: string) => {
-    if (!student || isAdminUser(student)) return;
+    if (!student) return;
     const comment: any = {
       id: `qc_${Date.now()}`, postId, studentId: student.id,
       studentName: student.name, content: content.trim(),
       createdAt: new Date().toISOString(),
     };
     await db.addComment(comment);
+    // Load comments from DB to get accurate count
+    await loadComments(postId);
+    // Update post comment count locally
+    setSharedPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p));
+    // Award quest if commenting on others' post
     const postOwner = sharedPosts.find(p => p.id === postId)?.studentId;
     if (postOwner !== student.id) {
       await db.completeDailyQuest(student.id, "d6", today, 5, 5);
       setDailyQuestIds(prev => [...prev, "d6"]);
       showPointToast("+5M");
       const newTotal = (student.mileage || 0) + 5;
-    await db.updateStudentField(student.id, "mileage", newTotal);
-    await db.updateStudentField(student.id, "xp", newTotal);
+      await db.updateStudentField(student.id, "mileage", newTotal);
+      await db.updateStudentField(student.id, "xp", newTotal);
     }
-    refreshAll();
-  }, [student, sharedPosts, today]);
+  }, [student, sharedPosts, today, loadComments]);
+
+  const updateComment = useCallback(async (commentId: string, postId: string, content: string) => {
+    await db.updateComment(commentId, content);
+    await loadComments(postId);
+  }, [loadComments]);
+
+  const deleteComment = useCallback(async (commentId: string, postId: string) => {
+    await db.deleteComment(commentId, postId);
+    await loadComments(postId);
+    setSharedPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: Math.max(0, (p.commentCount || 1) - 1) } : p));
+  }, [loadComments]);
 
   const fetchPostComments = useCallback((postId: string): QTComment[] => {
-    // This will be loaded via realtime or lazy fetch
     return qtComments[postId] || [];
   }, [qtComments]);
 
@@ -471,7 +497,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       qtRecords, completeQT: completeQTHandler, updateQT, deleteQT,
       sharedQTDates, sharedTodayQT: sharedQTDates.includes(today),
       shareQT, sharedPosts: sharedPosts,
-      addComment, fetchPostComments,
+      addComment, updateComment, deleteComment, fetchPostComments,
       missions, dailyQuests, dailyQuestIds, completeDailyQuest,
       completedMissionIds, completeMission: completeMissionHandler,
       prayers: [...prayers].sort((a: any, b: any) => (b.createdAt || "").localeCompare(a.createdAt || "")),

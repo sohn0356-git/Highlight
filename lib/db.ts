@@ -813,6 +813,19 @@ export async function addComment(comment: any) {
   await s.from("shared_qt_posts").update({ comment_count: { raw: "comment_count + 1" } }).eq("id", comment.postId);
 }
 
+export async function updateComment(commentId: string, content: string) {
+  const s = sb();
+  if (!s) return;
+  await s.from("qt_comments").update({ content }).eq("id", commentId);
+}
+
+export async function deleteComment(commentId: string, postId: string) {
+  const s = sb();
+  if (!s) return;
+  await s.from("qt_comments").delete().eq("id", commentId);
+  await s.from("shared_qt_posts").update({ comment_count: { raw: "GREATEST(comment_count - 1, 0)" } }).eq("id", postId);
+}
+
 /* ── Audit Logs ── */
 export async function fetchAuditLogs() {
   const s = sb();

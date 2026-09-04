@@ -1,13 +1,15 @@
 "use client";
 import { useState } from "react";
-import { MessageCircle, Share2 } from "lucide-react";
+import { MessageCircle, Share2, Pencil, Trash2 } from "lucide-react";
 import Card from "./Card";
 import { useApp } from "@/lib/store-context";
 
 export default function SharedQTFeed({ limit = 20 }: { limit?: number }) {
-  const { student, sharedPosts, addComment, fetchPostComments } = useApp();
+  const { student, sharedPosts, addComment, updateComment, deleteComment, fetchPostComments } = useApp();
   const [openPostId, setOpenPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [editCommentId, setEditCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
 
   if (!sharedPosts.length) return null;
 
@@ -61,8 +63,24 @@ export default function SharedQTFeed({ limit = 20 }: { limit?: number }) {
                     <div className="mb-3 flex flex-col gap-2">
                       {comments.map(c => (
                         <div key={c.id} className="rounded-xl bg-neutral-50 px-3 py-2">
-                          <p className="text-[11px] font-bold text-neutral-600">{c.studentName}</p>
-                          <p className="mt-0.5 text-xs leading-relaxed text-neutral-700">{c.content}</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] font-bold text-neutral-600">{c.studentName}</p>
+                            {c.studentId === student?.id && (
+                              <div className="flex gap-1">
+                                <button onClick={() => { setEditCommentId(c.id); setEditCommentText(c.content); }} className="text-neutral-400 hover:text-indigo-500"><Pencil size={11} /></button>
+                                <button onClick={() => deleteComment(c.id, post.id)} className="text-neutral-400 hover:text-rose-500"><Trash2 size={11} /></button>
+                              </div>
+                            )}
+                          </div>
+                          {editCommentId === c.id ? (
+                            <div className="mt-1 flex gap-1.5">
+                              <input value={editCommentText} onChange={e => setEditCommentText(e.target.value)} className="flex-1 rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none focus:border-indigo-400" />
+                              <button onClick={() => { updateComment(c.id, post.id, editCommentText); setEditCommentId(null); }} className="rounded-lg bg-indigo-500 px-2 py-1 text-[10px] font-bold text-white">저장</button>
+                              <button onClick={() => setEditCommentId(null)} className="rounded-lg bg-neutral-100 px-2 py-1 text-[10px] font-bold text-neutral-500">취소</button>
+                            </div>
+                          ) : (
+                            <p className="mt-0.5 text-xs leading-relaxed text-neutral-700">{c.content}</p>
+                          )}
                         </div>
                       ))}
                     </div>
