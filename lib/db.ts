@@ -765,7 +765,14 @@ export async function fetchSharedPosts() {
   if (!s) return [];
   const { data, error } = await s.from("shared_qt_posts").select("*").order("created_at", { ascending: false }).limit(50);
   if (error || !data) return [];
-  return data;
+  return data.map((r: any) => ({
+    id: r.id, studentId: r.student_id, studentName: r.student_name || "",
+    classId: r.class_id || "", className: r.class_name || "",
+    passage: r.passage || "", verse: r.verse || "",
+    remembered: r.remembered || "", application: r.application || "",
+    reward: r.reward || 0, date: r.date || "",
+    commentCount: r.comment_count || 0, likedBy: r.liked_by || [],
+  }));
 }
 
 export async function createSharedPost(post: any) {

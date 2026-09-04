@@ -161,8 +161,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const myShared = posts.filter((p: any) => p.student_id === student.id).map((p: any) => p.date);
       setSharedQTDates([...new Set(myShared)]);
 
-      // Shared posts for today
-      setSharedPosts(posts.filter((p: any) => p.date === today) as SharedQTPost[]);
+      // Shared posts
+      setSharedPosts(posts as SharedQTPost[]);
 
       // Completed missions
       const cm = await db.fetchCompletedMissions(student.id);
@@ -333,9 +333,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   /* ── Share QT ── */
   const shareQT = useCallback(async () => {
     if (!student || sharedQTDates.includes(today) || isAdminUser(student)) return false;
+    const todayRecord = qtRecords.find(r => r.date === today);
     const post: any = {
       id: `qp_${Date.now()}`, studentId: student.id, studentName: student.name,
       classId: student.classId, passage: qtToday.passage, verse: qtToday.verse,
+      remembered: todayRecord?.remembered || "", application: todayRecord?.application || "",
       reward: 10, date: today, commentCount: 0, likedBy: [],
     };
     await db.createSharedPost(post);
@@ -349,7 +351,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDailyQuestIds(prev => [...prev, "d2"]);
     refreshAll();
     return true;
-  }, [student, sharedQTDates, today, qtToday]);
+  }, [student, sharedQTDates, today, qtToday, qtRecords]);
 
   /* ── Comments ── */
   const addComment = useCallback(async (postId: string, content: string) => {
@@ -458,7 +460,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       qtToday: { ...qtToday, date: today }, isQTDoneToday: qtDoneToday,
       qtRecords, completeQT: completeQTHandler, updateQT, deleteQT,
       sharedQTDates, sharedTodayQT: sharedQTDates.includes(today),
-      shareQT, sharedPosts: sharedPosts.filter(p => p.date === today),
+      shareQT, sharedPosts: sharedPosts,
       addComment, fetchPostComments,
       missions, dailyQuests, dailyQuestIds, completeDailyQuest,
       completedMissionIds, completeMission: completeMissionHandler,
