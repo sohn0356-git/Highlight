@@ -24,7 +24,7 @@ jobs:
       - name: Fetch and store QT
         env:
           SUPABASE_URL: https://afrzmtwakfkujsnxwinb.supabase.co
-          SUPABASE_PUBLISHABLE_KEY: sb_publishable_ztdDNXg__J7Kuli4tdImYA_KPH85waz
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           if [ -n "${{ github.event.inputs.date }}" ]; then
             node scripts/fetch-daily-qt.mjs "${{ github.event.inputs.date }}"
