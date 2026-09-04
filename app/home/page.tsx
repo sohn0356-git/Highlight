@@ -8,12 +8,12 @@ import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
 import { getStudentLevel, getNextLevelXp } from "@/lib/db";
-import StoreModal from "@/components/StoreModal";
+
 
 export default function HomeContent() {
   const { student, isLoggedIn, classes, activities, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
-  const [storeOpen, setStoreOpen] = useState(false);
+  
 
   useEffect(() => { refreshActivities(); }, [refreshActivities]);
   useEffect(() => {
@@ -76,27 +76,6 @@ export default function HomeContent() {
             </div>
           )}
         </Card>
-      </section>
-
-      {/* ── 마일리지 카드 (상점 연결) ── */}
-      <section className="mt-3 px-5">
-        <div onClick={() => setStoreOpen(true)} role="button" tabIndex={0} className="cursor-pointer">
-          <Card className="bg-gradient-to-br from-violet-500 to-purple-600 border-0 text-white shadow-lg shadow-purple-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-purple-200">내 마일리지</p>
-                <p className="mt-1 text-2xl font-extrabold">
-                  {(student.mileage || 0).toLocaleString()}
-                  <span className="text-base font-bold text-purple-200 ml-1">M</span>
-                </p>
-                <p className="mt-0.5 text-[10px] text-purple-200">탭하여 상점 보기</p>
-              </div>
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/20 text-2xl">
-                💎
-              </div>
-            </div>
-          </Card>
-        </div>
       </section>
 
       {/* ── 랭킹 ── */}
@@ -162,7 +141,6 @@ export default function HomeContent() {
           </div>
         </div>
       )}
-      <StoreModal open={storeOpen} onClose={() => setStoreOpen(false)} />
     </div>
   );
 }
