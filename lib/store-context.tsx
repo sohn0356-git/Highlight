@@ -11,6 +11,7 @@ import { runMigrations } from "./migrate";
 interface AppState {
   student: Student | null;
   isLoggedIn: boolean;
+  isLoading: boolean;
   supabaseReady: boolean;
   login: (name: string, birthDate: string) => Promise<boolean>;
   logout: () => void;
@@ -79,6 +80,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return "student";
     return (localStorage.getItem("app_view_mode") as AppViewMode) || "student";
   });
+  const [isLoading, setIsLoading] = useState(true);
   const [allStudents, setAllStudents] = useState<any[]>([]);
   const [student, setStudent] = useState<Student | null>(() => {
     if (typeof window === "undefined") return null;
@@ -189,9 +191,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Run migrations on first load
   useEffect(() => { runMigrations(); }, []);
 
+  // If no student in localStorage, stop loading immediately
   useEffect(() => {
-    if (!isSupabaseReady || !student) return;
-    refreshAll();
+    if (!student) setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseReady || !student) {
+      setIsLoading(false);
+      return;
+    }
+    refreshAll().finally(() => setIsLoading(false));
   }, [student?.id]);
 
   /* ── Realtime listeners ── */
@@ -455,7 +465,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <ViewModeCtx.Provider value={{ mode, setMode: (m) => { if (typeof window !== "undefined") localStorage.setItem("app_view_mode", m); setMode(m); } }}>
     <Ctx.Provider value={{
-      student, isLoggedIn: !!student, supabaseReady: isSupabaseReady,
+      student, isLoggedIn: !!student, isLoading, supabaseReady: isSupabaseReady,
       login, logout,
       qtToday: { ...qtToday, date: today }, isQTDoneToday: qtDoneToday,
       qtRecords, completeQT: completeQTHandler, updateQT, deleteQT,
