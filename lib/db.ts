@@ -791,6 +791,18 @@ export async function createSharedPost(post: any) {
   }]);
 }
 
+export async function unshareQT(studentId: string, date: string) {
+  const s = sb();
+  if (!s) return false;
+  const { data: post } = await s.from("shared_qt_posts").select("id").eq("student_id", studentId).eq("date", date).single();
+  if (!post) return false;
+  // Delete comments first
+  await s.from("qt_comments").delete().eq("post_id", post.id);
+  // Delete shared post
+  await s.from("shared_qt_posts").delete().eq("id", post.id);
+  return true;
+}
+
 /* ── QT Comments ── */
 export async function fetchComments(postId: string) {
   const s = sb();

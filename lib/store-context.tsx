@@ -24,6 +24,7 @@ interface AppState {
   sharedQTDates: string[];
   sharedTodayQT: boolean;
   shareQT: () => Promise<boolean>;
+  unshareQT: () => Promise<void>;
   sharedPosts: SharedQTPost[];
   addComment: (postId: string, content: string) => void;
   updateComment: (commentId: string, postId: string, content: string) => void;
@@ -421,6 +422,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, [student, sharedQTDates, today, qtToday, qtRecords]);
 
+  /* ── Unshare QT ── */
+  const unshareQT = useCallback(async () => {
+    if (!student) return;
+    await db.unshareQT(student.id, today);
+    // Reverse mileage
+    const reward = 10;
+    const newTotal = Math.max(0, (student.mileage || 0) - reward);
+    await db.updateStudentField(student.id, "mileage", newTotal);
+    await db.updateStudentField(student.id, "xp", newTotal);
+    await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유 취소", description: "QT 공유 취소", amount: -reward, date: today });
+    setSharedQTDates(prev => prev.filter(d => d !== today));
+    showPointToast(`-${reward}M`);
+    refreshAll();
+  }, [student, today]);
+
   /* ── Comments ── */
   const loadComments = useCallback(async (postId: string) => {
     const comments = await db.fetchComments(postId);
@@ -547,7 +563,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       qtToday: { ...qtToday, date: today }, isQTDoneToday: qtDoneToday,
       qtRecords, completeQT: completeQTHandler, updateQT, deleteQT,
       sharedQTDates, sharedTodayQT: sharedQTDates.includes(today),
-      shareQT, sharedPosts: sharedPosts,
+      shareQT, unshareQT, sharedPosts: sharedPosts,
       addComment, updateComment, deleteComment, fetchPostComments,
       missions, dailyQuests, dailyQuestIds, completeDailyQuest,
       completedMissionIds, completeMission: completeMissionHandler,

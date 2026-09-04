@@ -8,7 +8,7 @@ import { useApp } from "@/lib/store-context";
 import { koreaDate } from "@/lib/korea-date";
 
 export default function QTContent() {
-  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, sharedQTDates } = useApp();
+  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, unshareQT, sharedQTDates } = useApp();
   const [remembered, setRemembered] = useState("");
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
@@ -28,6 +28,12 @@ export default function QTContent() {
     } else {
       setSharedMsg("오늘은 이미 공유했어요.");
     }
+  };
+
+  const handleUnshare = async () => {
+    if (!confirm("공유를 취소하시겠습니까? -10M이 차감됩니다.")) return;
+    await unshareQT();
+    setSharedMsg("공유가 취소되었습니다.");
   };
 
   const handleComplete = () => {
