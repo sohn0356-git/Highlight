@@ -120,7 +120,7 @@ export default function AdminContent() {
       {/* Mission tab */}
       {tab === "mission" && (
         <>
-          <button onClick={() => { setShowForm(!showForm); setEditId(null); }} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
+          <button onClick={() => { setShowForm(!showForm); setEditId(null); if (!showForm) setMissionForm({ title: "", description: "", icon: "🎯", type: "weekly", reward: 10, target: "all", approvalRequired: false }); }} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
             <Plus size={16} /> 미션 등록
           </button>
 
@@ -132,31 +132,10 @@ export default function AdminContent() {
               </div>
               <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="미션 제목" value={missionForm.title} onChange={e => setMissionForm({ ...missionForm, title: e.target.value })} />
               <textarea className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="미션 설명" value={missionForm.description} onChange={e => setMissionForm({ ...missionForm, description: e.target.value })} rows={2} />
-              <div className="grid grid-cols-2 gap-2">
-                <select className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.type} onChange={e => setMissionForm({ ...missionForm, type: e.target.value as any })}>
-                  <option value="weekly">주간</option>
-                  <option value="special">스페셜</option>
-                  <option value="event">이벤트</option>
-                  <option value="class-only">반별</option>
-                </select>
-                <select className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.target} onChange={e => setMissionForm({ ...missionForm, target: e.target.value as any })}>
-                  <option value="all">전체</option>
-                  <option value="grade1">고1</option>
-                  <option value="grade2">고2</option>
-                  <option value="grade3">고3</option>
-                </select>
+              <div>
+                <label className="text-[11px] text-neutral-500">획득 포인트 (M)</label>
+                <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.reward} onChange={e => setMissionForm({ ...missionForm, reward: Number(e.target.value) })} />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[11px] text-neutral-500">마일리지 보상</label>
-                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.reward} onChange={e => setMissionForm({ ...missionForm, reward: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <label className="text-[11px] text-neutral-500">XP 보상</label>
-                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"  />
-                </div>
-              </div>
-
               <button onClick={submitMission} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editId ? "수정 완료" : "등록하기"}</button>
             </div>
           )}

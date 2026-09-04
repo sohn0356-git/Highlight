@@ -509,6 +509,18 @@ export async function updateQTRecord(id: string, patch: any) {
 export async function deleteQTRecord(id: string) {
   const s = sb();
   if (!s) return;
+  // Get the record first to find associated shared post
+  const { data: record } = await s.from("qt_records").select("student_id, date").eq("id", id).single();
+  if (record) {
+    // Delete shared post for this date by this student
+    const { data: sharedPost } = await s.from("shared_qt_posts").select("id").eq("student_id", record.student_id).eq("date", record.date).single();
+    if (sharedPost) {
+      // Delete comments first
+      await s.from("qt_comments").delete().eq("post_id", sharedPost.id);
+      // Delete shared post
+      await s.from("shared_qt_posts").delete().eq("id", sharedPost.id);
+    }
+  }
   await s.from("qt_records").delete().eq("id", id);
 }
 

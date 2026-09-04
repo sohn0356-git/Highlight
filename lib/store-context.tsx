@@ -340,6 +340,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   /* ── QT Complete ── */
   const completeQTHandler = useCallback(async (remembered: string, application: string) => {
     if (!student || qtDoneToday || isAdminUser(student)) return;
+    // Prevent re-completing if daily quest already done today
+    if (dailyQuestIds.includes("d1")) {
+      // Still save the QT record but don't award rewards
+      const rec = await db.completeQT(student.id, today, remembered, application, 0);
+      if (rec) {
+        setQtRecords(prev => [rec as QTRecord, ...prev]);
+        setQtDoneToday(true);
+      }
+      return;
+    }
     const reward = 20;
     const rec = await db.completeQT(student.id, today, remembered, application, reward);
     if (!rec) return;
@@ -370,7 +380,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await updateBadgeProgress(student.id);
     // Refresh
     refreshAll();
-  }, [student, qtDoneToday, today, classes]);
+  }, [student, qtDoneToday, today, classes, dailyQuestIds]);
 
   /* ── QT Update / Delete ── */
   const updateQT = useCallback(async (id: string, patch: Partial<QTRecord>) => {

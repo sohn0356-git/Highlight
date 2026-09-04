@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { CalendarDays, History, ChevronLeft, ChevronRight, User, Users } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
@@ -43,6 +43,20 @@ export default function AdminAttendance() {
   const thisWeekSession = useMemo(() => {
     return attendanceSessions.find(s => s.date === fmt(anchorSunday));
   }, [attendanceSessions, anchorSunday]);
+
+  // Auto-create session for current week if none exists
+  const autoCreatedRef = useRef<string>("");
+  useEffect(() => {
+    const sundayStr = fmt(anchorSunday);
+    if (!thisWeekSession && sundayStr && autoCreatedRef.current !== sundayStr) {
+      autoCreatedRef.current = sundayStr;
+      addAttendanceSession({
+        id: `as_${sundayStr}`, eventName: "주일예배", date: sundayStr,
+        startTime: "10:00", endTime: "12:00", active: true,
+        mileageReward: 20, xpReward: 20,
+      });
+    }
+  }, [thisWeekSession, anchorSunday, addAttendanceSession]);
 
   const filteredStudents = useMemo(() => {
     let list = students.filter(s => s.active);
@@ -128,17 +142,9 @@ export default function AdminAttendance() {
 
           {/* Session status */}
           {!thisWeekSession && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-xs text-amber-700 font-semibold">
-              이 주차에 대한 출석 세션이 없습니다.
-              <button onClick={() => {
-                addAttendanceSession({
-                  id: `as_${Date.now()}`, eventName: "주일예배", date: fmt(anchorSunday),
-                  startTime: "10:00", endTime: "12:00", active: true,
-                  mileageReward: 20, xpReward: 20,
-                });
-              }} className="mt-2 block w-full rounded-lg bg-amber-500 py-2 text-xs font-bold text-white hover:bg-amber-600 transition">
-                세션 만들기
-              </button>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-center text-xs text-blue-700 font-semibold">
+              <p>{fmt(anchorSunday)} 주일예배</p>
+              <p className="mt-1 text-[11px] text-blue-500">출석 체크를 시작하면 세션이 자동 생성됩니다.</p>
             </div>
           )}
 
