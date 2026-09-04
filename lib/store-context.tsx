@@ -294,8 +294,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setQtDoneToday(true);
     showPointToast(`+${reward}M`);
     // Mileage + XP
-    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + reward);
-    await db.updateStudentField(student.id, "xp", (student.xp || 0) + reward);
+    const newTotal = (student.mileage || 0) + reward;
+    await db.updateStudentField(student.id, "mileage", newTotal);
+    await db.updateStudentField(student.id, "xp", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "qt", description: "QT 완료", amount: reward, date: today });
     await db.addActivity("qt", `${student.name}님이 QT를 완료했습니다`);
     // Class XP
@@ -340,8 +341,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.createSharedPost(post);
     setSharedQTDates(prev => [...prev, today]);
     showPointToast("+10M");
-    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + 10);
-    await db.updateStudentField(student.id, "xp", (student.xp || 0) + 10);
+    const newTotal = (student.mileage || 0) + 10;
+    await db.updateStudentField(student.id, "mileage", newTotal);
+    await db.updateStudentField(student.id, "xp", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유", description: "QT 공유", amount: 10, date: today });
     await db.completeDailyQuest(student.id, "d2", today, 10, 10);
     setDailyQuestIds(prev => [...prev, "d2"]);
@@ -363,8 +365,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await db.completeDailyQuest(student.id, "d6", today, 5, 5);
       setDailyQuestIds(prev => [...prev, "d6"]);
       showPointToast("+5M");
-      await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + 5);
-      await db.updateStudentField(student.id, "xp", (student.xp || 0) + 5);
+      const newTotal = (student.mileage || 0) + 5;
+    await db.updateStudentField(student.id, "mileage", newTotal);
+    await db.updateStudentField(student.id, "xp", newTotal);
     }
     refreshAll();
   }, [student, sharedPosts, today]);
@@ -382,8 +385,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.completeDailyQuest(student.id, questId, today, quest.reward, quest.reward);
     setDailyQuestIds(prev => [...prev, questId]);
     showPointToast(`+${quest.reward}M`);
-    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + quest.reward);
-    await db.updateStudentField(student.id, "xp", (student.xp || 0) + quest.reward);
+    const newTotal = (student.mileage || 0) + quest.reward;
+    await db.updateStudentField(student.id, "mileage", newTotal);
+    await db.updateStudentField(student.id, "xp", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "일일퀘스트", description: quest.title, amount: quest.reward, date: today });
     refreshAll();
   }, [student, dailyQuestIds, today]);
@@ -397,8 +401,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCompletedMissionIds(prev => [...prev, missionId]);
     const reward = mission.reward || 30;
     showPointToast(`+${reward}M`);
-    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + reward);
-    await db.updateStudentField(student.id, "xp", (student.xp || 0) + reward);
+    const newTotal = (student.mileage || 0) + reward;
+    await db.updateStudentField(student.id, "mileage", newTotal);
+    await db.updateStudentField(student.id, "xp", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "미션완료", description: mission.title, amount: reward, date: today });
     refreshAll();
   }, [student, completedMissionIds, missions, today]);
@@ -409,8 +414,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.recordPrayerParticipation(student.id, prayerId);
     const reward = 5;
     showPointToast(`+${reward}M`);
-    await db.updateStudentField(student.id, "mileage", (student.mileage || 0) + reward);
-    await db.updateStudentField(student.id, "xp", (student.xp || 0) + reward);
+    const newTotal = (student.mileage || 0) + reward;
+    await db.updateStudentField(student.id, "mileage", newTotal);
+    await db.updateStudentField(student.id, "xp", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "기도", description: "기도 참여", amount: reward, date: today });
     refreshAll();
   }, [student, today]);

@@ -19,8 +19,8 @@ function mapStudent(r: any) {
     grade: Number(r.grade) || (r.class_id?.includes("_g1_") ? 1 : r.class_id?.includes("_g2_") ? 2 : r.class_id?.includes("_g3_") ? 3 : 1),
     className: r.class_name || "",
     mileage: Number(r.mileage) || 0,
-    xp: Number(r.xp) || 0,
-    weeklyXp: Number(r.weekly_xp) || 0,
+    xp: Number(r.mileage) || 0,
+    weeklyXp: Number(r.mileage) || 0,
     isTeacher: !!r.is_teacher,
     role: r.role || "student",
     assignedClassIds: r.assigned_class_ids || [],
@@ -38,8 +38,8 @@ function mapClass(r: any) {
     name: r.name,
     grade: Number(r.grade) || 1,
     level: Number(r.level) || 1,
-    xp: Number(r.xp) || 0,
-    weeklyXp: Number(r.weekly_xp) || 0,
+    xp: Number(r.mileage) || 0,
+    weeklyXp: Number(r.mileage) || 0,
     attendance: { attended: Number(r.attendance_attended || 0), total: Number(r.attendance_total || 0) },
     qtCount: Number(r.qt_count || 0),
     missionCount: Number(r.mission_count || 0),
@@ -105,7 +105,7 @@ export async function upsertStudent(student: any) {
     id: student.id, name: student.name, birth_date: student.birthDate || "",
     class_id: student.classId || "", grade: student.grade || 1,
     class_name: student.className || "", mileage: student.mileage || 0,
-    xp: student.xp || 0, weekly_xp: student.weeklyXp || 0,
+    xp: student.mileage || 0, weekly_xp: student.weeklyXp || 0,
     is_teacher: student.isTeacher || false, role: student.role || "student",
     assigned_class_ids: student.assignedClassIds || [],
     phone: student.phone || "", guardian_phone: student.guardianPhone || "",
@@ -809,7 +809,7 @@ export async function getStudentTotalXP(studentId: string): Promise<number> {
   const s = sb();
   if (!s) return 0;
   const student = await fetchStudentById(studentId);
-  return student?.xp || 0;
+  return student?.mileage || 0;
 }
 
 export async function updateStudentField(studentId: string, field: string, value: any) {
@@ -917,7 +917,7 @@ export async function fetchClassStats(classIds: string[]): Promise<Record<string
 /* ── Rankings ── */
 export async function fetchStudentRankings() {
   const students = await fetchActiveStudents();
-  return students.sort((a: any, b: any) => (b.xp || 0) - (a.xp || 0)).slice(0, 10);
+  return students.sort((a: any, b: any) => (b.mileage || 0) - (a.mileage || 0)).slice(0, 10);
 }
 
 export async function fetchClassRankings() {
