@@ -39,6 +39,9 @@ export default function HomeContent() {
     <div>
       <div className="px-5 pt-7">
         <p className="text-xs font-bold tracking-widest text-indigo-500">{season.label}</p>
+        <div className="mb-1 flex items-center gap-2">
+          <p className="text-lg font-extrabold text-indigo-600 tracking-tight">Highlight</p>
+        </div>
         <PageHeader
           title={season.title}
           right={

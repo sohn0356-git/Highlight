@@ -40,6 +40,7 @@ export default function QTContent() {
     if (editRecordId && (editRemembered.trim() || editApplication.trim())) {
       updateQT(editRecordId, { remembered: editRemembered.trim(), application: editApplication.trim() });
       setEditRecordId(null);
+      // Keep expandedRecord so the updated content is visible
     }
   };
 
@@ -171,7 +172,7 @@ export default function QTContent() {
                             <textarea value={editApplication} onChange={e => setEditApplication(e.target.value)} rows={2} className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-xs outline-none" placeholder="실천할 것" />
                             <div className="flex gap-2">
                               <button onClick={handleUpdateQT} className="flex-1 rounded-lg bg-indigo-500 py-2 text-xs font-bold text-white">저장</button>
-                              <button onClick={() => setEditRecordId(null)} className="rounded-lg bg-neutral-100 px-3 py-2 text-xs font-bold text-neutral-600">취소</button>
+                              <button onClick={(e) => { e.stopPropagation(); setEditRecordId(null); }} className="rounded-lg bg-neutral-100 px-3 py-2 text-xs font-bold text-neutral-600">취소</button>
                             </div>
                           </div>
                         ) : (
@@ -187,8 +188,8 @@ export default function QTContent() {
                                 <p className="mt-1 text-xs leading-relaxed text-neutral-700">{r.application}</p>
                               </div>
                               <div className="flex gap-2">
-                                <button onClick={() => { setEditRecordId(r.id); setEditRemembered(r.remembered); setEditApplication(r.application); }} className="flex-1 rounded-lg bg-indigo-50 py-2 text-xs font-bold text-indigo-600">수정</button>
-                                <button onClick={() => deleteQT(r.id)} className="flex-1 rounded-lg bg-rose-50 py-2 text-xs font-bold text-rose-600">삭제</button>
+                                <button onClick={(e) => { e.stopPropagation(); setEditRecordId(r.id); setExpandedRecord(r.id); setEditRemembered(r.remembered); setEditApplication(r.application); }} className="flex-1 rounded-lg bg-indigo-50 py-2 text-xs font-bold text-indigo-600">수정</button>
+                                <button onClick={(e) => { e.stopPropagation(); deleteQT(r.id); }} className="flex-1 rounded-lg bg-rose-50 py-2 text-xs font-bold text-rose-600">삭제</button>
                               </div>
                             </div>
                           </>

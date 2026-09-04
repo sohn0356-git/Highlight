@@ -7,7 +7,7 @@ const tabs: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: "qt", label: "QT", icon: BookOpen },
   { id: "missions", label: "미션", icon: Target },
   { id: "we", label: "기도", icon: HandHeart },
-  { id: "my", label: "우리반", icon: Users },
+  { id: "my", label: "프로필", icon: Users },
 ];
 
 export default function BottomNavigation({ active, onNavigate }: { active: TabId; onNavigate: (t: TabId) => void }) {
