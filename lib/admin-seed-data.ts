@@ -3326,12 +3326,12 @@ export const seedQTContent: QTContent[] = [
 
 /* ── Missions (Admin) ── */
 export const seedMissionAdmins: MissionAdmin[] = [
-  { id: "m1", title: "처음 보는 친구에게 먼저 인사하기", description: "주변에 인사를 건넬 친구를 찾아보세요!", icon: "🤝", type: "weekly", mileageReward: 30, xpReward: 30, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
-  { id: "m2", title: "친구 한 명을 위해 기도하기", description: "하나님께 친구를 위해 간절히 기도해요.", icon: "🙏", type: "weekly", mileageReward: 20, xpReward: 20, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
-  { id: "m3", title: "이번 주 설교에서 기억나는 말씀 남기기", description: "설교 후 가장 감동받은 말씀을 적어보세요.", icon: "📖", type: "weekly", mileageReward: 30, xpReward: 30, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
-  { id: "m4", title: "은혜를 나누는 말하기", description: "친구나 선생님에게 감사의 말을 건네세요.", icon: "💝", type: "weekly", mileageReward: 20, xpReward: 20, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
-  { id: "m5", title: "함께 성경 읽기", description: "친구와 함께 성경을 읽어보세요.", icon: "🌱", type: "weekly", mileageReward: 30, xpReward: 30, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
-  { id: "ms1", title: "친구 초대하기", description: "교회에 친구를 초대해보세요!", icon: "🚪", type: "special", mileageReward: 100, xpReward: 100, startDate: "2026-08-01", endDate: "2026-09-30", target: "all", approvalRequired: true, active: true },
+  { id: "m1", title: "처음 보는 친구에게 먼저 인사하기", description: "주변에 인사를 건넬 친구를 찾아보세요!", icon: "🤝", type: "weekly", reward: 30, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
+  { id: "m2", title: "친구 한 명을 위해 기도하기", description: "하나님께 친구를 위해 간절히 기도해요.", icon: "🙏", type: "weekly", reward: 20, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
+  { id: "m3", title: "이번 주 설교에서 기억나는 말씀 남기기", description: "설교 후 가장 감동받은 말씀을 적어보세요.", icon: "📖", type: "weekly", reward: 30, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
+  { id: "m4", title: "은혜를 나누는 말하기", description: "친구나 선생님에게 감사의 말을 건네세요.", icon: "💝", type: "weekly", reward: 20, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
+  { id: "m5", title: "함께 성경 읽기", description: "친구와 함께 성경을 읽어보세요.", icon: "🌱", type: "weekly", reward: 30, startDate: "2026-08-25", endDate: "2026-08-31", target: "all", approvalRequired: false, active: true },
+  { id: "ms1", title: "친구 초대하기", description: "교회에 친구를 초대해보세요!", icon: "🚪", type: "special", reward: 100, startDate: "2026-08-01", endDate: "2026-09-30", target: "all", approvalRequired: true, active: true },
 ];
 
 /* ── Announcements ── */

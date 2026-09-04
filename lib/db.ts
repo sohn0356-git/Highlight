@@ -155,7 +155,7 @@ export async function fetchMissions() {
   return data.map((r: any) => ({
     id: r.id, icon: r.icon || "🎯", title: r.title, description: r.description || "",
     reward: Number(r.mileage_reward) || 0, category: r.type || "weekly",
-    xpReward: Number(r.xp_reward) || 0, approvalRequired: !!r.approval_required,
+    approvalRequired: !!r.approval_required,
     target: r.target || "all",
   }));
 }
@@ -178,8 +178,8 @@ export async function insertMission(mission: any) {
       target: mission.target || "all", active: true,
     };
     // Try adding optional columns
-    try { row.mileage_reward = mission.mileageReward || 30; } catch {}
-    try { row.xp_reward = mission.xpReward || 30; } catch {}
+    try { row.mileage_reward = mission.reward || 30; } catch {}
+    try { row.xp_reward = mission.reward || 30; } catch {}
     try { row.start_date = mission.startDate || ""; } catch {}
     try { row.end_date = mission.endDate || ""; } catch {}
     try { row.approval_required = !!mission.approvalRequired; } catch {}
@@ -898,6 +898,37 @@ export function getNextLevelXp(currentLevel: number, isClass: boolean = false): 
   return next ? next.minXp : Infinity;
 }
 
+/* ── QT Streak Calculation (longest consecutive days) ── */
+export async function calculateQTStreak(studentId: string): Promise<number> {
+  const s = sb();
+  if (!s) return 0;
+  const { data } = await s.from("qt_records").select("date").eq("student_id", studentId).order("date", { ascending: false });
+  if (!data || !data.length) return 0;
+  
+  // Get all unique dates
+  const dates = [...new Set(data.map((r: any) => r.date))].sort().reverse();
+  if (dates.length === 0) return 0;
+  
+  // Calculate longest streak
+  let maxStreak = 1;
+  let currentStreak = 1;
+  
+  for (let i = 1; i < dates.length; i++) {
+    const prev = new Date(dates[i - 1]);
+    const curr = new Date(dates[i]);
+    const diffDays = Math.round((prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+      currentStreak++;
+      maxStreak = Math.max(maxStreak, currentStreak);
+    } else {
+      currentStreak = 1;
+    }
+  }
+  
+  return maxStreak;
+}
+
 /* ── Badge Progress Calculation ── */
 export async function calculateBadgeProgress(studentId: string, badgeType: string): Promise<number> {
   const s = sb();
@@ -1079,9 +1110,8 @@ export async function fetchStudentBadgesWithProgress(studentId: string) {
         const { data } = await dbClient.from("students").select("mileage").eq("id", studentId).single();
         return Number(data?.mileage) || 0;
       }
-      if (type === "b6") { // XP total
-        const { data } = await dbClient.from("students").select("xp").eq("id", studentId).single();
-        return Number(data?.xp) || 0;
+      if (type === "b6") { // QT Streak
+        return await calculateQTStreak(studentId);
       }
       return 0;
     }

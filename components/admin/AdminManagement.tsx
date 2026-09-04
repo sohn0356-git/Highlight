@@ -65,12 +65,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     setRewardForm({ name: "", description: "", mileageCost: 500, inventory: 10, category: "교환권" });
   }
 
-  function submitBadge() {
-    if (!badgeForm.name) return;
-    addBadge({ id: "b_" + Date.now(), ...badgeForm, active: true, mileageReward: badgeForm.mileageReward });
-    setShowBadgeForm(false);
-    setBadgeForm({ name: "", description: "", icon: "🏅", requirementType: "qt_count", requirementValue: 1, mileageReward: 10 });
-  }
+  // Badge management removed
 
   return (
     <div className="space-y-4">
@@ -303,41 +298,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       {/* Badges tab */}
       {tab === "badges" && (
         <>
-          <button onClick={() => setShowBadgeForm(true)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
-            <Plus size={16} /> 배지 추가
-          </button>
-
-          {showBadgeForm && (
-            <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold">새 배지 추가</h3>
-                <button onClick={() => setShowBadgeForm(false)}><X size={18} className="text-neutral-400" /></button>
-              </div>
-              <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="배지 이름" value={badgeForm.name} onChange={e => setBadgeForm({ ...badgeForm, name: e.target.value })} />
-              <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="설명" value={badgeForm.description} onChange={e => setBadgeForm({ ...badgeForm, description: e.target.value })} />
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[11px] text-neutral-500">타입</label>
-                  <select className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={badgeForm.requirementType} onChange={e => setBadgeForm({ ...badgeForm, requirementType: e.target.value as any })}>
-                    <option value="qt_count">QT 횟수</option>
-                    <option value="attendance_count">출석 횟수</option>
-                    <option value="mission_count">미션 횟수</option>
-                    <option value="prayer_count">기도 횟수</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] text-neutral-500">조건 값</label>
-                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={badgeForm.requirementValue} onChange={e => setBadgeForm({ ...badgeForm, requirementValue: +e.target.value })} />
-                </div>
-              </div>
-              <div>
-                <label className="text-[11px] text-neutral-500">마일리지 보상</label>
-                <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={badgeForm.mileageReward} onChange={e => setBadgeForm({ ...badgeForm, mileageReward: +e.target.value })} />
-              </div>
-              <button onClick={submitBadge} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">추가하기</button>
-            </div>
-          )}
-
+          <p className="text-xs text-neutral-500 mb-2">배지는 시스템에서 자동으로 관리됩니다.</p>
           <div className="grid grid-cols-2 gap-2.5">
             {badges.map(b => (
               <div key={b.id} className="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm">
@@ -348,11 +309,10 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                     <p className="text-[10px] text-neutral-400 truncate">{b.description}</p>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[10px] text-neutral-500">조건: {b.requirementValue}회</span>
-                  <button onClick={() => updateBadge(b.id, { active: !b.active })} className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${b.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-400"}`}>
-                    {b.active ? "활성" : "비활성"}
-                  </button>
+                <div className="mt-2">
+                  <span className="text-[10px] text-neutral-500">
+                    {b.levelThresholds ? `레벨: ${b.levelThresholds.join(" / ")}` : ""}
+                  </span>
                 </div>
               </div>
             ))}

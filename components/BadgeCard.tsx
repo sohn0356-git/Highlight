@@ -69,15 +69,15 @@ export default function BadgeCard({ badge }: BadgeCardProps) {
       <div className="mt-2 w-full">
         {isMaxLevel ? (
           <p className="text-[11px] font-semibold text-neutral-500">
-            달성! 🎉
+            {description.includes("연속") ? `최장 ${progress}일! 🎉` : "달성! 🎉"}
           </p>
         ) : nextLevel ? (
           <>
             <p className="text-[10px] text-neutral-500">
-              {progress} / {nextLevel.threshold}
+              {description.includes("연속") ? `최장 ${progress}일` : `${progress} / ${nextLevel.threshold}`}
             </p>
             <p className="text-[10px] text-neutral-400 mt-0.5">
-              {nextLevel.title}까지 {Math.max(0, nextLevel.threshold - progress)}남음
+              {description.includes("연속") ? `다음 레벨까지 ${Math.max(0, nextLevel.threshold - progress)}일` : `${nextLevel.title}까지 ${Math.max(0, nextLevel.threshold - progress)}남음`}
             </p>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-200/70">
               <div

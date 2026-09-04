@@ -18,8 +18,7 @@ export default function AdminContent() {
     description: "",
     icon: "🎯",
     type: "weekly" as "weekly" | "special" | "event" | "class-only",
-    mileageReward: 10,
-    xpReward: 10,
+    reward: 10,
     target: "all" as "all" | "grade1" | "grade2" | "grade3" | "custom",
     approvalRequired: false,
   });
@@ -30,6 +29,7 @@ export default function AdminContent() {
     target: "all" as "all" | "grade" | "class",
     important: false,
   });
+  const [editAnnId, setEditAnnId] = useState<string | null>(null);
 
   const tabs: { id: ContentTab; label: string; icon: typeof Target }[] = [
     { id: "mission", label: "미션", icon: Target },
@@ -50,7 +50,7 @@ export default function AdminContent() {
       addMission(newMission);
     }
     setShowForm(false);
-    setMissionForm({ title: "", description: "", icon: "🎯", type: "weekly", mileageReward: 10, xpReward: 10, target: "all", approvalRequired: false });
+    setMissionForm({ title: "", description: "", icon: "🎯", type: "weekly", reward: 10, target: "all", approvalRequired: false });
   }
 
   function startEditMission(m: any) {
@@ -60,8 +60,7 @@ export default function AdminContent() {
       description: m.description || "",
       icon: m.icon || "🎯",
       type: m.type || "weekly",
-      mileageReward: m.mileageReward || 10,
-      xpReward: m.xpReward || 10,
+      reward: m.reward || 10,
       target: m.target || "all",
       approvalRequired: m.approvalRequired || false,
     });
@@ -75,17 +74,33 @@ export default function AdminContent() {
 
   function submitAnnouncement() {
     if (!announcementForm.title) return;
-    const newAnn: Announcement = {
-      id: "an_" + Date.now(),
-      ...announcementForm,
-      startDate: koreaDate(),
-      endDate: addDays(koreaDate(), 30),
-      status: "published",
-      createdAt: new Date().toISOString(),
-    };
-    addAnnouncement(newAnn);
+    if (editAnnId) {
+      updateAnnouncement(editAnnId, { ...announcementForm });
+      setEditAnnId(null);
+    } else {
+      const newAnn: Announcement = {
+        id: "an_" + Date.now(),
+        ...announcementForm,
+        startDate: koreaDate(),
+        endDate: addDays(koreaDate(), 30),
+        status: "published",
+        createdAt: new Date().toISOString(),
+      };
+      addAnnouncement(newAnn);
+    }
     setShowForm(false);
     setAnnouncementForm({ title: "", content: "", target: "all", important: false });
+  }
+
+  function startEditAnnouncement(a: any) {
+    setEditAnnId(a.id);
+    setAnnouncementForm({ title: a.title || "", content: a.content || "", target: a.target || "all", important: a.important || false });
+    setShowForm(true);
+  }
+
+  function deleteAnnouncement(id: string) {
+    if (!confirm("이 공지를 삭제하시겠습니까?")) return;
+    updateAnnouncement(id, { status: "ended" });
   }
 
   return (
@@ -134,11 +149,11 @@ export default function AdminContent() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[11px] text-neutral-500">마일리지 보상</label>
-                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.mileageReward} onChange={e => setMissionForm({ ...missionForm, mileageReward: Number(e.target.value) })} />
+                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.reward} onChange={e => setMissionForm({ ...missionForm, reward: Number(e.target.value) })} />
                 </div>
                 <div>
                   <label className="text-[11px] text-neutral-500">XP 보상</label>
-                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.xpReward} onChange={e => setMissionForm({ ...missionForm, xpReward: Number(e.target.value) })} />
+                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm"  />
                 </div>
               </div>
 
@@ -153,7 +168,7 @@ export default function AdminContent() {
                 <span className="text-xl">{m.icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-neutral-800 truncate">{m.title}</p>
-                  <p className="text-[11px] text-neutral-400">{m.type === "weekly" ? "주간" : m.type === "special" ? "스페셜" : m.type === "event" ? "이벤트" : "반별"} · {m.mileageReward}M + {m.xpReward}XP</p>
+                  <p className="text-[11px] text-neutral-400">{m.type === "weekly" ? "주간" : m.type === "special" ? "스페셜" : m.type === "event" ? "이벤트" : "반별"} · {m.reward}M</p>
                 </div>
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${m.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
                   {m.active ? "활성" : "비활성"}
@@ -178,21 +193,17 @@ export default function AdminContent() {
           {showForm && (
             <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-neutral-800">새 공지 작성</h3>
+                <h3 className="text-sm font-bold text-neutral-800">{editAnnId ? "공지 수정" : "새 공지 작성"}</h3>
                 <button onClick={() => { setShowForm(false); setEditId(null); }}><X size={18} className="text-neutral-400" /></button>
               </div>
               <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="제목" value={announcementForm.title} onChange={e => setAnnouncementForm({ ...announcementForm, title: e.target.value })} />
               <textarea className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="공지 내용" value={announcementForm.content} onChange={e => setAnnouncementForm({ ...announcementForm, content: e.target.value })} rows={4} />
-              <select className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={announcementForm.target} onChange={e => setAnnouncementForm({ ...announcementForm, target: e.target.value as any })}>
-                <option value="all">전체</option>
-                <option value="grade">학년</option>
-                <option value="class">반</option>
-              </select>
+
               <label className="flex items-center gap-2 text-sm text-neutral-600">
                 <input type="checkbox" checked={announcementForm.important} onChange={e => setAnnouncementForm({ ...announcementForm, important: e.target.checked })} />
                 중요 공지로 표시
               </label>
-              <button onClick={submitAnnouncement} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">작성하기</button>
+              <button onClick={submitAnnouncement} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editAnnId ? "수정하기" : "작성하기"}</button>
             </div>
           )}
 
@@ -201,16 +212,20 @@ export default function AdminContent() {
             {announcements.map(a => (
               <div key={a.id} className="px-4 py-3">
                 <div className="flex items-center justify-between">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       {a.important && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">중요</span>}
                       <p className="truncate text-sm font-semibold text-neutral-800">{a.title}</p>
                     </div>
                     <p className="mt-0.5 line-clamp-1 text-xs text-neutral-400">{a.content}</p>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${a.status === "published" ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
-                    {a.status === "published" ? "게시중" : a.status === "draft" ? "임시" : "종료"}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${a.status === "published" ? "bg-emerald-50 text-emerald-600" : a.status === "draft" ? "bg-neutral-100 text-neutral-500" : "bg-neutral-100 text-neutral-400"}`}>
+                      {a.status === "published" ? "게시중" : a.status === "draft" ? "임시" : ""}
+                    </span>
+                    <button onClick={() => startEditAnnouncement(a)} className="rounded-lg bg-neutral-100 px-2 py-1 text-[10px] font-bold text-neutral-600 hover:bg-neutral-200">수정</button>
+                    <button onClick={() => deleteAnnouncement(a.id)} className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-500 hover:bg-rose-100">삭제</button>
+                  </div>
                 </div>
               </div>
             ))}

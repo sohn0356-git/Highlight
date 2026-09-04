@@ -84,8 +84,7 @@ export interface MissionAdmin {
   description: string;
   icon: string;
   type: MissionType;
-  mileageReward: number;
-  xpReward: number;
+  reward: number;
   startDate?: string;
   endDate?: string;
   target: MissionTarget;
