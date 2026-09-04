@@ -415,20 +415,6 @@ export async function addTransaction(tx: any) {
   }]);
 }
 
-export async function fetchAllTransactions() {
-  const s = sb();
-  if (!s) return [];
-  const { data, error } = await s.from("mileage_transactions").select("*").order("created_at", { ascending: false }).limit(500);
-  if (error || !data) return [];
-  return data.map((r: any) => ({
-    id: r.id, studentId: r.student_id, studentName: r.student_name || "",
-    className: r.class_name || "", type: r.type || "",
-    description: r.description || "", amount: Number(r.amount) || 0,
-    date: r.date || "", actorName: r.actor_name || "",
-  }));
-}
-
-
 /* ── Prayer Comments ── */
 export async function fetchPrayerComments(prayerId: string) {
   const s = sb();
@@ -835,6 +821,26 @@ export async function deleteComment(commentId: string, postId: string) {
   if (!s) return;
   await s.from("qt_comments").delete().eq("id", commentId);
   await s.from("shared_qt_posts").update({ comment_count: { raw: "GREATEST(comment_count - 1, 0)" } }).eq("id", postId);
+}
+
+/* ── All Mileage Transactions (for admin audit) ── */
+export async function fetchAllTransactions() {
+  const s = sb();
+  if (!s) return [];
+  const { data, error } = await s.from("mileage_transactions").select("*").order("created_at", { ascending: false }).limit(200);
+  if (error || !data) return [];
+  // Get student names
+  const { data: studs } = await s.from("students").select("id, name, class_id");
+  const nameMap: Record<string, { name: string; classId: string }> = {};
+  if (studs) studs.forEach((st: any) => { nameMap[st.id] = { name: st.name, classId: st.class_id || "" }; });
+  return data.map((r: any) => ({
+    id: r.id, studentId: r.student_id,
+    studentName: nameMap[r.student_id]?.name || "(알수없음)",
+    className: nameMap[r.student_id]?.classId || "",
+    type: r.type || "", description: r.description || "",
+    amount: Number(r.amount) || 0, date: r.date || "",
+    createdAt: r.created_at || "",
+  }));
 }
 
 /* ── Audit Logs ── */

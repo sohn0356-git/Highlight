@@ -360,21 +360,35 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
         </div>
       )}
 
-      {/* Audit tab */}
+      {/* Audit tab - Mileage Transactions */}
       {tab === "audit" && (
         <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
-          <div className="px-4 py-3 border-b border-neutral-100">
-            <h3 className="text-sm font-bold text-neutral-800">감사 로그</h3>
+          <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-neutral-800">마일리지 내역</h3>
+            <span className="text-[11px] text-neutral-400">{allTransactions.length}건</span>
           </div>
-          <div className="max-h-[500px] overflow-y-auto divide-y divide-neutral-50">
-            {auditLogs.map(log => (
-              <div key={log.id} className="px-4 py-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-700">{log.actorName} <span className="font-normal text-neutral-400">({log.actorRole === "admin" ? "관리자" : "교사"})</span></p>
-                    <p className="text-xs text-neutral-600 mt-0.5">{log.description}</p>
+          <div className="max-h-[600px] overflow-y-auto divide-y divide-neutral-50">
+            {allTransactions.length === 0 && (
+              <p className="py-8 text-center text-xs text-neutral-400">아직 마일리지 내역이 없습니다.</p>
+            )}
+            {allTransactions.map((tx: any) => (
+              <div key={tx.id} className="px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">
+                      {tx.studentName?.[0] || "?"}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-neutral-800 truncate">{tx.studentName}</p>
+                      <p className="text-[11px] text-neutral-400 truncate">{tx.description} · {tx.type}</p>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-neutral-400 shrink-0 ml-2">{new Date(log.timestamp).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                  <div className="text-right shrink-0 ml-2">
+                    <p className={`text-sm font-bold ${tx.amount > 0 ? "text-emerald-600" : "text-rose-500"}`}>
+                      {tx.amount > 0 ? "+" : ""}{tx.amount}M
+                    </p>
+                    <p className="text-[10px] text-neutral-400">{tx.date}</p>
+                  </div>
                 </div>
               </div>
             ))}
