@@ -191,6 +191,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setStudent(updatedStudent);
         localStorage.setItem("mileage_session", JSON.stringify(updatedStudent));
       }
+
+      // Load all active students for ranking
+      const allStuds = await db.fetchActiveStudents();
+      setAllStudents(allStuds);
     } catch (e) { console.error("refreshAll error", e); }
   }, [student, today]);
 
@@ -259,11 +263,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const foundTeacher = teachers.find((t: any) => t.name === name);
       if (foundTeacher) {
         const isAdmin = foundTeacher.role === "admin";
+        // Try to get or create student record for teacher participation
+        const allStudents = await db.fetchStudents();
+        let teacherAsStudent = allStudents.find((s: any) => s.name === foundTeacher.name && s.isTeacher);
+        
+        // If teacher doesn't have a student record, create one
+        if (!teacherAsStudent) {
+          const newStudent = {
+            id: foundTeacher.id,
+            name: foundTeacher.name,
+            birthDate: foundTeacher.birthDate || birthDate,
+            classId: foundTeacher.assignedClassIds?.[0] || "",
+            grade: 0,
+            className: "",
+            mileage: 0, xp: 0,
+            weeklyXp: 0,
+            isTeacher: true,
+            role: foundTeacher.role || "teacher",
+            assignedClassIds: foundTeacher.assignedClassIds || [],
+            phone: "",
+            guardianPhone: "",
+            memo: "",
+            active: true,
+            enrollmentStatus: "active",
+          };
+          await db.upsertStudent(newStudent);
+          teacherAsStudent = newStudent;
+        }
+        
         const sess: Student = {
           id: foundTeacher.id, name: foundTeacher.name,
           birthDate: foundTeacher.birthDate || birthDate,
-          classId: "", grade: 0, className: "",
-          mileage: 0, xp: 0, weeklyXp: 0,
+          classId: teacherAsStudent.classId || "",
+          grade: teacherAsStudent.grade || 0,
+          className: teacherAsStudent.className || "",
+          mileage: teacherAsStudent.mileage || 0,
+          xp: teacherAsStudent.mileage || 0,
+          weeklyXp: teacherAsStudent.weeklyXp || 0,
           isTeacher: true, role: foundTeacher.role || "teacher",
           assignedClassIds: foundTeacher.assignedClassIds || [],
           phone: "", guardianPhone: "", memo: "",

@@ -312,9 +312,9 @@ export async function insertPrayer(prayer: any) {
   const s = sb();
   if (!s) return null;
   const { data, error } = await s.from("prayer_requests").insert([{
-    id: prayer.id, student_id: prayer.studentId, author_name: prayer.authorName || "",
-    anonymous: !!prayer.anonymous, content: prayer.content, class_id: prayer.classId || "",
-    status: "active",
+    id: prayer.id, author_id: prayer.studentId,
+    anonymous: !!prayer.anonymous, content: prayer.content,
+    prayer_count: 0,
   }]).select().single();
   if (error || !data) return null;
   return data;
@@ -325,7 +325,6 @@ export async function updatePrayer(id: string, patch: any) {
   if (!s) return;
   const update: any = {};
   if (patch.content !== undefined) update.content = patch.content;
-  if (patch.status !== undefined) update.status = patch.status;
   await s.from("prayer_requests").update(update).eq("id", id);
 }
 

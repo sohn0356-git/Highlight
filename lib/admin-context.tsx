@@ -282,7 +282,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   /* ── Attendance (DB-backed) ── */
   const addAttendanceSession = useCallback(async (s: AttendanceSession) => {
     setSessions(prev => [...prev, s]);
-    await db.insertAttendanceSession(s);
+    try {
+      await db.insertAttendanceSession(s);
+    } catch (e) {
+      console.error("Failed to save attendance session:", e);
+    }
   }, []);
 
   const closeAttendanceSession = useCallback(async (id: string) => {
@@ -296,7 +300,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       if (exists) return prev.map(x => x.studentId === r.studentId && x.sessionId === r.sessionId ? { ...x, state: r.state } : x);
       return [...prev, r];
     });
-    await db.upsertAttendanceRecord(r);
+    try {
+      await db.upsertAttendanceRecord(r);
+    } catch (e) {
+      console.error("Failed to save attendance record:", e);
+    }
   }, []);
 
   const updateAttendanceRecord = useCallback(async (id: string, patch: Partial<AttendanceRecordAdmin>) => {
