@@ -47,12 +47,12 @@ export default function PointToast() {
   return (
     <div
       key={toast.id}
-      className="pointer-events-none fixed inset-0 z-[9999] flex items-start justify-center pt-28"
+      className="pointer-events-none fixed inset-0 z-[9999] flex items-start justify-center pt-12"
       role="status"
       aria-live="polite"
     >
       <div
-        className="pointer-events-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold text-white shadow-lg"
+        className="pointer-events-auto flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-lg"
         style={{
           background: "linear-gradient(135deg, #f59e0b, #d97706)",
           boxShadow: "0 4px 12px -2px rgba(245, 158, 11, 0.5)",
@@ -61,7 +61,7 @@ export default function PointToast() {
           willChange: "opacity",
         }}
       >
-        <span className="text-xs">✨</span>
+        <span className="text-base">✨</span>
         <span>{toast.msg}</span>
       </div>
     </div>
