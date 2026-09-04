@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Bell, Flame, IceCream, X } from "lucide-react";
+import { Bell, Flame, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
@@ -10,40 +10,28 @@ import { useApp } from "@/lib/store-context";
 import { getStudentLevel, getNextLevelXp } from "@/lib/db";
 import StoreModal from "@/components/StoreModal";
 
-
 export default function HomeContent() {
-  const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements } = useApp();
+  const { student, isLoggedIn, classes, activities, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
 
-
+  useEffect(() => { refreshActivities(); }, [refreshActivities]);
   useEffect(() => {
-    refreshActivities();
-  }, [refreshActivities]);
-
-  useEffect(() => {
-    if (isLoggedIn && !dailyQuestIds.includes("d8")) {
-      completeDailyQuest("d8");
-    }
+    if (isLoggedIn && !dailyQuestIds.includes("d8")) completeDailyQuest("d8");
   }, [isLoggedIn, dailyQuestIds, completeDailyQuest]);
-
-
 
   if (!student || !isLoggedIn) return null;
   const myClass = classes.find(c => c.id === student.classId);
   const studentLevel = getStudentLevel(student.xp || 0);
   const nextXp = getNextLevelXp(studentLevel.level, false);
 
-
   return (
     <div>
+      {/* ── PageHeader ── */}
       <div className="px-5 pt-7">
-        <p className="text-xs font-bold tracking-widest text-indigo-500">{season.label}</p>
-        <div className="mb-1 flex items-center gap-2">
-          <p className="text-lg font-extrabold text-indigo-600 tracking-tight">Highlight</p>
-        </div>
         <PageHeader
-          title={season.title}
+          title="Highlight"
+          subtitle={season.title}
           right={
             <button
               onClick={() => setFeedOpen(true)}
@@ -61,24 +49,24 @@ export default function HomeContent() {
         />
       </div>
 
-      {/* Class + Student Level Card */}
-      <section className="mt-2 px-5">
+      {/* ── Hero Card: 클래스 + 레벨 ── */}
+      <section className="mt-3 px-5">
         <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 border-0 text-white shadow-lg shadow-indigo-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-lg font-extrabold">{myClass?.name}</p>
-              <p className="mt-0.5 text-sm text-indigo-100">
-                XP {myClass?.xp.toLocaleString()}
-              </p>
-              <p className="mt-0.5 text-sm font-semibold text-amber-200">
-                이번 주 +{myClass?.weeklyXp.toLocaleString()} XP
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/20">
-                <Flame className="text-amber-300" size={26} />
+              <p className="text-xs font-bold tracking-widest text-indigo-200">{season.label}</p>
+              <p className="mt-1 text-lg font-extrabold">{myClass?.name || "반 미배정"}</p>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-bold">
+                  💎 {(student.mileage || 0).toLocaleString()} M
+                </span>
+                <span className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-bold">
+                  LV.{studentLevel.level}
+                </span>
               </div>
-              <p className="mt-1 text-[10px] text-indigo-200">내 LV.{studentLevel.level}</p>
+            </div>
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/20">
+              <Flame className="text-amber-300" size={28} />
             </div>
           </div>
           {nextXp < Infinity && (
@@ -90,49 +78,39 @@ export default function HomeContent() {
         </Card>
       </section>
 
-      {/* Personal Mileage + Level */}
+      {/* ── 마일리지 카드 (상점 연결) ── */}
       <section className="mt-3 px-5">
-        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-amber-500">내 마일리지 & 레벨</p>
-              <div className="mt-1 flex items-baseline gap-3">
-                <p className="text-xl font-extrabold text-amber-700">{(student.mileage || 0).toLocaleString()}<span className="text-sm font-bold text-amber-400 ml-1">M</span></p>
-                <p className="text-sm font-bold text-indigo-600">LV.{studentLevel.level}</p>
-              </div>
-            </div>
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-lg">
-              💎
-            </div>
-          </div>
-        </Card>
-      </section>
-
-      {/* Mileage Card - click to open store */}
-      <section className="mt-3 px-5">
-        <div onClick={() => setStoreOpen(true)} role="button" tabIndex={0} className="cursor-pointer rounded-2xl">
+        <div onClick={() => setStoreOpen(true)} role="button" tabIndex={0} className="cursor-pointer">
           <Card className="bg-gradient-to-br from-violet-500 to-purple-600 border-0 text-white shadow-lg shadow-purple-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-purple-200">내 마일리지</p>
-                <p className="mt-1 text-2xl font-extrabold">{(student.mileage || 0).toLocaleString()}<span className="text-base font-bold text-purple-200 ml-1">M</span></p>
+                <p className="text-xs font-bold text-purple-200">내 마일리지</p>
+                <p className="mt-1 text-2xl font-extrabold">
+                  {(student.mileage || 0).toLocaleString()}
+                  <span className="text-base font-bold text-purple-200 ml-1">M</span>
+                </p>
+                <p className="mt-0.5 text-[10px] text-purple-200">탭하여 상점 보기</p>
               </div>
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/20 text-2xl">
-                <span>💎</span>
+                💎
               </div>
             </div>
           </Card>
         </div>
       </section>
 
-      {/* Top 5 Mileage Ranking */}
-
-
+      {/* ── 랭킹 ── */}
       <section className="mt-5 px-5">
-        <ClassRankingCard classes={classes as any} myClassId={student.classId} students={allStudents as any} myStudentId={student.id} />
+        <ClassRankingCard
+          classes={classes as any}
+          myClassId={student.classId}
+          students={allStudents as any}
+          myStudentId={student.id}
+        />
       </section>
 
-      <section className="mt-5 px-5">
+      {/* ── 공지사항 ── */}
+      <section className="mt-5 px-5 pb-6">
         <Card>
           <div className="flex items-center gap-1.5 mb-2">
             <span className="text-lg">📢</span>
@@ -157,8 +135,7 @@ export default function HomeContent() {
         </Card>
       </section>
 
-      <div className="h-6" />
-
+      {/* ── 소식 모달 ── */}
       {feedOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={() => setFeedOpen(false)}>
           <div
