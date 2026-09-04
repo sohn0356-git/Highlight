@@ -1,29 +1,21 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Bell, Flame, IceCream, X, Trophy } from "lucide-react";
+import { Bell, Flame, IceCream, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
 import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
-import { getStudentLevel, getNextLevelXp, fetchTopMileageRanking } from "@/lib/db";
+import { getStudentLevel, getNextLevelXp } from "@/lib/db";
 import StoreModal from "@/components/StoreModal";
 
-interface MileageRankingItem {
-  rank: number;
-  id: string;
-  name: string;
-  classId: string;
-  mileage: number;
-}
 
 export default function HomeContent() {
   const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
-  const [mileageRanking, setMileageRanking] = useState<MileageRankingItem[]>([]);
-  const [rankingLoading, setRankingLoading] = useState(false);
+
 
   useEffect(() => {
     refreshActivities();
@@ -35,27 +27,13 @@ export default function HomeContent() {
     }
   }, [isLoggedIn, dailyQuestIds, completeDailyQuest]);
 
-  useEffect(() => {
-    if (isLoggedIn) {
-      setRankingLoading(true);
-      fetchTopMileageRanking()
-        .then(setMileageRanking)
-        .catch(() => setMileageRanking([]))
-        .finally(() => setRankingLoading(false));
-    }
-  }, [isLoggedIn]);
+
 
   if (!student || !isLoggedIn) return null;
   const myClass = classes.find(c => c.id === student.classId);
   const studentLevel = getStudentLevel(student.xp || 0);
   const nextXp = getNextLevelXp(studentLevel.level, false);
 
-  const getMedal = (rank: number) => {
-    if (rank === 1) return "🥇";
-    if (rank === 2) return "🥈";
-    if (rank === 3) return "🥉";
-    return null;
-  };
 
   return (
     <div>
@@ -145,47 +123,7 @@ export default function HomeContent() {
       </section>
 
       {/* Top 5 Mileage Ranking */}
-      <section className="mt-5 px-5">
-        <Card>
-          <div className="flex items-center gap-2 mb-3">
-            <Trophy size={18} className="text-amber-500" />
-            <h2 className="text-sm font-bold text-neutral-800">마일리지 랭킹 TOP 5</h2>
-          </div>
-          {rankingLoading ? (
-            <div className="flex justify-center py-6">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-            </div>
-          ) : mileageRanking.length === 0 ? (
-            <p className="py-6 text-center text-xs text-neutral-400">아직 랭킹 데이터가 없어요.</p>
-          ) : (
-            <div className="space-y-2">
-              {mileageRanking.map((item) => {
-                const medal = getMedal(item.rank);
-                const isMe = item.id === student.id;
-                const cls = classes.find((c: any) => c.id === item.classId);
-                return (
-                  <div key={item.id} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${
-                    isMe ? "bg-indigo-50 ring-1 ring-indigo-200" : "bg-neutral-50"
-                  }`}>
-                    <span className="w-7 text-center text-sm font-bold">
-                      {medal || <span className="text-xs text-neutral-400">{item.rank}</span>}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold truncate ${isMe ? "text-indigo-700" : "text-neutral-800"}`}>
-                        {item.name} {isMe && <span className="ml-1 rounded-full bg-indigo-500 px-1.5 py-0.5 text-[10px] font-bold text-white">나</span>}
-                      </p>
-                      <p className="text-[10px] text-neutral-400">{cls?.name || item.classId}</p>
-                    </div>
-                    <span className={`text-sm font-bold ${isMe ? "text-indigo-700" : "text-neutral-700"}`}>
-                      {item.mileage.toLocaleString()}M
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-      </section>
+
 
       <section className="mt-5 px-5">
         <ClassRankingCard classes={classes as any} myClassId={student.classId} students={allStudents as any} myStudentId={student.id} />

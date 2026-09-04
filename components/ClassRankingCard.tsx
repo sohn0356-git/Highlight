@@ -14,11 +14,19 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
 }) {
   const [tab, setTab] = useState<RankTab>("class");
 
-  const sorted = [...classes].sort((a, b) => b.xp - a.xp);
+  // Calculate class total mileage from students
+  const classMileage: Record<string, number> = {};
+  if (students) {
+    students.forEach((s: any) => {
+      const cid = s.classId || "";
+      classMileage[cid] = (classMileage[cid] || 0) + (s.mileage || 0);
+    });
+  }
+  const sorted = [...classes].sort((a, b) => (classMileage[b.id] || 0) - (classMileage[a.id] || 0));
   const top = sorted[0];
 
   const sortedStudents = students
-    ? [...students].sort((a, b) => (b.xp || b.mileage) - (a.xp || a.mileage)).slice(0, 10)
+    ? [...students].sort((a, b) => ((classMileage[b.id] || 0) || b.mileage) - (a.xp || a.mileage)).slice(0, 10)
     : [];
   const topStudent = sortedStudents[0];
 
@@ -68,7 +76,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
           <div className="mt-4 flex flex-col gap-2.5">
             {sorted.map((c, i) => {
               const isMine = c.id === myClassId;
-              const pct = top.xp > 0 ? (c.xp / top.xp) * 100 : 0;
+              const pct = (classMileage[top.id] || 0) > 0 ? (c.xp / top.xp) * 100 : 0;
               const medal = getMedal(i);
               const rs = getRankStyle(i, isMine);
               return (
@@ -82,7 +90,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
                         {c.name} {isMine && <span className="ml-1 rounded-full bg-indigo-500 px-1.5 py-0.5 text-[10px] font-bold text-white">나</span>}
                       </span>
                     </div>
-                    <span className={`text-sm font-bold ${isMine ? "text-indigo-700" : "text-neutral-700"}`}>{c.xp.toLocaleString()} XP</span>
+                    <span className={`text-sm font-bold ${isMine ? "text-indigo-700" : "text-neutral-700"}`}>{(classMileage[c.id] || 0).toLocaleString()} M</span>
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/80">
                     <div className={`h-full rounded-full ${rs.bar}`} style={{ width: `${pct}%` }} />
@@ -96,7 +104,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
               <TrendingUp size={16} className="text-orange-500" />
               <p className="text-sm text-orange-700">
                 <span className="font-bold">🔥 이번 주 가장 많이 성장한 반</span>{" "}
-                {top.name} +{top.weeklyXp.toLocaleString()} XP
+                {top.name}
               </p>
             </div>
           )}
