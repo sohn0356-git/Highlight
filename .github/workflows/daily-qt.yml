@@ -2,7 +2,7 @@ name: Daily QT Fetcher
 
 on:
   schedule:
-    - cron: '5 15 * * *'
+    - cron: '30 15 * * *'
   workflow_dispatch:
     inputs:
       date:
