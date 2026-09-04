@@ -15,6 +15,7 @@ interface PrayerParticipant {
   studentId: string;
   studentName: string;
   prayedAt: string;
+  totalPrayerCount?: number;
 }
 
 interface PrayerCardProps {
@@ -109,7 +110,7 @@ export default function PrayerCard({
                 <p className="py-6 text-center text-xs text-neutral-400">아직 기도한 친구가 없어요.</p>
               ) : (
                 <div className="space-y-2">
-                  {participants.map((p, i) => (
+                  {[...participants].sort((a, b) => (b.totalPrayerCount || 0) - (a.totalPrayerCount || 0)).map((p, i) => (
                     <div key={i} className="flex items-center gap-3 rounded-xl bg-rose-50/60 px-3 py-2.5">
                       <div className="grid h-8 w-8 place-items-center rounded-full bg-rose-100 text-xs font-bold text-rose-600">
                         {p.studentName?.[0] || "?"}
@@ -118,6 +119,9 @@ export default function PrayerCard({
                         <p className="text-sm font-semibold text-neutral-800">{p.studentName}</p>
                         <p className="text-[10px] text-neutral-400">{new Date(p.prayedAt).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
                       </div>
+                      {p.totalPrayerCount !== undefined && (
+                        <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">기도 {p.totalPrayerCount}회</span>
+                      )}
                     </div>
                   ))}
                 </div>

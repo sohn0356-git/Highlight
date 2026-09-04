@@ -1,11 +1,11 @@
 "use client";
-import { Home, BookOpen, Target, HandHeart, Users } from "lucide-react";
+import { Home, BookOpen, Award, HandHeart, Users } from "lucide-react";
 import type { TabId } from "@/lib/types";
 
 const tabs: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: "home", label: "홈", icon: Home },
   { id: "qt", label: "QT", icon: BookOpen },
-  { id: "missions", label: "미션", icon: Target },
+  { id: "praise", label: "칭찬", icon: Award },
   { id: "we", label: "기도", icon: HandHeart },
   { id: "my", label: "프로필", icon: Users },
 ];

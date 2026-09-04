@@ -6,7 +6,7 @@ import { onTabChange } from "@/lib/tab";
 import { useViewMode } from "@/lib/store-context";
 import HomeContent from "@/app/home/page";
 import QTContent from "@/app/qt/page";
-import MissionsContent from "@/app/missions/page";
+import PraiseContent from "@/app/praise/page";
 import WeContent from "@/app/urinae/page";
 import MyContent from "@/app/my/page";
 import type { TabId } from "@/lib/types";
@@ -14,7 +14,7 @@ import type { TabId } from "@/lib/types";
 const tabComponents: Record<TabId, React.ComponentType> = {
   home: HomeContent,
   qt: QTContent,
-  missions: MissionsContent,
+  praise: PraiseContent,
   we: WeContent,
   my: MyContent,
 };

@@ -372,15 +372,19 @@ export async function fetchPrayerParticipants(prayerId: string) {
   if (!s) return [];
   const { data } = await s.from("prayer_participants").select("student_id, prayed_at").eq("prayer_id", prayerId).order("prayed_at", { ascending: false });
   if (!data) return [];
-  // Get student names
   const ids = data.map((r: any) => r.student_id);
   const { data: studs } = await s.from("students").select("id, name").in("id", ids);
   const nameMap: Record<string, string> = {};
   if (studs) studs.forEach((st: any) => { nameMap[st.id] = st.name; });
+  // Get total prayer count per student
+  const { data: allPrayers } = await s.from("prayer_participants").select("student_id");
+  const countMap: Record<string, number> = {};
+  if (allPrayers) allPrayers.forEach((r: any) => { countMap[r.student_id] = (countMap[r.student_id] || 0) + 1; });
   return data.map((r: any) => ({
     studentId: r.student_id,
     studentName: nameMap[r.student_id] || "(알수없음)",
     prayedAt: r.prayed_at || "",
+    totalPrayerCount: countMap[r.student_id] || 0,
   }));
 }
 

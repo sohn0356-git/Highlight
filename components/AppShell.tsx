@@ -7,7 +7,7 @@ import type { TabId } from "@/lib/types";
 const routes: Record<TabId, string> = {
   home: "/home",
   qt: "/qt",
-  missions: "/missions",
+  praise: "/praise",
   we: "/urinae",
   my: "/my",
 };

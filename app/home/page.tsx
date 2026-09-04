@@ -9,11 +9,9 @@ import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
 import { getStudentLevel, getNextLevelXp } from "@/lib/db";
 
-
 export default function HomeContent() {
   const { student, isLoggedIn, classes, activities, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
-  
 
   useEffect(() => { refreshActivities(); }, [refreshActivities]);
   useEffect(() => {
@@ -27,7 +25,6 @@ export default function HomeContent() {
 
   return (
     <div>
-      {/* ── PageHeader ── */}
       <div className="px-5 pt-7">
         <PageHeader
           title="Highlight"
@@ -49,17 +46,43 @@ export default function HomeContent() {
         />
       </div>
 
-      {/* ── Hero Card: 내 마일리지 + 레벨 ── */}
+      {/* ── 공지사항 (최상단) ── */}
+      <section className="mt-3 px-5">
+        <Card>
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-lg">📢</span>
+            <h2 className="text-sm font-bold text-neutral-800">공지사항</h2>
+          </div>
+          {announcements.length === 0 ? (
+            <p className="text-xs text-neutral-400 py-2">등록된 공지가 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {announcements.slice(0, 3).map((an: any) => (
+                <div key={an.id} className={`rounded-lg px-3 py-2.5 ${an.important ? "bg-amber-50 border border-amber-200" : "bg-neutral-50 border border-neutral-100"}`}>
+                  <div className="flex items-center gap-1.5">
+                    {an.important && <span className="text-xs">📌</span>}
+                    <p className="text-sm font-semibold text-neutral-800 truncate">{an.title}</p>
+                  </div>
+                  {an.content && <p className="mt-1 text-[11px] text-neutral-500 line-clamp-2">{an.content}</p>}
+                  <p className="mt-1 text-[10px] text-neutral-400">{an.createdAt?.slice(0, 10) || ""}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </section>
+
+      {/* ── Hero Card: 이름 + 레벨 ── */}
       <section className="mt-3 px-5">
         <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 border-0 text-white shadow-lg shadow-indigo-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold tracking-widest text-indigo-200">{myClass?.name || "반 미배정"}</p>
+              <p className="text-2xl font-extrabold">{student.name}</p>
+              <p className="mt-1 text-xs font-bold tracking-widest text-indigo-200">{myClass?.name || "반 미배정"}</p>
               <div className="mt-2 flex items-baseline gap-2">
-                <p className="text-3xl font-extrabold">{(student.mileage || 0).toLocaleString()}</p>
-                <span className="text-base font-bold text-indigo-200">M</span>
+                <p className="text-2xl font-extrabold">{(student.mileage || 0).toLocaleString()}</p>
+                <span className="text-sm font-bold text-indigo-200">M</span>
               </div>
-              <p className="mt-1 text-xs text-indigo-200">내 마일리지</p>
             </div>
             <div className="text-right">
               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/20 ml-auto">
@@ -85,32 +108,6 @@ export default function HomeContent() {
           students={allStudents as any}
           myStudentId={student.id}
         />
-      </section>
-
-      {/* ── 공지사항 ── */}
-      <section className="mt-5 px-5 pb-6">
-        <Card>
-          <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-lg">📢</span>
-            <h2 className="text-sm font-bold text-neutral-800">공지사항</h2>
-          </div>
-          {announcements.length === 0 ? (
-            <p className="text-xs text-neutral-400 py-2">등록된 공지가 없습니다.</p>
-          ) : (
-            <div className="space-y-2">
-              {announcements.slice(0, 3).map((an: any) => (
-                <div key={an.id} className={`rounded-lg px-3 py-2.5 ${an.important ? "bg-amber-50 border border-amber-200" : "bg-neutral-50 border border-neutral-100"}`}>
-                  <div className="flex items-center gap-1.5">
-                    {an.important && <span className="text-xs">📌</span>}
-                    <p className="text-sm font-semibold text-neutral-800 truncate">{an.title}</p>
-                  </div>
-                  {an.content && <p className="mt-1 text-[11px] text-neutral-500 line-clamp-2">{an.content}</p>}
-                  <p className="mt-1 text-[10px] text-neutral-400">{an.createdAt?.slice(0, 10) || ""}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
       </section>
 
       {/* ── 소식 모달 ── */}

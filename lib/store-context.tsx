@@ -74,7 +74,7 @@ function isAdminUser(s: Student | null): boolean {
 const DAILY_QUEST_DEFS = [
   { id: "d1", icon: "📖", title: "QT 완료하기", description: "오늘의 QT를 완료하세요", reward: 10 },
   { id: "d2", icon: "📤", title: "QT 공유하기", description: "QT를 친구와 공유하세요", reward: 10 },
-  { id: "d5", icon: "📝", title: "기도제목 남기기", description: "기도제목을 올려보세요", reward: 10 },
+  { id: "d5", icon: "🙏", title: "기도해주기", description: "친구를 위해 기도해보세요", reward: 10 },
   { id: "d6", icon: "💬", title: "댓글 달기", description: "QT 게시글에 댓글을 남기세요", reward: 5 },
   { id: "d8", icon: "🏠", title: "홈 탭 확인", description: "홈 탭을 확인하세요", reward: 3 },
 ];
@@ -547,7 +547,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.completeDailyQuest(student.id, "d5", today, 10, 10);
     setDailyQuestIds(prev => [...prev, "d5"]);
     await db.addActivity("prayer", `${anonymous ? "익명" : student.name}님이 기도제목을 올렸습니다`);
-    setBadgeRefreshKey(k => k + 1);
     refreshAll();
   }, [student, today]);
 

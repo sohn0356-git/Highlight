@@ -137,7 +137,7 @@ export interface CommunityActivity {
   timestamp: string;
 }
 
-export type TabId = "home" | "qt" | "missions" | "we" | "my";
+export type TabId = "home" | "qt" | "praise" | "we" | "my";
 
 export interface SharedQTPost {
   id: string;
