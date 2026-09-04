@@ -166,7 +166,10 @@ export default function PrayerCard({
                       {(cm.studentName || "?").slice(0, 1)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold text-neutral-700">{cm.studentName}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[11px] font-semibold text-neutral-700">{cm.studentName}</p>
+                        {cm.createdAt && <p className="text-[9px] text-neutral-400">{new Date(cm.createdAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</p>}
+                      </div>
                       <p className="text-xs text-neutral-600">{cm.content}</p>
                     </div>
                   </div>

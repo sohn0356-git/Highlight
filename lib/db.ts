@@ -774,6 +774,7 @@ export async function fetchSharedPosts() {
     remembered: r.remembered || "", application: r.application || "",
     reward: r.reward || 0, date: r.date || "",
     commentCount: r.comment_count || 0, likedBy: r.liked_by || [],
+    createdAt: r.created_at || "",
   }));
 }
 

@@ -153,6 +153,7 @@ export interface SharedQTPost {
   date: string;
   commentCount: number;
   likedBy: string[];
+  createdAt?: string;
 }
 
 export interface QTComment {

@@ -34,7 +34,7 @@ export default function SharedQTFeed({ limit = 20 }: { limit?: number }) {
                   </span>
                   <div>
                     <p className="text-sm font-bold text-neutral-800">{post.studentName}</p>
-                    <p className="text-[11px] text-neutral-400">{post.className || ""} · {post.date}</p>
+                    <p className="text-[11px] text-neutral-400">{post.className || ""} · {post.date}{post.createdAt ? " " + new Date(post.createdAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) : ""}</p>
                   </div>
                 </div>
                 <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">공유 +{post.reward}M</span>
@@ -64,7 +64,10 @@ export default function SharedQTFeed({ limit = 20 }: { limit?: number }) {
                       {comments.map(c => (
                         <div key={c.id} className="rounded-xl bg-neutral-50 px-3 py-2">
                           <div className="flex items-center justify-between">
-                            <p className="text-[11px] font-bold text-neutral-600">{c.studentName}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-[11px] font-bold text-neutral-600">{c.studentName}</p>
+                              {c.createdAt && <p className="text-[9px] text-neutral-400">{new Date(c.createdAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</p>}
+                            </div>
                             {c.studentId === student?.id && (
                               <div className="flex gap-1">
                                 <button onClick={() => { setEditCommentId(c.id); setEditCommentText(c.content); }} className="text-neutral-400 hover:text-indigo-500"><Pencil size={11} /></button>
