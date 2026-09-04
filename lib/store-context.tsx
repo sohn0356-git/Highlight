@@ -422,6 +422,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유", description: "QT 공유", amount: 10, date: today });
     await db.completeDailyQuest(student.id, "d2", today, 10, 10);
     setDailyQuestIds(prev => [...prev, "d2"]);
+    setBadgeRefreshKey(k => k + 1);
     refreshAll();
     return true;
   }, [student, sharedQTDates, today, qtToday, qtRecords]);
@@ -438,6 +439,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유 취소", description: "QT 공유 취소", amount: -reward, date: today });
     setSharedQTDates(prev => prev.filter(d => d !== today));
     showPointToast(`-${reward}M`);
+    setBadgeRefreshKey(k => k + 1);
     refreshAll();
   }, [student, today]);
 
@@ -468,6 +470,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newTotal = (student.mileage || 0) + 5;
       await db.updateStudentField(student.id, "mileage", newTotal);
       await db.updateStudentField(student.id, "xp", newTotal);
+      setBadgeRefreshKey(k => k + 1);
     }
   }, [student, sharedPosts, today, loadComments]);
 
@@ -544,6 +547,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.completeDailyQuest(student.id, "d5", today, 10, 10);
     setDailyQuestIds(prev => [...prev, "d5"]);
     await db.addActivity("prayer", `${anonymous ? "익명" : student.name}님이 기도제목을 올렸습니다`);
+    setBadgeRefreshKey(k => k + 1);
     refreshAll();
   }, [student, today]);
 
