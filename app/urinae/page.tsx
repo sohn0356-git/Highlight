@@ -1,10 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MessageCirclePlus, HandHeart } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import PrayerCard from "@/components/PrayerCard";
 import { useApp } from "@/lib/store-context";
+import { fetchPrayerComments, addPrayerComment } from "@/lib/db";
 import { mockData } from "@/lib/data";
 
 export default function WeContent() {
@@ -12,6 +13,7 @@ export default function WeContent() {
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const [commentsMap, setCommentsMap] = useState<Record<string, any[]>>({});
   const [editId, setEditId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
 
@@ -20,6 +22,26 @@ export default function WeContent() {
   const nameMap: Record<string, string> = Object.fromEntries(
     mockData.students.map(s => [s.id, s.name])
   );
+
+  const fetchAllComments = useCallback(async () => {
+    const map: Record<string, any[]> = {};
+    for (const p of prayers) {
+      try {
+        const cm = await fetchPrayerComments(p.id);
+        map[p.id] = cm;
+      } catch { map[p.id] = []; }
+    }
+    setCommentsMap(map);
+  }, [prayers]);
+
+  useEffect(() => {
+    if (prayers.length) fetchAllComments();
+  }, [prayers.length, fetchAllComments]);
+
+  const handleAddComment = async (prayerId: string, text: string) => {
+    await addPrayerComment({ prayerId, studentId: student!.id, studentName: student!.name, content: text });
+    fetchAllComments();
+  };
 
   const canPost = todayPrayerCount < 1;
 
@@ -112,6 +134,9 @@ export default function WeContent() {
               onSaveEdit={() => handleEdit(p.id)}
               onDelete={() => handleDelete(p.id)}
               onEditContentChange={setEditContent}
+              comments={commentsMap[p.id] || []}
+              onAddComment={(text) => handleAddComment(p.id, text)}
+              studentName={student.name}
             />
           ))}
           {prayers.length === 0 && (

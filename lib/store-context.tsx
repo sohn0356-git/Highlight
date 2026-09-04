@@ -462,7 +462,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addComment, fetchPostComments,
       missions, dailyQuests, dailyQuestIds, completeDailyQuest,
       completedMissionIds, completeMission: completeMissionHandler,
-      prayers: [...prayers].sort((a, b) => b.prayerCount - a.prayerCount),
+      prayers: [...prayers].sort((a: any, b: any) => (b.createdAt || "").localeCompare(a.createdAt || "")),
       announcements,
       prayFor: prayForHandler, addPrayerRequest, updatePrayerRequest, deletePrayerRequest,
       todayPrayerCount, transactions: txns,

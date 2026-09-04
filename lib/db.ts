@@ -429,6 +429,43 @@ export async function fetchAllTransactions() {
   }));
 }
 
+
+/* ── Prayer Comments ── */
+export async function fetchPrayerComments(prayerId: string) {
+  const s = sb();
+  if (!s) return [];
+  try {
+    const { data, error } = await s.from("prayer_comments").select("*").eq("prayer_id", prayerId).order("created_at", { ascending: true });
+    if (error || !data) return [];
+    return data.map((r: any) => ({
+      id: r.id, prayerId: r.prayer_id, studentId: r.student_id,
+      studentName: r.student_name || "", content: r.content,
+      createdAt: r.created_at || "",
+    }));
+  } catch { return []; }
+}
+
+export async function addPrayerComment(comment: any) {
+  const s = sb();
+  if (!s) return;
+  try {
+    await s.from("prayer_comments").insert([{
+      id: "pc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      prayer_id: comment.prayerId, student_id: comment.studentId,
+      student_name: comment.studentName || "", content: comment.content,
+      created_at: new Date().toISOString(),
+    }]);
+  } catch {}
+}
+
+export async function deletePrayerComment(id: string) {
+  const s = sb();
+  if (!s) return;
+  try {
+    await s.from("prayer_comments").delete().eq("id", id);
+  } catch {}
+}
+
 /* ── QT Records ── */
 export async function fetchQTRecords(studentId: string) {
   const s = sb();

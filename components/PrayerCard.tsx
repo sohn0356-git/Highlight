@@ -2,6 +2,15 @@ import { useState } from "react";
 import { HandHeart, ChevronDown, X, Pencil, Trash2, Check, XIcon } from "lucide-react";
 import type { PrayerRequest } from "@/lib/types";
 
+interface PrayerComment {
+  id: string;
+  prayerId: string;
+  studentId: string;
+  studentName: string;
+  content: string;
+  createdAt: string;
+}
+
 interface PrayerCardProps {
   prayer: PrayerRequest;
   studentId: string;
@@ -15,16 +24,22 @@ interface PrayerCardProps {
   onSaveEdit?: () => void;
   onDelete?: () => void;
   onEditContentChange?: (v: string) => void;
+  comments?: PrayerComment[];
+  onAddComment?: (content: string) => void;
+  studentName?: string;
 }
 
 export default function PrayerCard({
   prayer, studentId, onPray, nameMap,
   isOwner, isEditing, editContent,
   onStartEdit, onCancelEdit, onSaveEdit, onDelete, onEditContentChange,
+  comments = [], onAddComment, studentName,
 }: PrayerCardProps) {
   const already = prayer.prayedBy.includes(studentId);
   const [showPrayed, setShowPrayed] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
 
   const prayedNames = prayer.prayedBy
     .map(id => nameMap?.[id] || id)
@@ -109,6 +124,52 @@ export default function PrayerCard({
       ) : (
         <p className="mt-2 text-sm leading-relaxed text-neutral-600">{prayer.content}</p>
       )}
+
+      {/* Comments section */}
+      <div className="mt-3">
+        <button
+          onClick={() => setShowComments(v => !v)}
+          className="text-xs font-semibold text-neutral-400 hover:text-neutral-600 transition"
+        >
+          💬 댓글 {comments.length > 0 ? comments.length : ""}
+        </button>
+        {showComments && (
+          <div className="mt-2 rounded-xl bg-neutral-50 p-3 border border-neutral-100">
+            {comments.length > 0 && (
+              <div className="space-y-2 mb-2">
+                {comments.map(cm => (
+                  <div key={cm.id} className="flex items-start gap-2">
+                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[9px] font-bold text-indigo-600">
+                      {(cm.studentName || "?").slice(0, 1)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold text-neutral-700">{cm.studentName}</p>
+                      <p className="text-xs text-neutral-600">{cm.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && commentText.trim() && onAddComment) { onAddComment(commentText.trim()); setCommentText(""); } }}
+                placeholder="댓글을 입력하세요…"
+                className="flex-1 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400"
+              />
+              <button
+                onClick={() => { if (commentText.trim() && onAddComment) { onAddComment(commentText.trim()); setCommentText(""); } }}
+                disabled={!commentText.trim()}
+                className="rounded-lg bg-indigo-500 px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-40 active:scale-95 transition"
+              >
+                등록
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <button
         onClick={onPray}
