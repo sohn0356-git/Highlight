@@ -19,7 +19,7 @@ interface MileageRankingItem {
 }
 
 export default function HomeContent() {
-  const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities } = useApp();
+  const { student, isLoggedIn, classes, activities, sharedGoal, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
   const [mileageRanking, setMileageRanking] = useState<MileageRankingItem[]>([]);
@@ -192,23 +192,27 @@ export default function HomeContent() {
       </section>
 
       <section className="mt-5 px-5">
-        <Card className="border-amber-100 bg-amber-50/60">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-lg">🎯</span>
-              <h2 className="text-sm font-bold text-neutral-800">{sharedGoal.label}</h2>
+        <Card>
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-lg">📢</span>
+            <h2 className="text-sm font-bold text-neutral-800">공지사항</h2>
+          </div>
+          {announcements.length === 0 ? (
+            <p className="text-xs text-neutral-400 py-2">등록된 공지가 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {announcements.slice(0, 3).map((an: any) => (
+                <div key={an.id} className={`rounded-lg px-3 py-2.5 ${an.important ? "bg-amber-50 border border-amber-200" : "bg-neutral-50 border border-neutral-100"}`}>
+                  <div className="flex items-center gap-1.5">
+                    {an.important && <span className="text-xs">📌</span>}
+                    <p className="text-sm font-semibold text-neutral-800 truncate">{an.title}</p>
+                  </div>
+                  {an.content && <p className="mt-1 text-[11px] text-neutral-500 line-clamp-2">{an.content}</p>}
+                  <p className="mt-1 text-[10px] text-neutral-400">{an.createdAt?.slice(0, 10) || ""}</p>
+                </div>
+              ))}
             </div>
-            <span className="text-xs font-semibold text-amber-600">
-              {sharedGoal.current.toLocaleString()} / {sharedGoal.target.toLocaleString()} XP
-            </span>
-          </div>
-          <div className="mt-3">
-            <ProgressBar value={sharedGoal.current} max={sharedGoal.target} className="bg-amber-200/70" barClassName="bg-amber-400" />
-          </div>
-          <div className="mt-3 flex items-center gap-2 text-xs text-amber-700">
-            <IceCream size={14} />
-            <span>{sharedGoal.reward}</span>
-          </div>
+          )}
         </Card>
       </section>
 

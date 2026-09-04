@@ -33,6 +33,7 @@ interface AppState {
   completedMissionIds: string[];
   completeMission: (missionId: string) => void;
   prayers: PrayerRequest[];
+  announcements: any[];
   prayFor: (prayerId: string) => void;
   addPrayerRequest: (content: string, anonymous: boolean) => void;
   updatePrayerRequest: (prayerId: string, content: string) => void;
@@ -61,7 +62,7 @@ export function useApp() { const ctx = useContext(Ctx); if (!ctx) throw new Erro
 /* ── Admin check ── */
 function isAdminUser(s: Student | null): boolean {
   if (!s) return false;
-  return s.role === "admin" || s.role === "teacher" || !!s.isTeacher;
+  return s.role === "admin";
 }
 
 /* ── Daily Quest Definitions ── */
@@ -102,6 +103,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [dailyQuests] = useState(DAILY_QUEST_DEFS);
   const [season, setSeason] = useState<any>({ id: "", label: "", title: "" });
   const [sharedGoal, setSharedGoal] = useState<any>({ label: "", current: 0, target: 50000, reward: "" });
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [badges, setBadges] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
@@ -142,6 +144,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         message: (an.important ? "📌 " : "") + an.title + (an.content ? " — " + an.content : ""),
         timestamp: an.createdAt || "",
       }));
+      setAnnouncements(an || []);
       setActivities([...annActivities, ...(a || [])].slice(0, 20));
       setPrayers(pr as PrayerRequest[]);
       setQtRecords(qr as QTRecord[]);
@@ -454,6 +457,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       missions, dailyQuests, dailyQuestIds, completeDailyQuest,
       completedMissionIds, completeMission: completeMissionHandler,
       prayers: [...prayers].sort((a, b) => b.prayerCount - a.prayerCount),
+      announcements,
       prayFor: prayForHandler, addPrayerRequest, updatePrayerRequest, deletePrayerRequest,
       todayPrayerCount, transactions: txns,
       badges, season, classes, allStudents, activities,

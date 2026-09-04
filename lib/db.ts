@@ -1151,7 +1151,7 @@ export async function processAttendanceReward(attendanceRecordId: string, studen
   const { data: student } = await s.from("students").select("*").eq("id", studentId).single();
   if (!student) return false;
   // Skip if teacher/admin (check by name patterns as fallback)
-  if (student.role === "admin" || student.role === "teacher" || student.is_teacher) return false;
+  if (student.role === "admin") return false;
 
   // Create attendance reward record
   const { error: rewErr } = await s.from("attendance_rewards").insert({
