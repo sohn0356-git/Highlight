@@ -27,16 +27,22 @@ export default function PraiseContent() {
   const [hasPraisedToday, setHasPraisedToday] = useState(false);
   const [search, setSearch] = useState("");
 
+  const [allTargets, setAllTargets] = useState<any[]>([]);
+
   const loadPraises = useCallback(async () => {
     const { getSupabase } = await import("@/lib/supabase");
     const sb = getSupabase();
     if (!sb) return;
     const { data } = await sb.from("praises").select("*").order("created_at", { ascending: false }).limit(50);
     if (data) setPraises(data as PraiseRecord[]);
+    // Load teachers as praise targets too
+    const { data: teachers } = await sb.from("teachers").select("*").eq("active", true);
+    const teacherList = (teachers || []).map((t: any) => ({ id: t.id, name: t.name, classId: t.assignedClassIds?.[0] || "", mileage: 0, active: true, isTeacher: true }));
+    setAllTargets([...allStudents.filter((s: any) => s.id !== student?.id && s.active !== false), ...teacherList.filter((t: any) => !allStudents.find((s: any) => s.id === t.id))]);
     // Check if already praised today
     if (student) {
       const today = koreaDate();
-      const { data: todayPraise } = await sb.from("praises").select("id").eq("praiser_id", student.id).gte("created_at", today + "T00:00:00").lte("created_at", today + "T23:59:59").limit(1);
+      const { data: todayPraise } = await sb.from("praises").select("id").eq("praiser_id", student.id).like("created_at", today + "%").limit(1);
       setHasPraisedToday(!!todayPraise && todayPraise.length > 0);
     }
   }, [student?.id]);
@@ -45,12 +51,12 @@ export default function PraiseContent() {
 
   if (!student || !isLoggedIn) return null;
 
-  const classmates = allStudents.filter((s: any) => s.id !== student.id && s.active !== false);
+  const classmates = allTargets;
   const filtered = search ? classmates.filter((c: any) => c.name.includes(search)) : classmates;
 
   const handleSubmit = async () => {
     if (!praisedId || !reason.trim() || hasPraisedToday) return;
-    const praised = classmates.find((c: any) => c.id === praisedId);
+    const praised = allTargets.find((c: any) => c.id === praisedId);
     if (!praised) return;
     const { getSupabase } = await import("@/lib/supabase");
     const sb = getSupabase();
