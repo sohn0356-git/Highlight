@@ -56,9 +56,9 @@ export default function WeContent() {
     setShowForm(false);
   };
 
-  const handlePray = async (prayerId: string) => {
+  const handlePray = async (prayerId: string, prayerStudentId?: string) => {
     if (prayedTodayMap[prayerId]) return;
-    await prayFor(prayerId);
+    await prayFor(prayerId, prayerStudentId);
     // Complete daily quest d5 (기도해주기) if not already done
     if (!dailyQuestIds.includes("d5")) {
       await completeDailyQuest("d5");
@@ -133,7 +133,7 @@ export default function WeContent() {
               key={p.id}
               prayer={p}
               studentId={student.id}
-              onPray={() => handlePray(p.id)}
+              onPray={() => handlePray(p.id, p.studentId)}
               isOwner={p.studentId === student.id}
               isEditing={editId === p.id}
               editContent={editContent}

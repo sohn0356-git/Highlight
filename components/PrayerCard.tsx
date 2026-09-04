@@ -209,7 +209,7 @@ export default function PrayerCard({
         }`}
       >
         <HandHeart size={14} />
-        {hasPrayedToday ? "기도했어요 🙏" : "기도했어요 🙏 +5M"}
+        {hasPrayedToday ? "기도했어요 🙏" : isOwner ? "기도했어요 🙏" : "기도했어요 🙏 +5M"}
       </button>
     </div>
   );

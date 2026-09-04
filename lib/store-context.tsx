@@ -38,7 +38,7 @@ interface AppState {
   completeMission: (missionId: string) => void;
   prayers: PrayerRequest[];
   announcements: any[];
-  prayFor: (prayerId: string) => void;
+  prayFor: (prayerId: string, prayerStudentId?: string) => void;
   addPrayerRequest: (content: string, anonymous: boolean) => void;
   updatePrayerRequest: (prayerId: string, content: string) => void;
   deletePrayerRequest: (prayerId: string) => void;
@@ -523,9 +523,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [student, completedMissionIds, missions, today]);
 
   /* ── Prayer ── */
-  const prayForHandler = useCallback(async (prayerId: string) => {
+  const prayForHandler = useCallback(async (prayerId: string, prayerStudentId?: string) => {
     if (!student || isAdminUser(student)) return;
     await db.recordPrayerParticipation(student.id, prayerId);
+    // 자기 기도제목에는 마일리지不予给
+    if (prayerStudentId && prayerStudentId === student.id) {
+      refreshAll();
+      return;
+    }
     const reward = 5;
     showPointToast(`+${reward}M`);
     const newTotal = (student.mileage || 0) + reward;
