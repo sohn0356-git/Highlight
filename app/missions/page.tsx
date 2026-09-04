@@ -1,13 +1,21 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Target, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import BadgeCard from "@/components/BadgeCard";
 import { useApp } from "@/lib/store-context";
+import { fetchStudentBadgesWithProgress } from "@/lib/db";
 
 export default function MissionsContent() {
-  const { student, isLoggedIn, missions, completedMissionIds, completeMission, badges, dailyQuests, dailyQuestIds, completeDailyQuest } = useApp();
+  const { student, isLoggedIn, missions, completedMissionIds, completeMission, dailyQuests, dailyQuestIds, completeDailyQuest } = useApp();
+  const [badges, setBadges] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (student?.id) {
+      fetchStudentBadgesWithProgress(student.id).then(setBadges).catch(() => setBadges([]));
+    }
+  }, [student?.id]);
 
   // (d6 제거됨 - 더 이상 미션 탭 방문으로 자동 달성하지 않음)
 
