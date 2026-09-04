@@ -47,7 +47,7 @@ export default function PointToast() {
   return (
     <div
       key={toast.id}
-      className="pointer-events-none fixed inset-0 z-[9999] flex items-center justify-center"
+      className="pointer-events-none fixed inset-0 z-[9999] flex items-start justify-center pt-28"
       role="status"
       aria-live="polite"
     >
