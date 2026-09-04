@@ -49,24 +49,23 @@ export default function HomeContent() {
         />
       </div>
 
-      {/* ── Hero Card: 클래스 + 레벨 ── */}
+      {/* ── Hero Card: 내 마일리지 + 레벨 ── */}
       <section className="mt-3 px-5">
         <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 border-0 text-white shadow-lg shadow-indigo-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold tracking-widest text-indigo-200">{season.label}</p>
-              <p className="mt-1 text-lg font-extrabold">{myClass?.name || "반 미배정"}</p>
-              <div className="mt-2 flex items-center gap-3">
-                <span className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-bold">
-                  💎 {(student.mileage || 0).toLocaleString()} M
-                </span>
-                <span className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-bold">
-                  LV.{studentLevel.level}
-                </span>
+              <p className="text-xs font-bold tracking-widest text-indigo-200">{myClass?.name || "반 미배정"}</p>
+              <div className="mt-2 flex items-baseline gap-2">
+                <p className="text-3xl font-extrabold">{(student.mileage || 0).toLocaleString()}</p>
+                <span className="text-base font-bold text-indigo-200">M</span>
               </div>
+              <p className="mt-1 text-xs text-indigo-200">내 마일리지</p>
             </div>
-            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/20">
-              <Flame className="text-amber-300" size={28} />
+            <div className="text-right">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/20 ml-auto">
+                <Flame className="text-amber-300" size={28} />
+              </div>
+              <p className="mt-1.5 text-sm font-bold text-amber-200">LV.{studentLevel.level}</p>
             </div>
           </div>
           {nextXp < Infinity && (
