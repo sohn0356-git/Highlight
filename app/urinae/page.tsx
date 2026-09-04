@@ -5,8 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import PrayerCard from "@/components/PrayerCard";
 import { useApp } from "@/lib/store-context";
-import { fetchPrayerComments, addPrayerComment } from "@/lib/db";
-import { mockData } from "@/lib/data";
+import { fetchPrayerComments, addPrayerComment, fetchPrayerParticipants } from "@/lib/db";
 
 export default function WeContent() {
   const { student, isLoggedIn, prayers, prayFor, addPrayerRequest, updatePrayerRequest, deletePrayerRequest, todayPrayerCount } = useApp();
@@ -14,33 +13,41 @@ export default function WeContent() {
   const [content, setContent] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [commentsMap, setCommentsMap] = useState<Record<string, any[]>>({});
+  const [participantsMap, setParticipantsMap] = useState<Record<string, any[]>>({});
+  const [prayedTodayMap, setPrayedTodayMap] = useState<Record<string, boolean>>({});
   const [editId, setEditId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
 
   if (!student || !isLoggedIn) return null;
 
-  const nameMap: Record<string, string> = Object.fromEntries(
-    mockData.students.map(s => [s.id, s.name])
-  );
+  const nameMap: Record<string, string> = {};
 
-  const fetchAllComments = useCallback(async () => {
-    const map: Record<string, any[]> = {};
+  const fetchAllData = useCallback(async () => {
+    const cmap: Record<string, any[]> = {};
+    const pmap: Record<string, any[]> = {};
+    const tmap: Record<string, boolean> = {};
     for (const p of prayers) {
       try {
-        const cm = await fetchPrayerComments(p.id);
-        map[p.id] = cm;
-      } catch { map[p.id] = []; }
+        cmap[p.id] = await fetchPrayerComments(p.id);
+      } catch { cmap[p.id] = []; }
+      try {
+        const participants = await fetchPrayerParticipants(p.id);
+        pmap[p.id] = participants;
+        tmap[p.id] = participants.some((pp: any) => pp.studentId === student?.id);
+      } catch { pmap[p.id] = []; tmap[p.id] = false; }
     }
-    setCommentsMap(map);
-  }, [prayers]);
+    setCommentsMap(cmap);
+    setParticipantsMap(pmap);
+    setPrayedTodayMap(tmap);
+  }, [prayers, student?.id]);
 
   useEffect(() => {
-    if (prayers.length) fetchAllComments();
-  }, [prayers.length, fetchAllComments]);
+    if (prayers.length) fetchAllData();
+  }, [prayers.length, fetchAllData]);
 
   const handleAddComment = async (prayerId: string, text: string) => {
     await addPrayerComment({ prayerId, studentId: student!.id, studentName: student!.name, content: text });
-    fetchAllComments();
+    fetchAllData();
   };
 
   const canPost = todayPrayerCount < 1;
@@ -137,6 +144,8 @@ export default function WeContent() {
               comments={commentsMap[p.id] || []}
               onAddComment={(text) => handleAddComment(p.id, text)}
               studentName={student.name}
+              participants={participantsMap[p.id] || []}
+              hasPrayedToday={!!prayedTodayMap[p.id]}
             />
           ))}
           {prayers.length === 0 && (

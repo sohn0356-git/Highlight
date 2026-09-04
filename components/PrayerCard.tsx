@@ -11,6 +11,12 @@ interface PrayerComment {
   createdAt: string;
 }
 
+interface PrayerParticipant {
+  studentId: string;
+  studentName: string;
+  prayedAt: string;
+}
+
 interface PrayerCardProps {
   prayer: PrayerRequest;
   studentId: string;
@@ -27,6 +33,8 @@ interface PrayerCardProps {
   comments?: PrayerComment[];
   onAddComment?: (content: string) => void;
   studentName?: string;
+  participants?: PrayerParticipant[];
+  hasPrayedToday?: boolean;
 }
 
 export default function PrayerCard({
@@ -34,23 +42,24 @@ export default function PrayerCard({
   isOwner, isEditing, editContent,
   onStartEdit, onCancelEdit, onSaveEdit, onDelete, onEditContentChange,
   comments = [], onAddComment, studentName,
+  participants = [], hasPrayedToday = false,
 }: PrayerCardProps) {
-  const already = prayer.prayedBy.includes(studentId);
-  const [showPrayed, setShowPrayed] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
 
-  const prayedNames = prayer.prayedBy
-    .map(id => nameMap?.[id] || id)
-    .filter(Boolean);
-
   return (
     <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-bold text-neutral-800">
-          {prayer.anonymous ? "익명" : prayer.authorName}
-        </span>
+        <div>
+          <span className="text-sm font-bold text-neutral-800">
+            {prayer.anonymous ? "익명" : (prayer.authorName || studentName || "익명")}
+          </span>
+          {prayer.createdAt && (
+            <p className="text-[10px] text-neutral-400 mt-0.5">{new Date(prayer.createdAt).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" })}</p>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           {isOwner && !isEditing && (
             <>
@@ -74,33 +83,47 @@ export default function PrayerCard({
             </>
           )}
           <button
-            onClick={() => setShowPrayed(v => !v)}
+            onClick={() => setShowParticipants(true)}
             className="flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-500 transition active:scale-95"
             title="기도한 친구 보기"
           >
             🙏 {prayer.prayerCount}
-            <ChevronDown size={12} className={`transition-transform ${showPrayed ? "rotate-180" : ""}`} />
           </button>
         </div>
       </div>
 
-      {showPrayed && (
-        <div className="mt-3 rounded-xl bg-rose-50/60 border border-rose-100 p-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-rose-600">🙏 함께 기도한 친구들</p>
-            <button onClick={() => setShowPrayed(false)} className="text-rose-300 hover:text-rose-500"><X size={14} /></button>
-          </div>
-          {prayedNames.length === 0 ? (
-            <p className="mt-1.5 text-xs text-rose-400">아직 기도한 친구가 없어요.</p>
-          ) : (
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {prayedNames.map((name, i) => (
-                <span key={i} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-rose-600 shadow-sm">
-                  {name}
-                </span>
-              ))}
+      {showParticipants && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowParticipants(false)}>
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+              <div>
+                <h3 className="text-sm font-bold text-neutral-800">🙏 기도한 친구들</h3>
+                <p className="text-[11px] text-neutral-400">총 {prayer.prayerCount}명</p>
+              </div>
+              <button onClick={() => setShowParticipants(false)} className="grid h-8 w-8 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">
+                <X size={16} />
+              </button>
             </div>
-          )}
+            <div className="max-h-[50vh] overflow-y-auto px-4 py-3">
+              {participants.length === 0 ? (
+                <p className="py-6 text-center text-xs text-neutral-400">아직 기도한 친구가 없어요.</p>
+              ) : (
+                <div className="space-y-2">
+                  {participants.map((p, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-xl bg-rose-50/60 px-3 py-2.5">
+                      <div className="grid h-8 w-8 place-items-center rounded-full bg-rose-100 text-xs font-bold text-rose-600">
+                        {p.studentName?.[0] || "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-neutral-800">{p.studentName}</p>
+                        <p className="text-[10px] text-neutral-400">{new Date(p.prayedAt).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -173,13 +196,13 @@ export default function PrayerCard({
 
       <button
         onClick={onPray}
-        disabled={already}
+        disabled={hasPrayedToday}
         className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition active:scale-[0.98] ${
-          already ? "bg-rose-100 text-rose-400" : "bg-rose-500 text-white active:bg-rose-600"
+          hasPrayedToday ? "bg-rose-100 text-rose-400" : "bg-rose-500 text-white active:bg-rose-600"
         }`}
       >
         <HandHeart size={14} />
-        {already ? "기도했어요 🙏 (+5M)" : "기도했어요 🙏 +5M"}
+        {hasPrayedToday ? "기도했어요 🙏" : "기도했어요 🙏 +5M"}
       </button>
     </div>
   );
