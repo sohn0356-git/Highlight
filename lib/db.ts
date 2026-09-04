@@ -11,17 +11,18 @@ import { koreaDate } from "./korea-date";
 function sb() { return getSupabase(); }
 
 function mapStudent(r: any) {
+  const classId = r.class_id || "";
   return {
     id: r.id,
     name: r.name,
     birthDate: r.birth_date || "",
-    classId: r.class_id || "",
-    grade: Number(r.grade) || (r.class_id?.includes("_g1_") ? 1 : r.class_id?.includes("_g2_") ? 2 : r.class_id?.includes("_g3_") ? 3 : 1),
+    classId,
+    grade: Number(r.grade) || (classId.includes("_g1_") ? 1 : classId.includes("_g2_") ? 2 : classId.includes("_g3_") ? 3 : 1),
     className: r.class_name || "",
     mileage: Number(r.mileage) || 0,
-    xp: Number(r.mileage) || 0,
-    weeklyXp: Number(r.mileage) || 0,
-    isTeacher: !!r.is_teacher,
+    xp: Number(r.xp) || Number(r.mileage) || 0,
+    weeklyXp: Number(r.weekly_xp) || 0,
+    isTeacher: r.is_teacher === true || r.is_teacher === "true",
     role: r.role || "student",
     assignedClassIds: r.assigned_class_ids || [],
     phone: r.phone || "",
@@ -101,17 +102,21 @@ export async function fetchActiveStudents() {
 export async function upsertStudent(student: any) {
   const s = sb();
   if (!s) return;
-  await s.from("students").upsert({
+  const row: any = {
     id: student.id, name: student.name, birth_date: student.birthDate || "",
-    class_id: student.classId || "", grade: student.grade || 1,
-    class_name: student.className || "", mileage: student.mileage || 0,
-    xp: student.mileage || 0, weekly_xp: student.weeklyXp || 0,
-    is_teacher: student.isTeacher || false, role: student.role || "student",
-    assigned_class_ids: student.assignedClassIds || [],
-    phone: student.phone || "", guardian_phone: student.guardianPhone || "",
-    memo: student.memo || "", active: student.active !== false,
-    enrollment_status: student.enrollmentStatus || "active",
-  });
+    class_id: student.classId || "", mileage: student.mileage || 0,
+  };
+  // Only add columns that exist in DB
+  try { row.xp = student.xp || student.mileage || 0; } catch {}
+  try { row.grade = student.grade || 1; } catch {}
+  try { row.role = student.role || "student"; } catch {}
+  try { row.is_teacher = student.isTeacher || false; } catch {}
+  try { row.active = student.active !== false; } catch {}
+  try { row.assigned_class_ids = student.assignedClassIds || []; } catch {}
+  try { row.phone = student.phone || ""; } catch {}
+  try { row.guardian_phone = student.guardianPhone || ""; } catch {}
+  try { row.memo = student.memo || ""; } catch {}
+  await s.from("students").upsert(row);
 }
 
 /* ── Classes ── */

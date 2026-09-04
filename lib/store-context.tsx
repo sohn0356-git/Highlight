@@ -276,7 +276,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             classId: foundTeacher.assignedClassIds?.[0] || "",
             grade: 0,
             className: "",
-            mileage: 0, xp: 0,
+            mileage: 0,
+            xp: 0,
             weeklyXp: 0,
             isTeacher: true,
             role: foundTeacher.role || "teacher",
@@ -287,7 +288,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             active: true,
             enrollmentStatus: "active",
           };
-          await db.upsertStudent(newStudent);
+          try {
+            await db.upsertStudent(newStudent);
+          } catch (e) {
+            console.error("Failed to create teacher student record:", e);
+          }
           teacherAsStudent = newStudent;
         }
         
