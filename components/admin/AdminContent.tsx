@@ -11,16 +11,15 @@ export default function AdminContent() {
   const { missions, addMission, updateMission, announcements, addAnnouncement, updateAnnouncement } = useAdmin();
   const [tab, setTab] = useState<ContentTab>("mission");
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const [missionForm, setMissionForm] = useState({
     title: "",
     description: "",
     icon: "🎯",
     type: "weekly" as "weekly" | "special" | "event" | "class-only",
-    mileageReward: 30,
-    xpReward: 30,
-    startDate: koreaDate(),
-    endDate: "",
+    mileageReward: 10,
+    xpReward: 10,
     target: "all" as "all" | "grade1" | "grade2" | "grade3" | "custom",
     approvalRequired: false,
   });
@@ -39,14 +38,39 @@ export default function AdminContent() {
 
   function submitMission() {
     if (!missionForm.title) return;
-    const newMission: MissionAdmin = {
-      id: "m_" + Date.now(),
-      ...missionForm,
-      active: true,
-    };
-    addMission(newMission);
+    if (editId) {
+      updateMission(editId, { ...missionForm });
+      setEditId(null);
+    } else {
+      const newMission: MissionAdmin = {
+        id: "m_" + Date.now(),
+        ...missionForm,
+        active: true,
+      };
+      addMission(newMission);
+    }
     setShowForm(false);
-    setMissionForm({ title: "", description: "", icon: "🎯", type: "weekly", mileageReward: 30, xpReward: 30, startDate: koreaDate(), endDate: "", target: "all", approvalRequired: false });
+    setMissionForm({ title: "", description: "", icon: "🎯", type: "weekly", mileageReward: 10, xpReward: 10, target: "all", approvalRequired: false });
+  }
+
+  function startEditMission(m: any) {
+    setEditId(m.id);
+    setMissionForm({
+      title: m.title || "",
+      description: m.description || "",
+      icon: m.icon || "🎯",
+      type: m.type || "weekly",
+      mileageReward: m.mileageReward || 10,
+      xpReward: m.xpReward || 10,
+      target: m.target || "all",
+      approvalRequired: m.approvalRequired || false,
+    });
+    setShowForm(true);
+  }
+
+  function deleteMission(id: string) {
+    if (!confirm("이 미션을 삭제하시겠습니까?")) return;
+    updateMission(id, { active: false });
   }
 
   function submitAnnouncement() {
@@ -81,15 +105,15 @@ export default function AdminContent() {
       {/* Mission tab */}
       {tab === "mission" && (
         <>
-          <button onClick={() => setShowForm(!showForm)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
+          <button onClick={() => { setShowForm(!showForm); setEditId(null); }} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
             <Plus size={16} /> 미션 등록
           </button>
 
           {showForm && (
             <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-neutral-800">새 미션 등록</h3>
-                <button onClick={() => setShowForm(false)}><X size={18} className="text-neutral-400" /></button>
+                <h3 className="text-sm font-bold text-neutral-800">{editId ? "미션 수정" : "새 미션 등록"}</h3>
+                <button onClick={() => { setShowForm(false); setEditId(null); }}><X size={18} className="text-neutral-400" /></button>
               </div>
               <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="미션 제목" value={missionForm.title} onChange={e => setMissionForm({ ...missionForm, title: e.target.value })} />
               <textarea className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="미션 설명" value={missionForm.description} onChange={e => setMissionForm({ ...missionForm, description: e.target.value })} rows={2} />
@@ -108,20 +132,17 @@ export default function AdminContent() {
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input type="number" className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="마일리지" value={missionForm.mileageReward} onChange={e => setMissionForm({ ...missionForm, mileageReward: Number(e.target.value) })} />
-                <input type="number" className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="XP" value={missionForm.xpReward} onChange={e => setMissionForm({ ...missionForm, xpReward: Number(e.target.value) })} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-neutral-500">시작일</label>
-                  <input type="date" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.startDate} onChange={e => setMissionForm({ ...missionForm, startDate: e.target.value })} />
+                  <label className="text-[11px] text-neutral-500">마일리지 보상</label>
+                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.mileageReward} onChange={e => setMissionForm({ ...missionForm, mileageReward: Number(e.target.value) })} />
                 </div>
                 <div>
-                  <label className="text-xs text-neutral-500">종료일</label>
-                  <input type="date" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.endDate} onChange={e => setMissionForm({ ...missionForm, endDate: e.target.value })} />
+                  <label className="text-[11px] text-neutral-500">XP 보상</label>
+                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.xpReward} onChange={e => setMissionForm({ ...missionForm, xpReward: Number(e.target.value) })} />
                 </div>
               </div>
-              <button onClick={submitMission} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">등록하기</button>
+
+              <button onClick={submitMission} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editId ? "수정 완료" : "등록하기"}</button>
             </div>
           )}
 
@@ -132,11 +153,15 @@ export default function AdminContent() {
                 <span className="text-xl">{m.icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-neutral-800 truncate">{m.title}</p>
-                  <p className="text-[11px] text-neutral-400">{m.type} · {m.target} · 마일리지 {m.mileageReward}M</p>
+                  <p className="text-[11px] text-neutral-400">{m.type === "weekly" ? "주간" : m.type === "special" ? "스페셜" : m.type === "event" ? "이벤트" : "반별"} · {m.mileageReward}M + {m.xpReward}XP</p>
                 </div>
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${m.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
                   {m.active ? "활성" : "비활성"}
                 </span>
+                <div className="flex gap-1">
+                  <button onClick={() => startEditMission(m)} className="rounded-lg bg-neutral-100 px-2 py-1.5 text-[10px] font-bold text-neutral-600 hover:bg-neutral-200">수정</button>
+                  <button onClick={() => deleteMission(m.id)} className="rounded-lg bg-rose-50 px-2 py-1.5 text-[10px] font-bold text-rose-500 hover:bg-rose-100">삭제</button>
+                </div>
               </div>
             ))}
           </div>
@@ -146,7 +171,7 @@ export default function AdminContent() {
       {/* Announcement tab */}
       {tab === "announcement" && (
         <>
-          <button onClick={() => setShowForm(!showForm)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
+          <button onClick={() => { setShowForm(!showForm); setEditId(null); }} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
             <Plus size={16} /> 공지 작성
           </button>
 
@@ -154,7 +179,7 @@ export default function AdminContent() {
             <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-neutral-800">새 공지 작성</h3>
-                <button onClick={() => setShowForm(false)}><X size={18} className="text-neutral-400" /></button>
+                <button onClick={() => { setShowForm(false); setEditId(null); }}><X size={18} className="text-neutral-400" /></button>
               </div>
               <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="제목" value={announcementForm.title} onChange={e => setAnnouncementForm({ ...announcementForm, title: e.target.value })} />
               <textarea className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="공지 내용" value={announcementForm.content} onChange={e => setAnnouncementForm({ ...announcementForm, content: e.target.value })} rows={4} />

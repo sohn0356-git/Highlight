@@ -30,6 +30,7 @@ export default function AdminStudents() {
     phone: "",
     guardianPhone: "",
     memo: "",
+    mileage: 0,
   });
 
   const [teacherForm, setTeacherForm] = useState({
@@ -63,7 +64,7 @@ export default function AdminStudents() {
         name: form.name,
         birthDate: form.birthDate,
         classId: form.classId,
-        mileage: 0,
+        mileage: form.mileage || 0,
         active: true,
         role: "student",
         ...form.phone ? { phone: form.phone } : {},
@@ -73,7 +74,7 @@ export default function AdminStudents() {
     }
     setShowForm(null);
     setEditId(null);
-    setForm({ name: "", birthDate: "", classId: "c1", phone: "", guardianPhone: "", memo: "" });
+    setForm({ name: "", birthDate: "", classId: "c1", phone: "", guardianPhone: "", memo: "", mileage: 0 });
   }
 
   function submitTeacher() {
@@ -131,7 +132,7 @@ export default function AdminStudents() {
               ))}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => { setEditId(detailStudent.id); setShowForm("student"); setForm({ name: detailStudent.name, birthDate: detailStudent.birthDate, classId: detailStudent.classId, phone: "", guardianPhone: "", memo: "" }); setDetailId(null); }}
+              <button onClick={() => { setEditId(detailStudent.id); setShowForm("student"); setForm({ name: detailStudent.name, birthDate: detailStudent.birthDate, classId: detailStudent.classId, phone: "", guardianPhone: "", memo: "", mileage: detailStudent.mileage || 0 }); setDetailId(null); }}
                 className="flex-1 rounded-lg bg-indigo-500 py-2.5 text-sm font-bold text-white">수정하기</button>
               {detailStudent.active && (
                 <button onClick={() => { deactivateStudent(detailStudent.id); setDetailId(null); }}
@@ -270,6 +271,12 @@ export default function AdminStudents() {
           </select>
           <input className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" placeholder="전화번호 (선택)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
           <input className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" placeholder="보호자 연락처 (선택)" value={form.guardianPhone} onChange={e => setForm({ ...form, guardianPhone: e.target.value })} />
+          {editId && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-neutral-600">마일리지</label>
+              <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" value={form.mileage} onChange={e => setForm({ ...form, mileage: +e.target.value })} />
+            </div>
+          )}
           <textarea className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" placeholder="메모 (선택)" value={form.memo} onChange={e => setForm({ ...form, memo: e.target.value })} rows={2} />
           <button onClick={submitStudent} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editId ? "수정 완료" : "추가하기"}</button>
         </div>

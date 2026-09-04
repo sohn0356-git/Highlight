@@ -86,8 +86,8 @@ export interface MissionAdmin {
   type: MissionType;
   mileageReward: number;
   xpReward: number;
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
   target: MissionTarget;
   targetClassIds?: string[];
   approvalRequired: boolean;
@@ -127,8 +127,8 @@ export interface Announcement {
   target: AnnouncementTarget;
   targetClassIds?: string[];
   targetGrades?: string[];
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
   important: boolean;
   status: "draft" | "published" | "ended";
   createdAt: string;
@@ -180,8 +180,8 @@ export interface SeasonAdmin {
   id: string;
   name: string;
   subtitle: string;
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
   active: boolean;
   sharedGoalXp: number;
   sharedReward: string;
