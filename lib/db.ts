@@ -5,12 +5,13 @@
  * All dates use Asia/Seoul timezone via korea-date.ts.
  */
 import { getSupabase } from "./supabase";
+import type { Student } from "./types";
 import { koreaDate } from "./korea-date";
 
 /* ── Helpers ── */
 function sb() { return getSupabase(); }
 
-function mapStudent(r: any) {
+function mapStudent(r: any): Student {
   const classId = r.class_id || "";
   return {
     id: r.id,
@@ -20,16 +21,16 @@ function mapStudent(r: any) {
     grade: Number(r.grade) || (classId.includes("_g1_") ? 1 : classId.includes("_g2_") ? 2 : classId.includes("_g3_") ? 3 : 1),
     className: r.class_name || "",
     mileage: Number(r.mileage) || 0,
-    xp: Number(r.xp) || Number(r.mileage) || 0,
-    weeklyXp: Number(r.weekly_xp) || 0,
-    isTeacher: r.is_teacher === true || r.is_teacher === "true",
-    role: r.role || "student",
-    assignedClassIds: r.assigned_class_ids || [],
-    phone: r.phone || "",
-    guardianPhone: r.guardian_phone || "",
-    memo: r.memo || "",
-    active: r.active !== false,
-    enrollmentStatus: r.enrollment_status || "active",
+    xp: Number(r.mileage) || 0,
+    weeklyXp: 0,
+    isTeacher: false,
+    role: "student" as "student",
+    assignedClassIds: [],
+    phone: "",
+    guardianPhone: "",
+    memo: "",
+    active: true,
+    enrollmentStatus: "active",
   };
 }
 
@@ -102,21 +103,11 @@ export async function fetchActiveStudents() {
 export async function upsertStudent(student: any) {
   const s = sb();
   if (!s) return;
-  const row: any = {
+  // Only columns that exist in DB: id, name, birth_date, class_id, mileage, created_at
+  await s.from("students").upsert({
     id: student.id, name: student.name, birth_date: student.birthDate || "",
     class_id: student.classId || "", mileage: student.mileage || 0,
-  };
-  // Only add columns that exist in DB
-  try { row.xp = student.xp || student.mileage || 0; } catch {}
-  try { row.grade = student.grade || 1; } catch {}
-  try { row.role = student.role || "student"; } catch {}
-  try { row.is_teacher = student.isTeacher || false; } catch {}
-  try { row.active = student.active !== false; } catch {}
-  try { row.assigned_class_ids = student.assignedClassIds || []; } catch {}
-  try { row.phone = student.phone || ""; } catch {}
-  try { row.guardian_phone = student.guardianPhone || ""; } catch {}
-  try { row.memo = student.memo || ""; } catch {}
-  await s.from("students").upsert(row);
+  });
 }
 
 /* ── Classes ── */
