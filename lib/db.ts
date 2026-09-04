@@ -248,6 +248,18 @@ export async function insertAnnouncement(a: any) {
   }]);
 }
 
+export async function updateAnnouncement(id: string, patch: any) {
+  const s = sb();
+  if (!s) return;
+  const update: any = {};
+  if (patch.title !== undefined) update.title = patch.title;
+  if (patch.content !== undefined) update.content = patch.content;
+  if (patch.important !== undefined) update.important = patch.important;
+  if (patch.status !== undefined) update.status = patch.status;
+  if (patch.target !== undefined) update.target = patch.target;
+  await s.from("announcements").update(update).eq("id", id);
+}
+
 /* ── Badges ── */
 export async function fetchBadges() {
   const s = sb();

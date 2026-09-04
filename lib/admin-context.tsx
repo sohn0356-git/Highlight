@@ -429,6 +429,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   const updateAnnouncement = useCallback(async (id: string, patch: Partial<Announcement>) => {
     setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
+    await db.updateAnnouncement(id, patch);
   }, []);
 
   /* ── Mileage Award ── */

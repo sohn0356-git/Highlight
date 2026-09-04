@@ -238,6 +238,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .on("postgres_changes", { event: "*", schema: "public", table: "daily_quests" }, () => { refreshAll(); })
           .on("postgres_changes", { event: "*", schema: "public", table: "prayer_requests" }, () => { refreshAll(); })
           .on("postgres_changes", { event: "*", schema: "public", table: "shared_qt_posts" }, () => { refreshAll(); })
+          .on("postgres_changes", { event: "*", schema: "public", table: "missions" }, () => { refreshAll(); })
           .subscribe();
       } catch {}
     })();
