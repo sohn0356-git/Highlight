@@ -1,4 +1,5 @@
 "use client";
+import { koreaDate } from "@/lib/korea-date";
 import { useState } from "react";
 import { MessageCircle, Share2, Pencil, Trash2 } from "lucide-react";
 import Card from "./Card";
@@ -11,7 +12,9 @@ export default function SharedQTFeed({ limit = 20 }: { limit?: number }) {
   const [editCommentId, setEditCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState("");
 
-  if (!sharedPosts.length) return null;
+  const today = koreaDate();
+  const todayPosts = sharedPosts.filter((p) => p.date === today);
+  if (!todayPosts.length) return null;
 
   return (
     <section className="px-5 pb-4">
@@ -22,7 +25,7 @@ export default function SharedQTFeed({ limit = 20 }: { limit?: number }) {
       <p className="mt-1 text-xs text-neutral-500">앱 사용자들이 공유한 오늘의 말씀을 보고 응원해주세요.</p>
 
       <div className="mt-3 flex flex-col gap-3">
-        {sharedPosts.slice(0, limit).map(post => {
+        {todayPosts.slice(0, limit).map(post => {
           const comments = fetchPostComments(post.id);
           const isOpen = openPostId === post.id;
           return (
