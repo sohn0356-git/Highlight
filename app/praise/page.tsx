@@ -18,7 +18,7 @@ interface PraiseRecord {
 }
 
 export default function PraiseContent() {
-  const { student, isLoggedIn, allStudents, refreshAll } = useApp();
+  const { student, isLoggedIn, allStudents, refreshAll, dailyQuestIds, completeDailyQuest } = useApp();
   const [praises, setPraises] = useState<PraiseRecord[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [praisedId, setPraisedId] = useState("");
@@ -26,6 +26,7 @@ export default function PraiseContent() {
   const [anonymous, setAnonymous] = useState(false);
   const [hasPraisedToday, setHasPraisedToday] = useState(false);
   const [search, setSearch] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const [allTargets, setAllTargets] = useState<any[]>([]);
 
@@ -39,10 +40,10 @@ export default function PraiseContent() {
     const { data: teachers } = await sb.from("teachers").select("*").eq("active", true);
     const teacherList = (teachers || []).map((t: any) => ({ id: t.id, name: t.name, classId: t.assignedClassIds?.[0] || "", mileage: 0, active: true, isTeacher: true }));
     setAllTargets([...allStudents.filter((s: any) => s.id !== student?.id && s.active !== false), ...teacherList.filter((t: any) => !allStudents.find((s: any) => s.id === t.id))]);
-    // Check if already praised today
+    // Check if already praised today (date 컬럼 기반)
     if (student) {
       const today = koreaDate();
-      const { data: todayPraise } = await sb.from("praises").select("id").eq("praiser_id", student.id).like("created_at", today + "%").limit(1);
+      const { data: todayPraise } = await sb.from("praises").select("id").eq("praiser_id", student.id).eq("date", today).limit(1);
       setHasPraisedToday(!!todayPraise && todayPraise.length > 0);
     }
   }, [student?.id]);
@@ -55,44 +56,61 @@ export default function PraiseContent() {
   const filtered = search ? classmates.filter((c: any) => c.name.includes(search)) : classmates;
 
   const handleSubmit = async () => {
-    if (!praisedId || !reason.trim() || hasPraisedToday) return;
+    if (!praisedId || !reason.trim() || hasPraisedToday || submitting) return;
     const praised = allTargets.find((c: any) => c.id === praisedId);
     if (!praised) return;
     const { getSupabase } = await import("@/lib/supabase");
     const sb = getSupabase();
     if (!sb) return;
 
-    // Insert praise record
-    await sb.from("praises").insert([{
-      id: `praise_${Date.now()}`,
-      praiser_id: student.id,
-      praiser_name: student.name,
-      praised_id: praisedId,
-      praised_name: praised.name,
-      reason: reason.trim(),
-      anonymous,
-      created_at: new Date().toISOString(),
-    }]);
+    setSubmitting(true);
+    const today = koreaDate();
+    try {
+      // Insert praise record (date 컬럼으로 하루 1회 DB 제한)
+      const { error: insertError } = await sb.from("praises").insert([{
+        id: `praise_${Date.now()}`,
+        praiser_id: student.id,
+        praiser_name: student.name,
+        praised_id: praisedId,
+        praised_name: praised.name,
+        reason: reason.trim(),
+        anonymous,
+        date: today,
+        created_at: new Date().toISOString(),
+      }]);
+      if (insertError) {
+        // 하루 1회 제한 위반(중복) 또는 칭찬대상 문제
+        setHasPraisedToday(true);
+        return;
+      }
 
-    // Award mileage: praised +10, praiser +5
-    const praisedMileage = (praised.mileage || 0) + 10;
-    await sb.from("students").update({ mileage: praisedMileage }).eq("id", praisedId);
-    const myMileage = (student.mileage || 0) + 5;
-    await sb.from("students").update({ mileage: myMileage }).eq("id", student.id);
+      // Award mileage: praised +10, praiser +5 (교사는 students 계정으로 지급)
+      const praisedMileage = (praised.mileage || 0) + 10;
+      await sb.from("students").update({ mileage: praisedMileage }).eq("id", praisedId);
+      const myMileage = (student.mileage || 0) + 5;
+      await sb.from("students").update({ mileage: myMileage }).eq("id", student.id);
 
-    // Add transactions
-    await sb.from("mileage_transactions").insert([
-      { id: `tx_${Date.now()}_p`, student_id: praisedId, student_name: praised.name, class_name: praised.classId || "", type: "칭찬", description: `${student.name}에게 칭찬받음`, amount: 10, date: koreaDate(), actor_name: student.name },
-      { id: `tx_${Date.now()}_s`, student_id: student.id, student_name: student.name, className: student.classId || "", type: "칭찬", description: `${praised.name}을 칭찬함`, amount: 5, date: koreaDate(), actor_name: student.name },
-    ]);
+      // Add transactions (실제 mileage_transactions 스키마 컬럼만 사용)
+      await sb.from("mileage_transactions").insert([
+        { id: `tx_${Date.now()}_p`, student_id: praisedId, type: "칭찬", description: `${student.name}에게 칭찬받음`, amount: 10, date: today },
+        { id: `tx_${Date.now()}_s`, student_id: student.id, type: "칭찬", description: `${praised.name}을 칭찬함`, amount: 5, date: today },
+      ]);
 
-    setHasPraisedToday(true);
-    setShowForm(false);
-    setPraisedId("");
-    setReason("");
-    setAnonymous(false);
-    refreshAll();
-    loadPraises();
+      // 칭찬 일일퀘스트 (d9) 완료
+      if (!dailyQuestIds.includes("d9")) {
+        await completeDailyQuest("d9");
+      }
+
+      setHasPraisedToday(true);
+      setShowForm(false);
+      setPraisedId("");
+      setReason("");
+      setAnonymous(false);
+      refreshAll();
+      loadPraises();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -160,9 +178,9 @@ export default function PraiseContent() {
                 익명으로 칭찬하기
               </label>
               <button onClick={handleSubmit}
-                disabled={!praisedId || !reason.trim()}
+                disabled={!praisedId || !reason.trim() || submitting}
                 className="rounded-full bg-amber-500 px-4 py-2 text-xs font-bold text-white active:scale-95 transition disabled:opacity-40">
-                등록 (+5M)
+                {submitting ? "등록 중..." : "등록 (+5M)"}
               </button>
             </div>
           </Card>

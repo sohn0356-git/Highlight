@@ -9,7 +9,7 @@ import { useApp, useViewMode } from "@/lib/store-context";
 import { getStudentLevel, getClassLevel, getNextLevelXp, fetchStudentBadgesWithProgress } from "@/lib/db";
 
 export default function MyContent() {
-  const { student, isLoggedIn, classes, logout, missions, completedMissionIds, completeMission, dailyQuests, dailyQuestIds, completeDailyQuest, badgeRefreshKey } = useApp();
+  const { student, isLoggedIn, classes, logout, missions, completedMissionIds, completeMission, dailyQuests, dailyQuestIds, completeDailyQuest, badgeRefreshKey, teachers } = useApp();
   const { setMode } = useViewMode();
   const [badges, setBadges] = useState<any[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function MyContent() {
 
   if (!student || !isLoggedIn) return null;
 
-  const isAdmin = student.role === "teacher" || student.role === "admin" || student.isTeacher;
+  const isAdmin = student.role === "teacher" || student.role === "admin" || student.isTeacher || teachers.some((t: any) => t.id === student.id);
   const myClass = classes.find((c: any) => c.id === student.classId) as any;
   const studentLevel = getStudentLevel(student.xp || 0);
   const studentNextXp = getNextLevelXp(studentLevel.level, false);

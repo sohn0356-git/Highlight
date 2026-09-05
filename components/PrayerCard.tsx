@@ -88,7 +88,7 @@ export default function PrayerCard({
             className="flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-bold text-rose-500 transition active:scale-95"
             title="기도한 친구 보기"
           >
-            🙏 {prayer.prayerCount}
+            🙏 {participants.length > 0 ? participants.length : (prayer.prayerCount || 0)}명
           </button>
         </div>
       </div>
@@ -99,7 +99,7 @@ export default function PrayerCard({
             <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
               <div>
                 <h3 className="text-sm font-bold text-neutral-800">🙏 기도한 친구들</h3>
-                <p className="text-[11px] text-neutral-400">총 {prayer.prayerCount}명</p>
+                <p className="text-[11px] text-neutral-400">총 {participants.length}명</p>
               </div>
               <button onClick={() => setShowParticipants(false)} className="grid h-8 w-8 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">
                 <X size={16} />

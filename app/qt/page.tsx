@@ -127,21 +127,26 @@ export default function QTContent() {
             <p className="mt-2 text-sm font-bold text-emerald-700">QT 완료!</p>
             <p className="mt-1 text-xs text-emerald-500">+20M 적립되었습니다</p>
           </Card>
-          {/* Share / Unshare buttons */}
-          <div className="mt-3 flex gap-2">
-            {sharedToday ? (
-              <button onClick={handleUnshare} disabled={sharing}
-                className="flex-1 flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-3 text-sm font-bold text-red-500 transition active:scale-[0.98] disabled:opacity-40">
-                <X size={16} /> {sharing ? "처리 중..." : "공유 취소 (-10M)"}
-              </button>
-            ) : (
+          {/* Share / Unshare */}
+          {!sharedToday ? (
+            <>
               <button onClick={handleShare} disabled={sharing}
                 className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition active:scale-[0.98] disabled:opacity-40">
                 <Share2 size={16} /> {sharing ? "처리 중..." : "QT 공유하기 +10M"}
               </button>
-            )}
-          </div>
-          {sharedMsg && <p className="mt-2 text-center text-xs font-semibold text-indigo-500">{sharedMsg}</p>}
+              {sharedMsg && <p className="mt-2 text-center text-xs font-semibold text-indigo-500">{sharedMsg}</p>}
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <span className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 bg-emerald-50 py-3 text-sm font-bold text-emerald-600">
+                <CheckCircle size={16} /> 오늘 QT 공유 완료 (+10M)
+              </span>
+              <button onClick={handleUnshare} disabled={sharing}
+                className="text-[11px] font-semibold text-neutral-400 underline underline-offset-2 active:text-neutral-600 disabled:opacity-40">
+                {sharing ? "처리 중..." : "공유 취소"}
+              </button>
+            </div>
+          )}
         </section>
       )}
 

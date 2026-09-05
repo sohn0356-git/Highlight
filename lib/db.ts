@@ -103,10 +103,14 @@ export async function fetchActiveStudents() {
 export async function upsertStudent(student: any) {
   const s = sb();
   if (!s) return;
-  // Only columns that exist in DB: id, name, birth_date, class_id, mileage, created_at
+  const grade = student.grade || (String(student.classId || "").includes("_g1_") ? 1 : String(student.classId || "").includes("_g2_") ? 2 : String(student.classId || "").includes("_g3_") ? 3 : 1);
   await s.from("students").upsert({
     id: student.id, name: student.name, birth_date: student.birthDate || "",
     class_id: student.classId || "", mileage: student.mileage || 0,
+    role: student.role || "student", is_teacher: !!student.isTeacher,
+    active: student.active !== false, grade,
+    class_name: student.className || "",
+    enrollment_status: student.enrollmentStatus || "active",
   });
 }
 
@@ -305,14 +309,22 @@ export async function fetchPrayers(studentId?: string) {
   const s = sb();
   if (!s) return [];
   let q = s.from("prayer_requests").select("*").order("created_at", { ascending: false });
-  if (studentId) q = q.eq("student_id", studentId);
+  if (studentId) q = q.eq("author_id", studentId);
   const { data, error } = await q;
   if (error || !data) return [];
+  // 작성자 이름 조회 (author_id → students)
+  const ids = data.map((r: any) => r.author_id).filter(Boolean);
+  const nameMap: Record<string, string> = {};
+  if (ids.length) {
+    const { data: studs } = await s.from("students").select("id, name").in("id", ids);
+    if (studs) studs.forEach((st: any) => { nameMap[st.id] = st.name; });
+  }
   return data.map((r: any) => ({
-    id: r.id, authorName: r.author_name || "", anonymous: !!r.anonymous,
+    id: r.id, authorName: !r.anonymous ? (nameMap[r.author_id] || "") : "",
+    anonymous: !!r.anonymous,
     content: r.content || "", prayerCount: Number(r.prayer_count) || 0,
-    createdAt: r.created_at || "", prayedBy: [], studentId: r.student_id,
-    classId: r.class_id || "", status: r.status || "active",
+    createdAt: r.created_at || "", prayedBy: [], studentId: r.author_id,
+    classId: "", status: r.status || "active",
   }));
 }
 
@@ -320,9 +332,9 @@ export async function insertPrayer(prayer: any) {
   const s = sb();
   if (!s) return null;
   const { data, error } = await s.from("prayer_requests").insert([{
-    id: prayer.id, student_id: prayer.studentId, author_name: prayer.authorName || "",
+    id: prayer.id, author_id: prayer.studentId,
     anonymous: !!prayer.anonymous, content: prayer.content,
-    prayer_count: 0, class_id: prayer.classId || "",
+    prayer_count: 0,
   }]).select().single();
   if (error || !data) return null;
   return data;
@@ -342,12 +354,20 @@ export async function deletePrayer(id: string) {
   await s.from("prayer_requests").delete().eq("id", id);
 }
 
-export async function recordPrayerParticipation(studentId: string, prayerId: string) {
+export async function recordPrayerParticipation(studentId: string, prayerId: string): Promise<boolean> {
   const s = sb();
-  if (!s) return;
-  await s.from("prayer_participants").upsert({
-    student_id: studentId, prayer_id: prayerId,
-  }, { onConflict: "prayer_id,student_id" });
+  if (!s) return false;
+  const today = koreaDate();
+  // 이미 오늘 기도했으면 false (하루 1회)
+  const { data: existing } = await s.from("prayer_participants").select("id")
+    .eq("prayer_id", prayerId).eq("student_id", studentId).eq("pray_date", today).limit(1);
+  if (existing && existing.length) return false;
+
+  const { error } = await s.from("prayer_participants").upsert({
+    student_id: studentId, prayer_id: prayerId, pray_date: today,
+  }, { onConflict: "prayer_id,student_id,pray_date", ignoreDuplicates: true });
+  if (error) return false;
+
   // Increment prayer_count
   try {
     await s.rpc("increment_prayer_count" as any, { pid: prayerId });
@@ -358,32 +378,46 @@ export async function recordPrayerParticipation(studentId: string, prayerId: str
       await s.from("prayer_requests").update({ prayer_count: (data.prayer_count || 0) + 1 }).eq("id", prayerId);
     }
   }
+  return true;
 }
 
-export async function hasPrayedToday(studentId: string, prayerId: string): Promise<boolean> {
+export async function hasPrayedToday(studentId: string, prayerId: string, date?: string): Promise<boolean> {
   const s = sb();
   if (!s) return false;
-  const { data } = await s.from("prayer_participants").select("id").eq("prayer_id", prayerId).eq("student_id", studentId).limit(1);
+  let q = s.from("prayer_participants").select("id").eq("prayer_id", prayerId).eq("student_id", studentId);
+  if (date) q = q.eq("pray_date", date);
+  const { data } = await q.limit(1);
   return !!(data && data.length);
 }
 
 export async function fetchPrayerParticipants(prayerId: string) {
   const s = sb();
   if (!s) return [];
-  const { data } = await s.from("prayer_participants").select("student_id, prayed_at").eq("prayer_id", prayerId).order("prayed_at", { ascending: false });
+  const { data } = await s.from("prayer_participants").select("student_id, prayed_at, pray_date").eq("prayer_id", prayerId).order("prayed_at", { ascending: false });
   if (!data) return [];
-  const ids = data.map((r: any) => r.student_id);
-  const { data: studs } = await s.from("students").select("id, name").in("id", ids);
+  // 학생별 중복 제거 (같은 학생이 여러 날 기도해도 한 명으로 표시)
+  const seen = new Set<string>();
+  const rows: any[] = [];
+  data.forEach((r: any) => {
+    if (seen.has(r.student_id)) return;
+    seen.add(r.student_id);
+    rows.push({ student_id: r.student_id, prayed_at: r.prayed_at, pray_date: r.pray_date || "" });
+  });
+  const ids = rows.map((r: any) => r.student_id);
   const nameMap: Record<string, string> = {};
-  if (studs) studs.forEach((st: any) => { nameMap[st.id] = st.name; });
-  // Get total prayer count per student
-  const { data: allPrayers } = await s.from("prayer_participants").select("student_id");
+  if (ids.length) {
+    const { data: studs } = await s.from("students").select("id, name").in("id", ids);
+    if (studs) studs.forEach((st: any) => { nameMap[st.id] = st.name; });
+  }
+  // 학생별 전체 기도 횟수 + 이 기도제목에 기도한 날짜 목록
+  const { data: allPrayers } = await s.from("prayer_participants").select("student_id, prayer_id, pray_date");
   const countMap: Record<string, number> = {};
   if (allPrayers) allPrayers.forEach((r: any) => { countMap[r.student_id] = (countMap[r.student_id] || 0) + 1; });
-  return data.map((r: any) => ({
+  return rows.map((r) => ({
     studentId: r.student_id,
     studentName: nameMap[r.student_id] || "(알수없음)",
     prayedAt: r.prayed_at || "",
+    prayDate: r.pray_date,
     totalPrayerCount: countMap[r.student_id] || 0,
   }));
 }
@@ -1155,8 +1189,15 @@ export async function fetchStudentBadgesWithProgress(studentId: string) {
   if (!s) return [];
 
   try {
-    // Get all active badges
-    const { data: badgesData } = await s.from("badges").select("*").order("display_order");
+    // Get all active badges (display_order가 없으면 폴백)
+    let badgesData: any[] | null = null;
+    const attempt = await s.from("badges").select("*").order("display_order");
+    if (attempt.error) {
+      const retry = await s.from("badges").select("*");
+      badgesData = retry.data;
+    } else {
+      badgesData = attempt.data;
+    }
     let badges = (badgesData || []).filter((b: any) => b.active !== false);
     if (!badges.length) return [];
 

@@ -38,7 +38,7 @@ interface AppState {
   completeMission: (missionId: string) => void;
   prayers: PrayerRequest[];
   announcements: any[];
-  prayFor: (prayerId: string, prayerStudentId?: string) => void;
+  prayFor: (prayerId: string, prayerStudentId?: string) => Promise<boolean>;
   addPrayerRequest: (content: string, anonymous: boolean) => void;
   updatePrayerRequest: (prayerId: string, content: string) => void;
   deletePrayerRequest: (prayerId: string) => void;
@@ -77,6 +77,7 @@ const DAILY_QUEST_DEFS = [
   { id: "d5", icon: "🙏", title: "기도해주기", description: "친구를 위해 기도해보세요", reward: 10 },
   { id: "d6", icon: "💬", title: "댓글 달기", description: "QT 게시글에 댓글을 남기세요", reward: 5 },
   { id: "d8", icon: "🏠", title: "홈 탭 확인", description: "홈 탭을 확인하세요", reward: 3 },
+  { id: "d9", icon: "🏆", title: "칭찬하기", description: "친구를 칭찬해보세요", reward: 5 },
 ];
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -559,13 +560,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [student, completedMissionIds, missions, today]);
 
   /* ── Prayer ── */
-  const prayForHandler = useCallback(async (prayerId: string, prayerStudentId?: string) => {
-    if (!student || isAdminUser(student)) return;
-    await db.recordPrayerParticipation(student.id, prayerId);
+  const prayForHandler = useCallback(async (prayerId: string, prayerStudentId?: string): Promise<boolean> => {
+    if (!student || isAdminUser(student)) return false;
+    const ok = await db.recordPrayerParticipation(student.id, prayerId);
+    if (!ok) return false; // 이미 오늘 이 기도제목에 기도함
     // 자기 기도제목에는 마일리지不予给
     if (prayerStudentId && prayerStudentId === student.id) {
       refreshAll();
-      return;
+      return true;
     }
     const reward = 5;
     showPointToast(`+${reward}M`);
@@ -575,6 +577,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "기도", description: "기도 참여", amount: reward, date: today });
     setBadgeRefreshKey(k => k + 1);
     refreshAll();
+    return true;
   }, [student, today]);
 
   const addPrayerRequest = useCallback(async (content: string, anonymous: boolean) => {
@@ -585,8 +588,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       anonymous, content, classId: student.classId,
     };
     await db.insertPrayer(prayer);
-    await db.completeDailyQuest(student.id, "d5", today, 10, 10);
-    setDailyQuestIds(prev => [...prev, "d5"]);
     await db.addActivity("prayer", `${anonymous ? "익명" : student.name}님이 기도제목을 올렸습니다`);
     refreshAll();
   }, [student, today]);

@@ -5,7 +5,8 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import PrayerCard from "@/components/PrayerCard";
 import { useApp } from "@/lib/store-context";
-import { fetchPrayerComments, addPrayerComment, fetchPrayerParticipants } from "@/lib/db";
+import { fetchPrayerComments, addPrayerComment, fetchPrayerParticipants, hasPrayedToday } from "@/lib/db";
+import { koreaDate } from "@/lib/korea-date";
 
 export default function WeContent() {
   const { student, isLoggedIn, prayers, prayFor, addPrayerRequest, updatePrayerRequest, deletePrayerRequest, todayPrayerCount, dailyQuestIds, completeDailyQuest } = useApp();
@@ -30,9 +31,9 @@ export default function WeContent() {
       try { cmap[p.id] = await fetchPrayerComments(p.id); } catch { cmap[p.id] = []; }
       try {
         const participants = await fetchPrayerParticipants(p.id);
-        // Sort by prayer count descending (each participant prayed once, so sort by prayed_at)
         pmap[p.id] = participants;
-        tmap[p.id] = participants.some((pp: any) => pp.studentId === student?.id);
+        // 오늘(한국 날짜) 기준으로 이 기도제목에 기도했는지 확인
+        tmap[p.id] = await hasPrayedToday(student!.id, p.id, koreaDate());
       } catch { pmap[p.id] = []; tmap[p.id] = false; }
     }
     setCommentsMap(cmap);
@@ -65,9 +66,9 @@ export default function WeContent() {
 
   const handlePray = async (prayerId: string, prayerStudentId?: string) => {
     if (prayedTodayMap[prayerId]) return;
-    await prayFor(prayerId, prayerStudentId);
-    // Complete daily quest d5 (기도해주기) if not already done
-    if (!dailyQuestIds.includes("d5")) {
+    const ok = await prayFor(prayerId, prayerStudentId);
+    // 실제로 기도 기록이 생성됐을 때만 d5 퀘스트 완료
+    if (ok && !dailyQuestIds.includes("d5")) {
       await completeDailyQuest("d5");
     }
     fetchAllData();
