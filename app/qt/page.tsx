@@ -8,7 +8,7 @@ import { useApp } from "@/lib/store-context";
 import { koreaDate } from "@/lib/korea-date";
 
 export default function QTContent() {
-  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, unshareQT, sharedQTDates } = useApp();
+  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, unshareQT, sharedQTDates, dailyQuestIds } = useApp();
   const [remembered, setRemembered] = useState("");
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
@@ -27,11 +27,12 @@ export default function QTContent() {
 
   const handleShare = async () => {
     if (sharing) return;
+    const alreadyRewarded = dailyQuestIds.includes("d2");
     setSharing(true);
     try {
       const ok = await shareQT();
       if (ok) {
-        setSharedMsg("QT 공유 완료! +10M");
+        setSharedMsg(alreadyRewarded ? "QT 공유 완료! (오늘 보상은 이미 받았어요)" : "QT 공유 완료! +10M");
       } else {
         setSharedMsg("오늘은 이미 공유했어요.");
       }
@@ -42,7 +43,7 @@ export default function QTContent() {
 
   const handleUnshare = async () => {
     if (sharing) return;
-    if (!confirm("공유를 취소하시겠습니까? -10M이 차감됩니다.")) return;
+    if (!confirm("공유를 취소하시겠습니까? (오늘 받은 공유 보상은 유지됩니다)")) return;
     setSharing(true);
     try {
       const ok = await unshareQT();
@@ -132,7 +133,7 @@ export default function QTContent() {
             <>
               <button onClick={handleShare} disabled={sharing}
                 className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition active:scale-[0.98] disabled:opacity-40">
-                <Share2 size={16} /> {sharing ? "처리 중..." : "QT 공유하기 +10M"}
+                <Share2 size={16} /> {sharing ? "처리 중..." : (dailyQuestIds.includes("d2") ? "QT 공유하기" : "QT 공유하기 +10M")}
               </button>
               {sharedMsg && <p className="mt-2 text-center text-xs font-semibold text-indigo-500">{sharedMsg}</p>}
             </>

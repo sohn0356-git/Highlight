@@ -357,8 +357,14 @@ export async function deletePrayer(id: string) {
 export async function recordPrayerParticipation(studentId: string, prayerId: string): Promise<boolean> {
   const s = sb();
   if (!s) return false;
+  // 단일 RPC 호출: 참여 기록 + prayer_count 증가를 한 번에 (1일 1회 제한, 버퍼링 최소화)
+  try {
+    const { data, error } = await s.rpc("pray_for_participation", { p_student_id: studentId, p_prayer_id: prayerId });
+    if (!error) return data === true;
+  } catch {
+    // RPC 미존재 시 아래 폴백 사용
+  }
   const today = koreaDate();
-  // 이미 오늘 기도했으면 false (하루 1회)
   const { data: existing } = await s.from("prayer_participants").select("id")
     .eq("prayer_id", prayerId).eq("student_id", studentId).eq("pray_date", today).limit(1);
   if (existing && existing.length) return false;
@@ -368,11 +374,9 @@ export async function recordPrayerParticipation(studentId: string, prayerId: str
   }, { onConflict: "prayer_id,student_id,pray_date", ignoreDuplicates: true });
   if (error) return false;
 
-  // Increment prayer_count
   try {
     await s.rpc("increment_prayer_count" as any, { pid: prayerId });
   } catch {
-    // Fallback: manual increment
     const { data } = await s.from("prayer_requests").select("prayer_count").eq("id", prayerId).single();
     if (data) {
       await s.from("prayer_requests").update({ prayer_count: (data.prayer_count || 0) + 1 }).eq("id", prayerId);

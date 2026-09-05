@@ -9,7 +9,7 @@ import { fetchPrayerComments, addPrayerComment, fetchPrayerParticipants, hasPray
 import { koreaDate } from "@/lib/korea-date";
 
 export default function WeContent() {
-  const { student, isLoggedIn, prayers, prayFor, addPrayerRequest, updatePrayerRequest, deletePrayerRequest, todayPrayerCount, dailyQuestIds, completeDailyQuest } = useApp();
+  const { student, isLoggedIn, prayers, prayFor, addPrayerRequest, updatePrayerRequest, deletePrayerRequest, dailyQuestIds, completeDailyQuest } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState("");
   const [anonymous, setAnonymous] = useState(false);
@@ -24,18 +24,23 @@ export default function WeContent() {
   if (!student || !isLoggedIn) return null;
 
   const fetchAllData = useCallback(async () => {
+    const today = koreaDate();
+    const results = await Promise.all(prayers.map(async (p) => {
+      const [comments, participants] = await Promise.all([
+        fetchPrayerComments(p.id).catch(() => [] as any[]),
+        fetchPrayerParticipants(p.id).catch(() => [] as any[]),
+      ]);
+      const prayedToday = await hasPrayedToday(student!.id, p.id, today).catch(() => false);
+      return { id: p.id, comments, participants, prayedToday };
+    }));
     const cmap: Record<string, any[]> = {};
     const pmap: Record<string, any[]> = {};
     const tmap: Record<string, boolean> = {};
-    for (const p of prayers) {
-      try { cmap[p.id] = await fetchPrayerComments(p.id); } catch { cmap[p.id] = []; }
-      try {
-        const participants = await fetchPrayerParticipants(p.id);
-        pmap[p.id] = participants;
-        // 오늘(한국 날짜) 기준으로 이 기도제목에 기도했는지 확인
-        tmap[p.id] = await hasPrayedToday(student!.id, p.id, koreaDate());
-      } catch { pmap[p.id] = []; tmap[p.id] = false; }
-    }
+    results.forEach(r => {
+      cmap[r.id] = r.comments;
+      pmap[r.id] = r.participants;
+      tmap[r.id] = r.prayedToday;
+    });
     setCommentsMap(cmap);
     setParticipantsMap(pmap);
     setPrayedTodayMap(tmap);
@@ -54,10 +59,8 @@ export default function WeContent() {
     fetchAllData();
   };
 
-  const canPost = todayPrayerCount < 1;
-
   const handleAdd = () => {
-    if (!content.trim() || !canPost) return;
+    if (!content.trim()) return;
     addPrayerRequest(content.trim(), anonymous);
     setContent("");
     setAnonymous(false);
@@ -66,11 +69,14 @@ export default function WeContent() {
 
   const handlePray = async (prayerId: string, prayerStudentId?: string) => {
     if (prayedTodayMap[prayerId]) return;
+    // 낙관적 반영: 버튼 즉시 비활성화 (버퍼링 없음)
+    setPrayedTodayMap(prev => ({ ...prev, [prayerId]: true }));
     const ok = await prayFor(prayerId, prayerStudentId);
     // 실제로 기도 기록이 생성됐을 때만 d5 퀘스트 완료
     if (ok && !dailyQuestIds.includes("d5")) {
-      await completeDailyQuest("d5");
+      completeDailyQuest("d5");
     }
+    // 백그라운드로 갱신 (대기하지 않음)
     fetchAllData();
   };
 
@@ -108,14 +114,10 @@ export default function WeContent() {
       <section className="mt-5 px-5 pb-6">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-neutral-900">기도제목</h2>
-          {canPost ? (
-            <button onClick={() => setShowForm(v => !v)}
-              className="flex items-center gap-1 rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white active:scale-95 transition">
-              <MessageCirclePlus size={14} /> 기도제목 남기기
-            </button>
-          ) : (
-            <span className="text-[11px] font-semibold text-neutral-400">오늘은 이미 남겼어요</span>
-          )}
+          <button onClick={() => setShowForm(v => !v)}
+            className="flex items-center gap-1 rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white active:scale-95 transition">
+            <MessageCirclePlus size={14} /> 기도제목 남기기
+          </button>
         </div>
 
         {showForm && (

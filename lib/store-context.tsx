@@ -432,20 +432,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const ok = await db.createSharedPost(post);
       if (!ok) return false; // 이미 오늘 공유함
       setSharedQTDates(prev => [...prev, today]);
-      showPointToast("+10M");
-      const newTotal = (student.mileage || 0) + 10;
-      await db.updateStudentField(student.id, "mileage", newTotal);
-      await db.updateStudentField(student.id, "xp", newTotal);
-      await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유", description: "QT 공유", amount: 10, date: today });
-      await db.completeDailyQuest(student.id, "d2", today, 10, 10);
-      setDailyQuestIds(prev => [...prev, "d2"]);
+
+      // 공유 포인트(+10M)는 하루 1회만: d2 퀘스트(오늘 공유 보상)가 이미 완료됐으면 재공유는 포인트 없이 게시만
+      if (!dailyQuestIds.includes("d2")) {
+        showPointToast("+10M");
+        const newTotal = (student.mileage || 0) + 10;
+        await db.updateStudentField(student.id, "mileage", newTotal);
+        await db.updateStudentField(student.id, "xp", newTotal);
+        await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유", description: "QT 공유", amount: 10, date: today });
+        await db.completeDailyQuest(student.id, "d2", today, 10, 10);
+        setDailyQuestIds(prev => [...prev, "d2"]);
+      }
+
       setBadgeRefreshKey(k => k + 1);
       refreshAll();
       return true;
     } finally {
       sharingRef.current = false;
     }
-  }, [student, sharedQTDates, today, qtToday, qtRecords]);
+  }, [student, sharedQTDates, dailyQuestIds, today, qtToday, qtRecords]);
 
   /* ── Unshare QT ── */
   const unshareQT = useCallback(async () => {
@@ -454,12 +459,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const ok = await db.unshareQT(student.id, today);
       if (!ok) return false; // 공유한 내용이 없음
-      // Reverse mileage
-      const reward = 10;
-      const newTotal = Math.max(0, (student.mileage || 0) - reward);
-      await db.updateStudentField(student.id, "mileage", newTotal);
-      await db.updateStudentField(student.id, "xp", newTotal);
-      await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유 취소", description: "QT 공유 취소", amount: -reward, date: today });
+      // 공유 취소는 게시물 삭제만: +10M 보상은 하루 1회 지급이므로 차감하지 않음
       // 삭제 대상 공유글 id 수집 후 로컬 상태 정리
       const removedIds = sharedPosts.filter(p => p.studentId === student.id && p.date === today).map(p => p.id);
       setSharedPosts(prev => prev.filter(p => !removedIds.includes(p.id)));
@@ -471,7 +471,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return next;
         });
       }
-      showPointToast(`-${reward}M`);
       setBadgeRefreshKey(k => k + 1);
       refreshAll();
       return true;
@@ -572,9 +571,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const reward = 5;
     showPointToast(`+${reward}M`);
     const newTotal = (student.mileage || 0) + reward;
-    await db.updateStudentField(student.id, "mileage", newTotal);
-    await db.updateStudentField(student.id, "xp", newTotal);
-    await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "기도", description: "기도 참여", amount: reward, date: today });
+    await Promise.all([
+      db.updateStudentField(student.id, "mileage", newTotal),
+      db.updateStudentField(student.id, "xp", newTotal),
+      db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "기도", description: "기도 참여", amount: reward, date: today }),
+    ]);
     setBadgeRefreshKey(k => k + 1);
     refreshAll();
     return true;
