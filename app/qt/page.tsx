@@ -20,12 +20,13 @@ export default function QTContent() {
   const [editRemembered, setEditRemembered] = useState("");
   const [editApplication, setEditApplication] = useState("");
   const [recordsPage, setRecordsPage] = useState(0);
+  const [locallySharedDates, setLocallySharedDates] = useState<Set<string>>(new Set());
   const PAGE_SIZE = 5;
 
   if (!student || !isLoggedIn) return null;
 
   const today = koreaDate();
-  const sharedToday = sharedQTDates.includes(today);
+  const sharedToday = sharedQTDates.includes(today) || locallySharedDates.has(today);
 
   const handleShare = async (date?: string) => {
     if (sharing) return;
@@ -34,10 +35,12 @@ export default function QTContent() {
     try {
       const ok = await shareQT(date);
       if (ok) {
+        if (date) setLocallySharedDates(prev => new Set([...prev, date]));
         setSharedMsg(date === today
           ? (alreadyRewarded ? "QT 공유 완료! (오늘 보상은 이미 받았어요)" : "QT 공유 완료! +10M")
           : "QT 기록이 공유되었습니다.");
       } else {
+        if (date) setLocallySharedDates(prev => new Set([...prev, date]));
         setSharedMsg(date === today ? "오늘은 이미 공유했어요." : "이미 공유된 기록입니다.");
       }
     } finally {
@@ -51,6 +54,7 @@ export default function QTContent() {
     setSharing(true);
     try {
       const ok = await unshareQT(date);
+      if (ok && date) setLocallySharedDates(prev => { const n = new Set(prev); n.delete(date); return n; });
       setSharedMsg(ok ? "공유가 취소되었습니다." : "공유한 내용이 없습니다.");
     } finally {
       setSharing(false);
@@ -177,7 +181,7 @@ export default function QTContent() {
                     <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">+{r.reward}M</span>
                     {(() => {
                       const isToday = r.date === today;
-                      const isShared = sharedQTDates.includes(r.date);
+                      const isShared = sharedQTDates.includes(r.date) || locallySharedDates.has(r.date);
                       const canShare = isToday && !isShared;
                       const isOwn = r.studentId === student?.id;
                       return isOwn ? (

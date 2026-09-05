@@ -20,10 +20,24 @@ export default function WeContent() {
   const [editContent, setEditContent] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [myFilter, setMyFilter] = useState<"all" | "mine">("all");
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 5;
 
   if (!student || !isLoggedIn) return null;
+
+  // 필터링된 기도 목록
+  const filteredPrayers = prayers.filter((p: any) => {
+    // 내 글 필터
+    if (myFilter === "mine" && p.studentId !== student.id) return false;
+    // 제목(내용) 검색
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      return (p.content || "").toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const fetchAllData = useCallback(async () => {
     const today = koreaDate();
@@ -123,29 +137,55 @@ export default function WeContent() {
         </div>
 
         {showForm && (
-          <Card className="mt-3 !p-4">
-            <textarea value={content} onChange={e => setContent(e.target.value)} rows={2}
-              placeholder="기도제목을 적어주세요…"
-              className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-rose-400 resize-none" />
-            <div className="mt-2 flex items-center justify-between">
-              <label className="flex items-center gap-2 text-xs text-neutral-600">
-                <input type="checkbox" checked={anonymous} onChange={e => setAnonymous(e.target.checked)} className="accent-rose-500" />
-                익명으로 남기기
-              </label>
-              <button onClick={handleAdd} className="rounded-full bg-rose-500 px-4 py-2 text-xs font-bold text-white active:scale-95 transition">
-                등록
-              </button>
+          <div className="grid transition-[grid-template-rows] duration-200 ease-in-out" style={{ gridTemplateRows: "1fr" }}>
+            <div className="overflow-hidden">
+              <Card className="mt-3 !p-4">
+                <textarea value={content} onChange={e => setContent(e.target.value)} rows={2}
+                  placeholder="기도제목을 적어주세요…"
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm outline-none focus:border-rose-400 resize-none" />
+                <div className="mt-2 flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-xs text-neutral-600">
+                    <input type="checkbox" checked={anonymous} onChange={e => setAnonymous(e.target.checked)} className="accent-rose-500" />
+                    익명으로 남기기
+                  </label>
+                  <button onClick={handleAdd} className="rounded-full bg-rose-500 px-4 py-2 text-xs font-bold text-white active:scale-95 transition">
+                    등록
+                  </button>
+                </div>
+              </Card>
             </div>
-          </Card>
+          </div>
         )}
 
+        {/* 내 글 필터 + 검색 */}
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            onClick={() => { setMyFilter("all"); setPage(0); }}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition ${myFilter === "all" ? "bg-rose-500 text-white" : "bg-rose-50 text-rose-500 border border-rose-200"}`}
+          >
+            전체
+          </button>
+          <button
+            onClick={() => { setMyFilter("mine"); setPage(0); }}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition ${myFilter === "mine" ? "bg-rose-500 text-white" : "bg-rose-50 text-rose-500 border border-rose-200"}`}
+          >
+            내 글
+          </button>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => { setSearchQuery(e.target.value); setPage(0); }}
+            placeholder="제목 검색..."
+            className="flex-1 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-rose-400 placeholder:text-rose-300"
+          />
+        </div>
         <div className="mt-3 flex flex-col gap-2.5">
-          {!dataLoaded && prayers.length > 0 && (
+          {!dataLoaded && filteredPrayers.length > 0 && (
             <div className="flex justify-center py-8">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-rose-400 border-t-transparent" />
             </div>
           )}
-          {dataLoaded && prayers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(p => (
+          {dataLoaded && filteredPrayers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(p => (
             <PrayerCard
               key={p.id}
               prayer={p}
@@ -166,16 +206,21 @@ export default function WeContent() {
               hasPrayedToday={!!prayedTodayMap[p.id]}
             />
           ))}
-          {prayers.length === 0 && (
+          {dataLoaded && filteredPrayers.length === 0 && prayers.length > 0 && (
+            <Card className="text-center">
+              <p className="py-4 text-sm text-neutral-400">{searchQuery ? "검색 결과가 없어요." : "내 글이 없어요."}</p>
+            </Card>
+          )}
+          {dataLoaded && prayers.length === 0 && (
             <Card className="text-center">
               <p className="py-4 text-sm text-neutral-400">아직 기도제목이 없어요.</p>
             </Card>
           )}
-          {prayers.length > PAGE_SIZE && (
+          {filteredPrayers.length > PAGE_SIZE && (
             <div className="mt-4 flex items-center justify-center gap-3">
               <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="rounded-lg bg-rose-100/60 px-3 py-1.5 text-xs font-bold text-rose-500 disabled:opacity-40">← 이전</button>
-              <span className="text-xs text-neutral-400">{page + 1}/{Math.ceil(prayers.length / PAGE_SIZE)}</span>
-              <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * PAGE_SIZE >= prayers.length} className="rounded-lg bg-rose-100/60 px-3 py-1.5 text-xs font-bold text-rose-500 disabled:opacity-40">다음 →</button>
+              <span className="text-xs text-neutral-400">{page + 1}/{Math.ceil(filteredPrayers.length / PAGE_SIZE)}</span>
+              <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * PAGE_SIZE >= filteredPrayers.length} className="rounded-lg bg-rose-100/60 px-3 py-1.5 text-xs font-bold text-rose-500 disabled:opacity-40">다음 →</button>
             </div>
           )}
         </div>
