@@ -18,6 +18,7 @@ export default function WeContent() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   if (!student || !isLoggedIn) return null;
 
@@ -37,9 +38,15 @@ export default function WeContent() {
     setCommentsMap(cmap);
     setParticipantsMap(pmap);
     setPrayedTodayMap(tmap);
+    setDataLoaded(true);
   }, [prayers, student?.id]);
 
-  useEffect(() => { if (prayers.length) fetchAllData(); }, [prayers.length, fetchAllData]);
+  useEffect(() => {
+    if (prayers.length) {
+      setDataLoaded(false);
+      fetchAllData();
+    }
+  }, [prayers.length, fetchAllData]);
 
   const handleAddComment = async (prayerId: string, text: string) => {
     await addPrayerComment({ prayerId, studentId: student!.id, studentName: student!.name, content: text });
@@ -128,7 +135,12 @@ export default function WeContent() {
         )}
 
         <div className="mt-3 flex flex-col gap-2.5">
-          {prayers.map(p => (
+          {!dataLoaded && prayers.length > 0 && (
+            <div className="flex justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-rose-400 border-t-transparent" />
+            </div>
+          )}
+          {dataLoaded && prayers.map(p => (
             <PrayerCard
               key={p.id}
               prayer={p}

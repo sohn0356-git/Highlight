@@ -13,6 +13,7 @@ export default function QTContent() {
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
   const [sharedMsg, setSharedMsg] = useState("");
+  const [sharing, setSharing] = useState(false);
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
   const [editRecordId, setEditRecordId] = useState<string | null>(null);
@@ -25,14 +26,30 @@ export default function QTContent() {
   const sharedToday = sharedQTDates.includes(today);
 
   const handleShare = async () => {
-    const ok = await shareQT();
-    setSharedMsg(ok ? "QT 공유 완료! +10M" : "오늘은 이미 공유했어요.");
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const ok = await shareQT();
+      if (ok) {
+        setSharedMsg("QT 공유 완료! +10M");
+      } else {
+        setSharedMsg("오늘은 이미 공유했어요.");
+      }
+    } finally {
+      setSharing(false);
+    }
   };
 
   const handleUnshare = async () => {
+    if (sharing) return;
     if (!confirm("공유를 취소하시겠습니까? -10M이 차감됩니다.")) return;
-    await unshareQT();
-    setSharedMsg("공유가 취소되었습니다.");
+    setSharing(true);
+    try {
+      const ok = await unshareQT();
+      setSharedMsg(ok ? "공유가 취소되었습니다." : "공유한 내용이 없습니다.");
+    } finally {
+      setSharing(false);
+    }
   };
 
   const handleComplete = () => {
@@ -113,14 +130,14 @@ export default function QTContent() {
           {/* Share / Unshare buttons */}
           <div className="mt-3 flex gap-2">
             {sharedToday ? (
-              <button onClick={handleUnshare}
-                className="flex-1 flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-3 text-sm font-bold text-red-500 transition active:scale-[0.98]">
-                <X size={16} /> 공유 취소 (-10M)
+              <button onClick={handleUnshare} disabled={sharing}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 py-3 text-sm font-bold text-red-500 transition active:scale-[0.98] disabled:opacity-40">
+                <X size={16} /> {sharing ? "처리 중..." : "공유 취소 (-10M)"}
               </button>
             ) : (
-              <button onClick={handleShare} disabled={sharedToday}
+              <button onClick={handleShare} disabled={sharing}
                 className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition active:scale-[0.98] disabled:opacity-40">
-                <Share2 size={16} /> QT 공유하기 +10M
+                <Share2 size={16} /> {sharing ? "처리 중..." : "QT 공유하기 +10M"}
               </button>
             )}
           </div>

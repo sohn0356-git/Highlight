@@ -305,13 +305,13 @@ export async function fetchPrayers(studentId?: string) {
   const s = sb();
   if (!s) return [];
   let q = s.from("prayer_requests").select("*").order("created_at", { ascending: false });
-  if (studentId) q = q.eq("author_id", studentId);
+  if (studentId) q = q.eq("student_id", studentId);
   const { data, error } = await q;
   if (error || !data) return [];
   return data.map((r: any) => ({
     id: r.id, authorName: r.author_name || "", anonymous: !!r.anonymous,
     content: r.content || "", prayerCount: Number(r.prayer_count) || 0,
-    createdAt: r.created_at || "", prayedBy: [], studentId: r.author_id,
+    createdAt: r.created_at || "", prayedBy: [], studentId: r.student_id,
     classId: r.class_id || "", status: r.status || "active",
   }));
 }
@@ -320,9 +320,9 @@ export async function insertPrayer(prayer: any) {
   const s = sb();
   if (!s) return null;
   const { data, error } = await s.from("prayer_requests").insert([{
-    id: prayer.id, author_id: prayer.studentId,
+    id: prayer.id, student_id: prayer.studentId, author_name: prayer.authorName || "",
     anonymous: !!prayer.anonymous, content: prayer.content,
-    prayer_count: 0,
+    prayer_count: 0, class_id: prayer.classId || "",
   }]).select().single();
   if (error || !data) return null;
   return data;
@@ -796,15 +796,18 @@ export async function fetchSharedPosts() {
 
 export async function createSharedPost(post: any) {
   const s = sb();
-  if (!s) return;
-  await s.from("shared_qt_posts").insert([{
+  if (!s) return false;
+  // 하루 1회 제한: student_id + date 유니크 제약으로 중복 방지
+  const { error } = await s.from("shared_qt_posts").upsert({
     id: post.id, student_id: post.studentId, student_name: post.studentName || "",
     class_id: post.classId || "", class_name: post.className || "",
     passage: post.passage || "", verse: post.verse || "",
     remembered: post.remembered || "", application: post.application || "",
     reward: post.reward || 0, date: post.date || koreaDate(),
     comment_count: 0, liked_by: [],
-  }]);
+  }, { onConflict: "student_id,date", ignoreDuplicates: true });
+  if (error) return false;
+  return true;
 }
 
 export async function unshareQT(studentId: string, date: string) {
@@ -1002,7 +1005,7 @@ export async function calculateQTStreak(studentId: string): Promise<number> {
 /* ── Badge ID to Metric Type Mapping ── */
 const BADGE_METRIC_MAP: Record<string, string> = {
   b1: "qt_count", b2: "attendance_count", b3: "prayer_count",
-  b4: "mission_count", b5: "mileage_total", b6: "qt_streak",
+  b4: "mission_count", b5: "mileage_total", b6: "qt_streak", b7: "praise_count",
 };
 
 export function getBadgeMetricType(badgeId: string): string {
@@ -1036,6 +1039,10 @@ export async function calculateBadgeProgress(studentId: string, badgeType: strin
     }
     case "qt_streak": {
       return await calculateQTStreak(studentId);
+    }
+    case "praise_count": {
+      const { data } = await s.from("praises").select("id").eq("praised_id", studentId);
+      return data?.length || 0;
     }
     default: return 0;
   }
@@ -1199,6 +1206,10 @@ export async function fetchStudentBadgesWithProgress(studentId: string) {
       }
       if (type === "b6") { // QT Streak
         return await calculateQTStreak(studentId);
+      }
+      if (type === "b7") { // Praise count
+        const { data } = await dbClient.from("praises").select("id").eq("praised_id", studentId);
+        return data?.length || 0;
       }
       return 0;
     }

@@ -27,6 +27,11 @@ const LEVEL_COLORS = [
   { bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700", badge: "bg-violet-100 text-violet-700", bar: "bg-violet-400" },
   { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", badge: "bg-amber-100 text-amber-700", bar: "bg-amber-400" },
   { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-700", badge: "bg-rose-100 text-rose-700", bar: "bg-rose-400" },
+  { bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-700", badge: "bg-cyan-100 text-cyan-700", bar: "bg-cyan-400" },
+  { bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700", badge: "bg-indigo-100 text-indigo-700", bar: "bg-indigo-400" },
+  { bg: "bg-teal-50", border: "border-teal-200", text: "text-teal-700", badge: "bg-teal-100 text-teal-700", bar: "bg-teal-400" },
+  { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", badge: "bg-orange-100 text-orange-700", bar: "bg-orange-400" },
+  { bg: "bg-fuchsia-50", border: "border-fuchsia-200", text: "text-fuchsia-700", badge: "bg-fuchsia-100 text-fuchsia-700", bar: "bg-fuchsia-400" },
 ];
 
 export default function BadgeCard({ badge }: BadgeCardProps) {

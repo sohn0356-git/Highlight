@@ -12,6 +12,7 @@ import { getStudentLevel, getNextLevelXp } from "@/lib/db";
 export default function HomeContent() {
   const { student, isLoggedIn, classes, activities, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
+  const [selectedAnn, setSelectedAnn] = useState<any>(null);
 
   useEffect(() => { refreshActivities(); }, [refreshActivities]);
   useEffect(() => {
@@ -58,14 +59,16 @@ export default function HomeContent() {
           ) : (
             <div className="space-y-2">
               {announcements.slice(0, 3).map((an: any) => (
-                <div key={an.id} className={`rounded-lg px-3 py-2.5 ${an.important ? "bg-amber-50 border border-amber-200" : "bg-neutral-50 border border-neutral-100"}`}>
-                  <div className="flex items-center gap-1.5">
-                    {an.important && <span className="text-xs">📌</span>}
-                    <p className="text-sm font-semibold text-neutral-800 truncate">{an.title}</p>
+                <button key={an.id} onClick={() => setSelectedAnn(an)}
+                  className={`w-full text-left rounded-lg px-3 py-2.5 transition active:scale-[0.98] ${an.important ? "bg-amber-50 border border-amber-200" : "bg-neutral-50 border border-neutral-100"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {an.important && <span className="text-xs shrink-0">📌</span>}
+                      <p className="text-sm font-semibold text-neutral-800 truncate">{an.title}</p>
+                    </div>
+                    <p className="text-[10px] text-neutral-400 shrink-0">{an.createdAt?.slice(0, 10) || ""}</p>
                   </div>
-                  {an.content && <p className="mt-1 text-[11px] text-neutral-500 line-clamp-2">{an.content}</p>}
-                  <p className="mt-1 text-[10px] text-neutral-400">{an.createdAt?.slice(0, 10) || ""}</p>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -109,6 +112,25 @@ export default function HomeContent() {
           myStudentId={student.id}
         />
       </section>
+
+      {/* ── 공지 상세 모달 ── */}
+      {selectedAnn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedAnn(null)}>
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white shadow-xl p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
+                {selectedAnn.important && <span className="text-xs">📌</span>}
+                <h3 className="text-sm font-bold text-neutral-800">{selectedAnn.title}</h3>
+              </div>
+              <button onClick={() => setSelectedAnn(null)} className="grid h-8 w-8 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">
+                <X size={16} />
+              </button>
+            </div>
+            {selectedAnn.content && <p className="text-sm leading-relaxed text-neutral-600 whitespace-pre-line">{selectedAnn.content}</p>}
+            <p className="mt-3 text-[10px] text-neutral-400">{selectedAnn.createdAt?.slice(0, 10) || ""}</p>
+          </div>
+        </div>
+      )}
 
       {/* ── 소식 모달 ── */}
       {feedOpen && (

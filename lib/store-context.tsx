@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import type { Student, MileageTransaction, QTRecord, PrayerRequest, SharedQTPost, QTComment, Teacher, ClassRoom } from "./types";
 import { koreaDate } from "./korea-date";
 import * as db from "./db";
@@ -24,7 +24,7 @@ interface AppState {
   sharedQTDates: string[];
   sharedTodayQT: boolean;
   shareQT: () => Promise<boolean>;
-  unshareQT: () => Promise<void>;
+  unshareQT: () => Promise<boolean>;
   sharedPosts: SharedQTPost[];
   addComment: (postId: string, content: string) => void;
   updateComment: (commentId: string, postId: string, content: string) => void;
@@ -117,6 +117,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [todayPrayerCount, setTodayPrayerCount] = useState(0);
   const [badgeRefreshKey, setBadgeRefreshKey] = useState(0);
   const [qtComments, setQtComments] = useState<Record<string, QTComment[]>>({});
+  const sharingRef = useRef(false);
 
   const today = koreaDate();
 
@@ -417,42 +418,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   /* ── Share QT ── */
   const shareQT = useCallback(async () => {
     if (!student || sharedQTDates.includes(today) || isAdminUser(student)) return false;
-    const todayRecord = qtRecords.find(r => r.date === today);
-    const post: any = {
-      id: `qp_${Date.now()}`, studentId: student.id, studentName: student.name,
-      classId: student.classId, passage: qtToday.passage, verse: qtToday.verse,
-      remembered: todayRecord?.remembered || "", application: todayRecord?.application || "",
-      reward: 10, date: today, commentCount: 0, likedBy: [],
-    };
-    await db.createSharedPost(post);
-    setSharedQTDates(prev => [...prev, today]);
-    showPointToast("+10M");
-    const newTotal = (student.mileage || 0) + 10;
-    await db.updateStudentField(student.id, "mileage", newTotal);
-    await db.updateStudentField(student.id, "xp", newTotal);
-    await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유", description: "QT 공유", amount: 10, date: today });
-    await db.completeDailyQuest(student.id, "d2", today, 10, 10);
-    setDailyQuestIds(prev => [...prev, "d2"]);
-    setBadgeRefreshKey(k => k + 1);
-    refreshAll();
-    return true;
+    if (sharingRef.current) return false;
+    sharingRef.current = true;
+    try {
+      const todayRecord = qtRecords.find(r => r.date === today);
+      const post: any = {
+        id: `qp_${Date.now()}`, studentId: student.id, studentName: student.name,
+        classId: student.classId, passage: qtToday.passage, verse: qtToday.verse,
+        remembered: todayRecord?.remembered || "", application: todayRecord?.application || "",
+        reward: 10, date: today, commentCount: 0, likedBy: [],
+      };
+      const ok = await db.createSharedPost(post);
+      if (!ok) return false; // 이미 오늘 공유함
+      setSharedQTDates(prev => [...prev, today]);
+      showPointToast("+10M");
+      const newTotal = (student.mileage || 0) + 10;
+      await db.updateStudentField(student.id, "mileage", newTotal);
+      await db.updateStudentField(student.id, "xp", newTotal);
+      await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유", description: "QT 공유", amount: 10, date: today });
+      await db.completeDailyQuest(student.id, "d2", today, 10, 10);
+      setDailyQuestIds(prev => [...prev, "d2"]);
+      setBadgeRefreshKey(k => k + 1);
+      refreshAll();
+      return true;
+    } finally {
+      sharingRef.current = false;
+    }
   }, [student, sharedQTDates, today, qtToday, qtRecords]);
 
   /* ── Unshare QT ── */
   const unshareQT = useCallback(async () => {
-    if (!student) return;
-    await db.unshareQT(student.id, today);
-    // Reverse mileage
-    const reward = 10;
-    const newTotal = Math.max(0, (student.mileage || 0) - reward);
-    await db.updateStudentField(student.id, "mileage", newTotal);
-    await db.updateStudentField(student.id, "xp", newTotal);
-    await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유 취소", description: "QT 공유 취소", amount: -reward, date: today });
-    setSharedQTDates(prev => prev.filter(d => d !== today));
-    showPointToast(`-${reward}M`);
-    setBadgeRefreshKey(k => k + 1);
-    refreshAll();
-  }, [student, today]);
+    if (!student || sharingRef.current) return false;
+    sharingRef.current = true;
+    try {
+      const ok = await db.unshareQT(student.id, today);
+      if (!ok) return false; // 공유한 내용이 없음
+      // Reverse mileage
+      const reward = 10;
+      const newTotal = Math.max(0, (student.mileage || 0) - reward);
+      await db.updateStudentField(student.id, "mileage", newTotal);
+      await db.updateStudentField(student.id, "xp", newTotal);
+      await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유 취소", description: "QT 공유 취소", amount: -reward, date: today });
+      // 삭제 대상 공유글 id 수집 후 로컬 상태 정리
+      const removedIds = sharedPosts.filter(p => p.studentId === student.id && p.date === today).map(p => p.id);
+      setSharedPosts(prev => prev.filter(p => !removedIds.includes(p.id)));
+      setSharedQTDates(prev => prev.filter(d => d !== today));
+      if (removedIds.length) {
+        setQtComments(prev => {
+          const next = { ...prev };
+          removedIds.forEach(id => delete next[id]);
+          return next;
+        });
+      }
+      showPointToast(`-${reward}M`);
+      setBadgeRefreshKey(k => k + 1);
+      refreshAll();
+      return true;
+    } finally {
+      sharingRef.current = false;
+    }
+  }, [student, today, sharedPosts]);
 
   /* ── Comments ── */
   const loadComments = useCallback(async (postId: string) => {
