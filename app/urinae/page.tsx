@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { MessageCirclePlus, HandHeart, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
@@ -42,41 +42,47 @@ export default function WeContent() {
   const fetchAllData = useCallback(async () => {
     const today = koreaDate();
     const prayerIds = prayers.map((p: any) => p.id);
+    if (!prayerIds.length) { setDataLoaded(true); return; }
     const { commentsMap, participantsMap, prayedTodayMap } = await fetchAllPrayerData(prayerIds, student!.id, today);
     setCommentsMap(commentsMap);
     setParticipantsMap(participantsMap);
     setPrayedTodayMap(prayedTodayMap);
     setDataLoaded(true);
-  }, [prayers, student?.id]);
+  }, [prayers.length, student?.id]);
 
+  const [initialized, setInitialized] = useState(false);
+  
   useEffect(() => {
-    if (prayers.length) {
+    if (prayers.length && !initialized) {
       setPage(0);
-      setDataLoaded(false);
+      fetchAllData();
+      setInitialized(true);
+    }
+  }, [prayers.length, initialized, fetchAllData]);
+
+  // prayers.length가 늘어났을 때 (새 글 등록) 데이터 리로드
+  const prevCountRef = useRef(prayers.length);
+  useEffect(() => {
+    if (prayers.length > prevCountRef.current) {
       fetchAllData();
     }
+    prevCountRef.current = prayers.length;
   }, [prayers.length, fetchAllData]);
 
   const handleAddComment = async (prayerId: string, text: string) => {
+    // 낙관적 반영: 즉시 로컬 state 업데이트 (전체 리패치 없음)
+    const newComment = { id: `temp_${Date.now()}`, prayerId, studentId: student!.id, studentName: student!.name, content: text, createdAt: new Date().toISOString() };
+    setCommentsMap(prev => ({ ...prev, [prayerId]: [...(prev[prayerId] || []), newComment] }));
     await addPrayerComment({ prayerId, studentId: student!.id, studentName: student!.name, content: text });
-    fetchAllData();
   };
 
   const handleAdd = async () => {
     if (!content.trim()) return;
-    // 로컬에 즉시 추가 (전체 리패치 없음)
-    const optimisticPrayer = {
-      id: `optimistic_${Date.now()}`, studentId: student!.id,
-      authorName: anonymous ? "" : student!.name,
-      anonymous, content: content.trim(),
-      classId: student!.classId, createdAt: new Date().toISOString(),
-      prayerCount: 0, status: "active",
-    } as any;
     setContent("");
     setAnonymous(false);
     setShowForm(false);
+    // store-context의 addPrayerRequest가 refreshAll() 호출 → prayers 변경 → useEffect에서 fetchAllData 실행
     await addPrayerRequest(content.trim(), anonymous);
-    fetchAllData(); // re-fetch after add to get real data
   };
 
   const handlePray = async (prayerId: string, prayerStudentId?: string) => {
@@ -158,16 +164,16 @@ export default function WeContent() {
         )}
 
         {/* 내 글 필터 + 검색 */}
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex items-center gap-2 min-w-0">
           <button
             onClick={() => { setMyFilter("all"); setPage(0); }}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition ${myFilter === "all" ? "bg-rose-500 text-white" : "bg-rose-50 text-rose-500 border border-rose-200"}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition ${myFilter === "all" ? "bg-rose-500 text-white" : "bg-rose-50 text-rose-500 border border-rose-200"}`}
           >
             전체
           </button>
           <button
             onClick={() => { setMyFilter("mine"); setPage(0); }}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition ${myFilter === "mine" ? "bg-rose-500 text-white" : "bg-rose-50 text-rose-500 border border-rose-200"}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition ${myFilter === "mine" ? "bg-rose-500 text-rose-500 border border-rose-200" : "bg-rose-50 text-rose-500 border border-rose-200"}`}
           >
             내 글
           </button>
@@ -176,7 +182,7 @@ export default function WeContent() {
             value={searchQuery}
             onChange={e => { setSearchQuery(e.target.value); setPage(0); }}
             placeholder="제목 검색..."
-            className="flex-1 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-rose-400 placeholder:text-rose-300"
+            className="min-w-0 flex-1 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-[11px] outline-none focus:border-rose-400 placeholder:text-rose-300"
           />
         </div>
         <div className="mt-3 flex flex-col gap-2.5">
