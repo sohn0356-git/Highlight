@@ -60,6 +60,30 @@ CREATE INDEX IF NOT EXISTS idx_student_badge_progress_student ON student_badge_p
 CREATE INDEX IF NOT EXISTS idx_badge_levels_badge ON badge_levels(badge_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_rewards_record ON attendance_rewards(attendance_record_id);
 CREATE INDEX IF NOT EXISTS idx_daily_quests_student_date ON daily_quests(student_id, completion_date);
+-- 4-1. Ensure required columns exist before creating indexes
+ALTER TABLE students ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'student';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS xp INT DEFAULT 0;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS weekly_xp INT DEFAULT 0;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS is_teacher BOOLEAN DEFAULT FALSE;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS grade INT DEFAULT 1;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS class_name TEXT DEFAULT '';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS guardian_phone TEXT DEFAULT '';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS memo TEXT DEFAULT '';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS enrollment_status TEXT DEFAULT 'active';
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;
+
+-- 4-2. Fill grade / class_name from class_id (idempotent)
+UPDATE students SET grade = CASE
+  WHEN class_id LIKE 'c_g1_%' THEN 1
+  WHEN class_id LIKE 'c_g2_%' THEN 2
+  WHEN class_id LIKE 'c_g3_%' THEN 3
+  ELSE 1
+END WHERE grade IS NULL OR grade = 0;
+UPDATE students s SET class_name = c.name FROM classes c
+  WHERE s.class_id = c.id AND (s.class_name IS NULL OR s.class_name = '');
+
 CREATE INDEX IF NOT EXISTS idx_students_active ON students(active);
 CREATE INDEX IF NOT EXISTS idx_students_class ON students(class_id);
 CREATE INDEX IF NOT EXISTS idx_teachers_active ON teachers(active);
@@ -121,8 +145,8 @@ INSERT INTO badge_levels (id, badge_id, level, threshold, reward_mileage, reward
 ON CONFLICT (id) DO NOTHING;
 
 -- XP earner badge (new)
-INSERT INTO badges (id, name, description, icon, requirement_type, requirement_value, active, mileage_reward, category, display_order, level_thresholds, level_labels, level_rewards)
-VALUES ('b6', '경험의 달인', 'XP를 모으세요', '⚡', 'xp_earned', 100, true, 0, 'xp', 6, '{100,500,1000,3000,5000}', '{Lv.1,Lv.2,Lv.3,Lv.4,Lv.MAX}', '{10,20,30,50,100}')
+INSERT INTO badges (id, name, description, icon, criteria, level_thresholds, active)
+VALUES ('b6', '꾸준한 말씀', 'XP를 모으세요', '⚡', 'xp_earned', '{100,500,1000,3000,5000}', true)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO badge_levels (id, badge_id, level, threshold, reward_mileage, reward_xp, title, description) VALUES
@@ -195,7 +219,7 @@ WHERE role = 'student'
 
 -- 8. Attendance mileage backfill (idempotent)
 -- Award 20 mileage for each qualifying 2026 attendance record
-INSERT INTO attendance_rewards (id, attendance_record_id, student_id, amount, status, awarded_at)
+INSERT INTO attendance_rewards (id, attendance_record_id, student_id, amount, status, created_at)
 SELECT
   'attrew_' || ar.id,
   ar.id,
@@ -216,17 +240,14 @@ WHERE ar.state IN ('present', 'late')
   );
 
 -- Create mileage transactions for the backfill
-INSERT INTO mileage_transactions (id, student_id, student_name, class_name, type, description, amount, date, actor_name, created_at)
+INSERT INTO mileage_transactions (id, student_id, type, description, amount, date, created_at)
 SELECT
   'atx_attrew_' || ar.id,
   ar.student_id,
-  s.name,
-  s.class_id,
   'attendance',
   '출석 마일리지 (2026 백필)',
   20,
-  ats.date,
-  '시스템',
+  ats.date::date,
   now()
 FROM attendance_records ar
 JOIN students s ON ar.student_id = s.id
@@ -240,7 +261,7 @@ WHERE ar.state IN ('present', 'late')
   AND NOT EXISTS (
     SELECT 1 FROM mileage_transactions mt
     WHERE mt.student_id = ar.student_id AND mt.type = 'attendance' AND mt.description = '출석 마일리지 (2026 백필)'
-      AND mt.date = ats.date
+      AND mt.date = ats.date::date
   );
 
 -- Update student mileage balances from transactions
@@ -251,11 +272,11 @@ UPDATE students SET mileage = (
 )
 WHERE students.role = 'student' AND students.is_teacher = false;
 
--- Update student XP balances
+-- Update student XP balances (XP == mileage 합산 체계)
 UPDATE students SET xp = (
-  SELECT COALESCE(SUM(xt.amount), 0)
-  FROM xp_transactions xt
-  WHERE xt.student_id = students.id AND xt.status = 'active'
+  SELECT COALESCE(SUM(mt.amount), 0)
+  FROM mileage_transactions mt
+  WHERE mt.student_id = students.id
 )
 WHERE students.role = 'student' AND students.is_teacher = false;
 
@@ -268,4 +289,5 @@ UPDATE classes SET xp = (
 
 -- Audit log for backfill
 INSERT INTO audit_logs (id, actor_id, actor_role, action, target_type, target_id, description, created_at)
-VALUES ('audit_backfill_2026', 'system', 'admin', 'attendance_backfill', 'system', 'all', '2026 attendance mileage backfill completed', now());
+VALUES ('audit_backfill_2026', 'system', 'admin', 'attendance_backfill', 'system', 'all', '2026 attendance mileage backfill completed', now())
+ON CONFLICT (id) DO NOTHING;
