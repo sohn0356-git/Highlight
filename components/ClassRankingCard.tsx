@@ -148,27 +148,13 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
       {tab === "grade" ? (
         <>
           {renderRows(gradeRows, topGrade, "M")}
-          {topGrade && (
-            <div className="mt-4 flex items-center gap-2 rounded-xl bg-orange-50 px-3.5 py-3">
-              <p className="text-sm text-orange-700">
-                <span className="font-bold">🔥 현재 1위 학년</span>{" "}
-                {topGrade.name} ({topGrade.value.toLocaleString()} M)
-              </p>
-            </div>
-          )}
+          {/* 1위 메시지 제거 */}
         </>
       ) : (
         <>
           <p className="mt-3 text-[10px] text-neutral-400">개인 마일리지 기준 TOP 10</p>
           {renderRows(personalRows, topStudent, "M")}
-          {topStudent && (
-            <div className="mt-4 flex items-center gap-2 rounded-xl bg-orange-50 px-3.5 py-3">
-              <p className="text-sm text-orange-700">
-                <span className="font-bold">🏆 개인 1위</span>{" "}
-                {topStudent.name} ({topStudent.value.toLocaleString()} M)
-              </p>
-            </div>
-          )}
+          {/* 개인 1위 메시지 제거 */}
         </>
       )}
     </div>

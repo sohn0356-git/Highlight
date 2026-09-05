@@ -19,6 +19,8 @@ export default function QTContent() {
   const [editRecordId, setEditRecordId] = useState<string | null>(null);
   const [editRemembered, setEditRemembered] = useState("");
   const [editApplication, setEditApplication] = useState("");
+  const [recordsPage, setRecordsPage] = useState(0);
+  const PAGE_SIZE = 5;
 
   if (!student || !isLoggedIn) return null;
 
@@ -162,6 +164,7 @@ export default function QTContent() {
       )}
 
       {/* QT 기록 모달 */}
+
       {showRecordModal && (
         <div className="fixed inset-0 z-50 flex flex-col bg-white">
           <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
@@ -170,7 +173,12 @@ export default function QTContent() {
               className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">✕</button>
           </div>
           <div className="flex-1 overflow-y-auto px-5 py-4">
-            {qtRecords.slice().reverse().map(r => (
+            {(() => {
+              const paged = qtRecords.slice().reverse();
+              const pageItems = paged.slice(recordsPage * PAGE_SIZE, (recordsPage + 1) * PAGE_SIZE);
+              return (
+                <>
+                  {pageItems.map(r => (
               <div key={r.id} className="mb-3 rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-3.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -224,7 +232,24 @@ export default function QTContent() {
                   </div>
                 )}
               </div>
-            ))}
+                  ))}
+                  {qtRecords.length > PAGE_SIZE && (
+                    <div className="mt-4 flex items-center justify-center gap-3">
+                      <button onClick={() => setRecordsPage(p => Math.max(0, p - 1))} disabled={recordsPage === 0} className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40">← 이전</button>
+                      <span className="text-xs text-neutral-400">{recordsPage + 1}/{Math.ceil(qtRecords.length / PAGE_SIZE)}</span>
+                      <button onClick={() => setRecordsPage(p => p + 1)} disabled={(recordsPage + 1) * PAGE_SIZE >= qtRecords.length} className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40">다음 →</button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          {qtRecords.length > PAGE_SIZE && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button onClick={() => setRecordsPage(p => Math.max(0, p - 1))} disabled={recordsPage === 0} className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40">← 이전</button>
+              <span className="text-xs text-neutral-400">{recordsPage + 1}/{Math.ceil(qtRecords.length / PAGE_SIZE)}</span>
+              <button onClick={() => setRecordsPage(p => p + 1)} disabled={(recordsPage + 1) * PAGE_SIZE >= qtRecords.length} className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40">다음 →</button>
+            </div>
+          )}
           </div>
         </div>
       )}

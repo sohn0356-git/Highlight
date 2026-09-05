@@ -33,7 +33,9 @@ export default function MyContent() {
   const classLevel = getClassLevel(myClass?.xp || 0);
   const classNextXp = getNextLevelXp(classLevel.level, true);
 
-  const special = missions.filter((m: any) => m.category === "special");
+  // 관리자 페이지에서 등록한 미션 전체(스페셜 포함) - 프로필 탭에 표시
+  const activeMissions = missions.filter((m: any) => m.active !== false);
+  const special = activeMissions.filter((m: any) => m.category === "special");
   const dailyTotal = dailyQuests.length;
   const dailyDone = dailyQuestIds.length;
 
@@ -121,15 +123,16 @@ export default function MyContent() {
         </div>
       </section>
 
-      {/* ── 스페셜 미션 ── */}
-      {special.length > 0 && (
+      {/* ── 관리자 미션 전체 (스페셜 포함) ── */}
+      {activeMissions.length > 0 && (
         <section className="mt-5 px-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-amber-500">⭐</span>
-            <h2 className="text-sm font-bold text-neutral-800">SPECIAL QUEST</h2>
+            <h2 className="text-sm font-bold text-neutral-800">미션</h2>
+            <span className="ml-auto rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-600">{activeMissions.length}개</span>
           </div>
           <div className="flex flex-col gap-2">
-            {special.map(m => {
+            {activeMissions.map(m => {
               const done = completedMissionIds.includes(m.id);
               return (
                 <div key={m.id} className={`rounded-xl border p-3 transition ${done ? "border-emerald-200 bg-emerald-50/60" : "border-neutral-100 bg-white"}`}>

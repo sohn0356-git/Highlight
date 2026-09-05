@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Award, MessageCirclePlus, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
@@ -25,12 +25,16 @@ export default function PraiseContent() {
   const [reason, setReason] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [hasPraisedToday, setHasPraisedToday] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 5;
 
   const [allTargets, setAllTargets] = useState<any[]>([]);
 
   const loadPraises = useCallback(async () => {
+    setLoading(true);
     const { getSupabase } = await import("@/lib/supabase");
     const sb = getSupabase();
     if (!sb) return;
@@ -46,6 +50,7 @@ export default function PraiseContent() {
       const { data: todayPraise } = await sb.from("praises").select("id").eq("praiser_id", student.id).eq("date", today).limit(1);
       setHasPraisedToday(!!todayPraise && todayPraise.length > 0);
     }
+    setLoading(false);
   }, [student?.id]);
 
   useEffect(() => { if (isLoggedIn) loadPraises(); }, [isLoggedIn, loadPraises]);
@@ -53,7 +58,10 @@ export default function PraiseContent() {
   if (!student || !isLoggedIn) return null;
 
   const classmates = allTargets;
-  const filtered = search ? classmates.filter((c: any) => c.name.includes(search)) : classmates;
+  const filtered = useMemo(() => {
+    if (!search) return classmates;
+    return classmates.filter((c: any) => c.name.includes(search));
+  }, [classmates, search]);
 
   const handleSubmit = async () => {
     if (!praisedId || !reason.trim() || hasPraisedToday || submitting) return;
@@ -154,7 +162,7 @@ export default function PraiseContent() {
                 type="text"
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPraisedId(""); }}
-                placeholder="이름으로 검색..."
+                placeholder={loading ? "로딩 중..." : "이름으로 검색..."} disabled={loading}
                 className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-amber-400"
               />
               {search && !praisedId && (
@@ -187,7 +195,7 @@ export default function PraiseContent() {
         )}
 
         <div className="mt-3 flex flex-col gap-2.5">
-          {praises.map(p => (
+          {praises.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(p => (
             <Card key={p.id} className="!p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -212,6 +220,13 @@ export default function PraiseContent() {
             <Card className="text-center">
               <p className="py-4 text-sm text-neutral-400">아직 칭찬이 없어요. 첫 칭찬을 남겨보세요!</p>
             </Card>
+          )}
+          {praises.length > PAGE_SIZE && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40">← 이전</button>
+              <span className="text-xs text-neutral-400">{page + 1}/{Math.ceil(praises.length / PAGE_SIZE)}</span>
+              <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * PAGE_SIZE >= praises.length} className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40">다음 →</button>
+            </div>
           )}
         </div>
       </section>

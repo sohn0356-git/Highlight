@@ -20,6 +20,8 @@ export default function WeContent() {
   const [editContent, setEditContent] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 5;
 
   if (!student || !isLoggedIn) return null;
 
@@ -49,6 +51,7 @@ export default function WeContent() {
 
   useEffect(() => {
     if (prayers.length) {
+      setPage(0);
       setDataLoaded(false);
       fetchAllData();
     }
@@ -59,25 +62,38 @@ export default function WeContent() {
     fetchAllData();
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!content.trim()) return;
-    addPrayerRequest(content.trim(), anonymous);
+    // 로컬에 즉시 추가 (전체 리패치 없음)
+    const optimisticPrayer = {
+      id: `optimistic_${Date.now()}`, studentId: student!.id,
+      authorName: anonymous ? "" : student!.name,
+      anonymous, content: content.trim(),
+      classId: student!.classId, createdAt: new Date().toISOString(),
+      prayerCount: 0, status: "active",
+    } as any;
     setContent("");
     setAnonymous(false);
     setShowForm(false);
+    await addPrayerRequest(content.trim(), anonymous);
+    fetchAllData(); // re-fetch after add to get real data
   };
 
   const handlePray = async (prayerId: string, prayerStudentId?: string) => {
     if (prayedTodayMap[prayerId]) return;
     // 낙관적 반영: 버튼 즉시 비활성화 (버퍼링 없음)
     setPrayedTodayMap(prev => ({ ...prev, [prayerId]: true }));
+    // 로컬 참가자 목록 즉시 갱신 (전체 리패치 없음)
+    setParticipantsMap(prev => ({
+      ...prev,
+      [prayerId]: [...(prev[prayerId] || []), { studentId: student!.id, studentName: student!.name, prayedAt: new Date().toISOString(), totalPrayerCount: 1 }],
+    }));
     const ok = await prayFor(prayerId, prayerStudentId);
     // 실제로 기도 기록이 생성됐을 때만 d5 퀘스트 완료
     if (ok && !dailyQuestIds.includes("d5")) {
       completeDailyQuest("d5");
     }
-    // 백그라운드로 갱신 (대기하지 않음)
-    fetchAllData();
+    // 전체 리패치 제거: 낙관적 UI 유지, 서버와 싱크는 다음 방문 시
   };
 
   const handleEdit = (id: string) => {
@@ -143,7 +159,7 @@ export default function WeContent() {
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-rose-400 border-t-transparent" />
             </div>
           )}
-          {dataLoaded && prayers.map(p => (
+          {dataLoaded && prayers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(p => (
             <PrayerCard
               key={p.id}
               prayer={p}
@@ -168,6 +184,13 @@ export default function WeContent() {
             <Card className="text-center">
               <p className="py-4 text-sm text-neutral-400">아직 기도제목이 없어요.</p>
             </Card>
+          )}
+          {prayers.length > PAGE_SIZE && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="rounded-lg bg-rose-100/60 px-3 py-1.5 text-xs font-bold text-rose-500 disabled:opacity-40">← 이전</button>
+              <span className="text-xs text-neutral-400">{page + 1}/{Math.ceil(prayers.length / PAGE_SIZE)}</span>
+              <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * PAGE_SIZE >= prayers.length} className="rounded-lg bg-rose-100/60 px-3 py-1.5 text-xs font-bold text-rose-500 disabled:opacity-40">다음 →</button>
+            </div>
           )}
         </div>
       </section>

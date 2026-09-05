@@ -24,7 +24,13 @@ export default function MainApp() {
   const { mode, setMode } = useViewMode();
 
   useEffect(() => {
-    const off = onTabChange(setActive);
+    const off = onTabChange((tab) => {
+      setActive(tab);
+      // 탭 전환 시 화면 최상단으로 스크롤
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      });
+    });
     return off;
   }, []);
 
