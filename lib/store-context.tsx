@@ -23,8 +23,8 @@ interface AppState {
   deleteQT: (id: string) => void;
   sharedQTDates: string[];
   sharedTodayQT: boolean;
-  shareQT: () => Promise<boolean>;
-  unshareQT: () => Promise<boolean>;
+  shareQT: (date?: string) => Promise<boolean>;
+  unshareQT: (date?: string) => Promise<boolean>;
   sharedPosts: SharedQTPost[];
   addComment: (postId: string, content: string) => void;
   updateComment: (commentId: string, postId: string, content: string) => void;
@@ -417,24 +417,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /* ── Share QT ── */
-  const shareQT = useCallback(async () => {
-    if (!student || sharedQTDates.includes(today) || isAdminUser(student)) return false;
+  const shareQT = useCallback(async (shareDate?: string) => {
+    const targetDate = shareDate || today;
+    if (!student || sharedQTDates.includes(targetDate) || isAdminUser(student)) return false;
     if (sharingRef.current) return false;
     sharingRef.current = true;
     try {
-      const todayRecord = qtRecords.find(r => r.date === today);
+      const targetRecord = qtRecords.find(r => r.date === targetDate);
+      if (!targetRecord) return false;
       const post: any = {
         id: `qp_${Date.now()}`, studentId: student.id, studentName: student.name,
-        classId: student.classId, passage: qtToday.passage, verse: qtToday.verse,
-        remembered: todayRecord?.remembered || "", application: todayRecord?.application || "",
-        reward: 10, date: today, commentCount: 0, likedBy: [],
+        classId: student.classId, passage: targetRecord.passage || qtToday.passage,
+        verse: targetRecord.verse || qtToday.verse,
+        remembered: targetRecord.remembered || "", application: targetRecord.application || "",
+        reward: 10, date: targetDate, commentCount: 0, likedBy: [],
       };
       const ok = await db.createSharedPost(post);
-      if (!ok) return false; // 이미 오늘 공유함
-      setSharedQTDates(prev => [...prev, today]);
+      if (!ok) return false;
+      setSharedQTDates(prev => [...prev, targetDate]);
 
-      // 공유 포인트(+10M)는 하루 1회만: d2 퀘스트(오늘 공유 보상)가 이미 완료됐으면 재공유는 포인트 없이 게시만
-      if (!dailyQuestIds.includes("d2")) {
+      // 공유 포인트(+10M)는 하루 1회만: 오늘 날짜일 때만
+      if (targetDate === today && !dailyQuestIds.includes("d2")) {
         showPointToast("+10M");
         const newTotal = (student.mileage || 0) + 10;
         await db.updateStudentField(student.id, "mileage", newTotal);

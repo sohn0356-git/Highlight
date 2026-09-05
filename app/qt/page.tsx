@@ -27,28 +27,30 @@ export default function QTContent() {
   const today = koreaDate();
   const sharedToday = sharedQTDates.includes(today);
 
-  const handleShare = async () => {
+  const handleShare = async (date?: string) => {
     if (sharing) return;
     const alreadyRewarded = dailyQuestIds.includes("d2");
     setSharing(true);
     try {
-      const ok = await shareQT();
+      const ok = await shareQT(date);
       if (ok) {
-        setSharedMsg(alreadyRewarded ? "QT 공유 완료! (오늘 보상은 이미 받았어요)" : "QT 공유 완료! +10M");
+        setSharedMsg(date === today
+          ? (alreadyRewarded ? "QT 공유 완료! (오늘 보상은 이미 받았어요)" : "QT 공유 완료! +10M")
+          : "QT 기록이 공유되었습니다.");
       } else {
-        setSharedMsg("오늘은 이미 공유했어요.");
+        setSharedMsg(date === today ? "오늘은 이미 공유했어요." : "이미 공유된 기록입니다.");
       }
     } finally {
       setSharing(false);
     }
   };
 
-  const handleUnshare = async () => {
+  const handleUnshare = async (date?: string) => {
     if (sharing) return;
     if (!confirm("공유를 취소하시겠습니까? (오늘 받은 공유 보상은 유지됩니다)")) return;
     setSharing(true);
     try {
-      const ok = await unshareQT();
+      const ok = await unshareQT(date);
       setSharedMsg(ok ? "공유가 취소되었습니다." : "공유한 내용이 없습니다.");
     } finally {
       setSharing(false);
@@ -130,14 +132,7 @@ export default function QTContent() {
             <p className="mt-2 text-sm font-bold text-emerald-700">QT 완료!</p>
             <p className="mt-1 text-xs text-emerald-500">+20M 적립되었습니다</p>
           </Card>
-          {/* 공유 상태 표시 */}
-          {sharedToday && (
-            <div className="mt-3 flex flex-col items-center gap-1">
-              <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-600">
-                <CheckCircle size={13} /> 공유 완료 (+10M)
-              </span>
-            </div>
-          )}
+
         </section>
       )}
 
@@ -157,20 +152,8 @@ export default function QTContent() {
         <div className="fixed inset-0 z-50 flex flex-col bg-white">
           <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
             <h2 className="text-base font-bold text-neutral-900">QT 기록 ({qtRecords.length}개)</h2>
-            <div className="flex items-center gap-2">
-              {/* QT 공유 버튼 - 오늘 날짜의 QT 완료 기록이 있을 때만 활성화 */}
-              <button onClick={handleShare} disabled={sharing || sharedToday || !isQTDoneToday && !justCompleted}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-95 ${
-                  sharedToday || (!isQTDoneToday && !justCompleted)
-                    ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                    : "bg-indigo-500 text-white shadow-sm"
-                }`}>
-                <Share2 size={13} />
-                {sharedToday ? "공유됨" : sharing ? "..." : "공유 +10M"}
-              </button>
-              <button onClick={() => { setShowRecordModal(false); setEditRecordId(null); }}
-                className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">✕</button>
-            </div>
+            <button onClick={() => { setShowRecordModal(false); setEditRecordId(null); }}
+              className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">✕</button>
           </div>
           <div className="flex-1 overflow-y-auto px-5 py-4">
             {sharedMsg && (
@@ -190,8 +173,31 @@ export default function QTContent() {
                     <span className="text-sm">📖</span>
                     <p className="text-sm font-bold text-neutral-800">{r.passage}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">+{r.reward}M</span>
+                    {(() => {
+                      const isToday = r.date === today;
+                      const isShared = sharedQTDates.includes(r.date);
+                      const canShare = isToday && !isShared;
+                      const isOwn = r.studentId === student?.id;
+                      return isOwn ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (canShare) handleShare(r.date); }}
+                          disabled={!canShare || sharing}
+                          title={isShared ? "이미 공유됨" : !isToday ? "오늘 기록만 공유 가능" : "공유하기"}
+                          className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold transition active:scale-95 ${
+                            isShared
+                              ? "bg-emerald-50 text-emerald-600"
+                              : canShare
+                                ? "bg-indigo-500 text-white"
+                                : "bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                          }`}
+                        >
+                          <Share2 size={10} />
+                          {isShared ? "공유됨" : canShare ? "공유" : ""}
+                        </button>
+                      ) : null;
+                    })()}
                     {/* Toggle button for collapse */}
                     <button onClick={(e) => { e.stopPropagation(); setExpandedRecord(expandedRecord === r.id ? null : r.id); }}
                       className="grid h-7 w-7 place-items-center rounded-full bg-neutral-100 text-neutral-400 active:bg-neutral-200 transition">
