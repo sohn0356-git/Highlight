@@ -130,24 +130,12 @@ export default function QTContent() {
             <p className="mt-2 text-sm font-bold text-emerald-700">QT 완료!</p>
             <p className="mt-1 text-xs text-emerald-500">+20M 적립되었습니다</p>
           </Card>
-          {/* Share / Unshare */}
-          {!sharedToday ? (
-            <>
-              <button onClick={handleShare} disabled={sharing}
-                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition active:scale-[0.98] disabled:opacity-40">
-                <Share2 size={16} /> {sharing ? "처리 중..." : (dailyQuestIds.includes("d2") ? "QT 공유하기" : "QT 공유하기 +10M")}
-              </button>
-              {sharedMsg && <p className="mt-2 text-center text-xs font-semibold text-indigo-500">{sharedMsg}</p>}
-            </>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <span className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-emerald-200 bg-emerald-50 py-3 text-sm font-bold text-emerald-600">
-                <CheckCircle size={16} /> 오늘 QT 공유 완료 (+10M)
+          {/* 공유 상태 표시 */}
+          {sharedToday && (
+            <div className="mt-3 flex flex-col items-center gap-1">
+              <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-600">
+                <CheckCircle size={13} /> 공유 완료 (+10M)
               </span>
-              <button onClick={handleUnshare} disabled={sharing}
-                className="text-[11px] font-semibold text-neutral-400 underline underline-offset-2 active:text-neutral-600 disabled:opacity-40">
-                {sharing ? "처리 중..." : "공유 취소"}
-              </button>
             </div>
           )}
         </section>
@@ -169,10 +157,27 @@ export default function QTContent() {
         <div className="fixed inset-0 z-50 flex flex-col bg-white">
           <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
             <h2 className="text-base font-bold text-neutral-900">QT 기록 ({qtRecords.length}개)</h2>
-            <button onClick={() => { setShowRecordModal(false); setEditRecordId(null); }}
-              className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">✕</button>
+            <div className="flex items-center gap-2">
+              {/* QT 공유 버튼 - 오늘 날짜의 QT 완료 기록이 있을 때만 활성화 */}
+              <button onClick={handleShare} disabled={sharing || sharedToday || !isQTDoneToday && !justCompleted}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-95 ${
+                  sharedToday || (!isQTDoneToday && !justCompleted)
+                    ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                    : "bg-indigo-500 text-white shadow-sm"
+                }`}>
+                <Share2 size={13} />
+                {sharedToday ? "공유됨" : sharing ? "..." : "공유 +10M"}
+              </button>
+              <button onClick={() => { setShowRecordModal(false); setEditRecordId(null); }}
+                className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">✕</button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto px-5 py-4">
+            {sharedMsg && (
+              <div className="mb-3 rounded-xl bg-indigo-50 px-4 py-2.5 text-center text-xs font-semibold text-indigo-600">
+                {sharedMsg}
+              </div>
+            )}
             {(() => {
               const paged = qtRecords.slice().reverse();
               const pageItems = paged.slice(recordsPage * PAGE_SIZE, (recordsPage + 1) * PAGE_SIZE);
