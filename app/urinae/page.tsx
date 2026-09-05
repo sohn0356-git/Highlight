@@ -173,7 +173,7 @@ export default function WeContent() {
           </button>
           <button
             onClick={() => { setMyFilter("mine"); setPage(0); }}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition ${myFilter === "mine" ? "bg-rose-500 text-rose-500 border border-rose-200" : "bg-rose-50 text-rose-500 border border-rose-200"}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition ${myFilter === "mine" ? "bg-rose-500 text-white" : "bg-rose-50 text-rose-500 border border-rose-200"}`}
           >
             내 글
           </button>
