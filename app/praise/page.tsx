@@ -131,10 +131,11 @@ export default function PraiseContent() {
         <Card className="bg-gradient-to-br from-amber-400 to-orange-400 border-0 text-white shadow-lg shadow-amber-200">
           <div className="flex items-center gap-3">
             <span className="grid h-12 w-12 place-items-center rounded-full bg-white/20 text-2xl">🏆</span>
-            <div>
+            <div className="flex-1">
               <p className="text-lg font-extrabold">칭찬하기</p>
               <p className="text-sm text-amber-50">{praises.length}개의 칭찬</p>
             </div>
+            {loading && <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />}
           </div>
         </Card>
       </section>
@@ -188,14 +189,20 @@ export default function PraiseContent() {
               <button onClick={handleSubmit}
                 disabled={!praisedId || !reason.trim() || submitting}
                 className="rounded-full bg-amber-500 px-4 py-2 text-xs font-bold text-white active:scale-95 transition disabled:opacity-40">
-                {submitting ? "등록 중..." : "등록 (+5M)"}
+                {submitting ? (<span className="flex items-center gap-1.5"><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" /> 등록 중...</span>) : "등록 (+5M)"}
               </button>
             </div>
           </Card>
         )}
 
         <div className="mt-3 flex flex-col gap-2.5">
-          {praises.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(p => (
+          {loading && (
+            <div className="flex flex-col items-center gap-2 py-6">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+              <p className="text-xs text-neutral-400">칭찬 불러오는 중...</p>
+            </div>
+          )}
+          {!loading && praises.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(p => (
             <Card key={p.id} className="!p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -216,7 +223,7 @@ export default function PraiseContent() {
               <p className="mt-2 text-sm leading-relaxed text-neutral-600">{p.reason}</p>
             </Card>
           ))}
-          {praises.length === 0 && (
+          {!loading && praises.length === 0 && (
             <Card className="text-center">
               <p className="py-4 text-sm text-neutral-400">아직 칭찬이 없어요. 첫 칭찬을 남겨보세요!</p>
             </Card>

@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import PrayerCard from "@/components/PrayerCard";
 import { useApp } from "@/lib/store-context";
-import { fetchPrayerComments, addPrayerComment, fetchPrayerParticipants, hasPrayedToday } from "@/lib/db";
+import { fetchAllPrayerData, addPrayerComment } from "@/lib/db";
 import { koreaDate } from "@/lib/korea-date";
 
 export default function WeContent() {
@@ -27,25 +27,11 @@ export default function WeContent() {
 
   const fetchAllData = useCallback(async () => {
     const today = koreaDate();
-    const results = await Promise.all(prayers.map(async (p) => {
-      const [comments, participants] = await Promise.all([
-        fetchPrayerComments(p.id).catch(() => [] as any[]),
-        fetchPrayerParticipants(p.id).catch(() => [] as any[]),
-      ]);
-      const prayedToday = await hasPrayedToday(student!.id, p.id, today).catch(() => false);
-      return { id: p.id, comments, participants, prayedToday };
-    }));
-    const cmap: Record<string, any[]> = {};
-    const pmap: Record<string, any[]> = {};
-    const tmap: Record<string, boolean> = {};
-    results.forEach(r => {
-      cmap[r.id] = r.comments;
-      pmap[r.id] = r.participants;
-      tmap[r.id] = r.prayedToday;
-    });
-    setCommentsMap(cmap);
-    setParticipantsMap(pmap);
-    setPrayedTodayMap(tmap);
+    const prayerIds = prayers.map((p: any) => p.id);
+    const { commentsMap, participantsMap, prayedTodayMap } = await fetchAllPrayerData(prayerIds, student!.id, today);
+    setCommentsMap(commentsMap);
+    setParticipantsMap(participantsMap);
+    setPrayedTodayMap(prayedTodayMap);
     setDataLoaded(true);
   }, [prayers, student?.id]);
 

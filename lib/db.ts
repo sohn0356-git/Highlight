@@ -426,6 +426,89 @@ export async function fetchPrayerParticipants(prayerId: string) {
   }));
 }
 
+
+/* ── Batch Prayer Data (3 queries total regardless of prayer count) ── */
+export async function fetchAllPrayerData(prayerIds: string[], studentId: string, today: string): Promise<{
+  commentsMap: Record<string, any[]>;
+  participantsMap: Record<string, any[]>;
+  prayedTodayMap: Record<string, boolean>;
+}> {
+  const s = sb();
+  const commentsMap: Record<string, any[]> = {};
+  const participantsMap: Record<string, any[]> = {};
+  const prayedTodayMap: Record<string, boolean> = {};
+
+  if (!s || !prayerIds.length) {
+    prayerIds.forEach(id => { commentsMap[id] = []; participantsMap[id] = []; prayedTodayMap[id] = false; });
+    return { commentsMap, participantsMap, prayedTodayMap };
+  }
+
+  // 1) All participants in ONE query
+  const { data: allParticipants } = await s.from("prayer_participants")
+    .select("prayer_id, student_id, prayed_at, pray_date")
+    .in("prayer_id", prayerIds)
+    .order("prayed_at", { ascending: false });
+
+  // 2) All comments in ONE query
+  const { data: allComments } = await s.from("prayer_comments")
+    .select("prayer_id, id, student_id, student_name, content, created_at")
+    .in("prayer_id", prayerIds)
+    .order("created_at", { ascending: true });
+
+  // 3) Student name mapping - use in-memory if possible, else query
+  const studentIds = new Set<string>();
+  (allParticipants || []).forEach((r: any) => studentIds.add(r.student_id));
+  (allComments || []).forEach((r: any) => { if (r.student_id) studentIds.add(r.student_id); });
+  const nameMap: Record<string, string> = {};
+  if (studentIds.size) {
+    const { data: studs } = await s.from("students").select("id, name").in("id", [...studentIds]);
+    (studs || []).forEach((st: any) => { nameMap[st.id] = st.name; });
+  }
+
+  // Build per-prayer totals (전체 기도 횟수는 prayer_count 컬럼에서 가져옴)
+  // We don't need the full table scan - just count per this prayer
+  const countMap: Record<string, number> = {};
+  (allParticipants || []).forEach((r: any) => {
+    countMap[r.student_id] = (countMap[r.student_id] || 0) + 1;
+  });
+
+  // Populate maps
+  prayerIds.forEach(id => {
+    // Comments
+    commentsMap[id] = (allComments || [])
+      .filter((c: any) => c.prayer_id === id)
+      .map((c: any) => ({
+        id: c.id, prayerId: c.prayer_id, studentId: c.student_id,
+        studentName: c.student_name || nameMap[c.student_id] || "",
+        content: c.content, createdAt: c.created_at || "",
+      }));
+
+    // Participants (deduplicated per student)
+    const seen = new Set<string>();
+    participantsMap[id] = (allParticipants || [])
+      .filter((p: any) => p.prayer_id === id)
+      .filter((p: any) => {
+        if (seen.has(p.student_id)) return false;
+        seen.add(p.student_id);
+        return true;
+      })
+      .map((p: any) => ({
+        studentId: p.student_id,
+        studentName: nameMap[p.student_id] || "(알수없음)",
+        prayedAt: p.prayed_at || "",
+        prayDate: p.pray_date || "",
+        totalPrayerCount: countMap[p.student_id] || 0,
+      }));
+
+    // Prayed today
+    prayedTodayMap[id] = (allParticipants || []).some(
+      (p: any) => p.prayer_id === id && p.student_id === studentId && p.pray_date === today
+    );
+  });
+
+  return { commentsMap, participantsMap, prayedTodayMap };
+}
+
 /* ── Daily Quests ── */
 export async function fetchDailyQuests(studentId: string, date: string) {
   const s = sb();
