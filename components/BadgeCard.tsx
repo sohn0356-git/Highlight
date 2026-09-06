@@ -56,7 +56,7 @@ export default function BadgeCard({ badge }: BadgeCardProps) {
         <span className="absolute right-2 top-2 text-neutral-300"><Lock size={12} /></span>
       )}
       <span className={`text-2xl ${currentLevel > 0 ? "" : "opacity-35 grayscale"}`}>{icon}</span>
-      <p className={`mt-1.5 text-xs font-bold ${currentLevel > 0 ? color!.text : "text-neutral-400"}`}>{name}</p>
+      <p className={`mt-1.5 text-xs font-bold ${currentLevel > 0 ? color!.text : "text-neutral-400"}`}>{currentLevel > 0 && levels[currentLevel - 1] ? levels[currentLevel - 1].title : name}</p>
 
       {currentLevel > 0 && (
         <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${color!.badge}`}>
@@ -82,7 +82,7 @@ export default function BadgeCard({ badge }: BadgeCardProps) {
               {description.includes("연속") ? `최장 ${progress}일` : `${progress} / ${nextLevel.threshold}`}
             </p>
             <p className="text-[10px] text-neutral-400 mt-0.5">
-              {description.includes("연속") ? `다음 레벨까지 ${Math.max(0, nextLevel.threshold - progress)}일` : `${nextLevel.title}까지 ${Math.max(0, nextLevel.threshold - progress)}남음`}
+              {description.includes("연속") ? `다음 레벨까지 ${Math.max(0, nextLevel.threshold - progress)}일` : <>{nextLevel.title}까지<br />{Math.max(0, nextLevel.threshold - progress)}남음</>}
             </p>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-200/70">
               <div
