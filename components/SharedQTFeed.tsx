@@ -40,7 +40,7 @@ export default function SharedQTFeed({ limit = 20 }: { limit?: number }) {
                     <p className="text-[11px] text-neutral-400">{post.className || ""} · {post.date}{post.createdAt ? " " + new Date(post.createdAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) : ""}</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">공유 +{post.reward}M</span>
+
               </div>
 
               <div className="mt-3 rounded-xl bg-neutral-50 p-3">

@@ -8,7 +8,7 @@ import { useApp } from "@/lib/store-context";
 import { koreaDate } from "@/lib/korea-date";
 
 export default function QTContent() {
-  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, unshareQT, sharedQTDates, dailyQuestIds } = useApp();
+  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, unshareQT, sharedQTDates } = useApp();
   const [remembered, setRemembered] = useState("");
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
@@ -30,18 +30,16 @@ export default function QTContent() {
 
   const handleShare = async (date?: string) => {
     if (sharing) return;
-    const alreadyRewarded = dailyQuestIds.includes("d2");
+
     setSharing(true);
     try {
       const ok = await shareQT(date);
       if (ok) {
         if (date) setLocallySharedDates(prev => new Set([...prev, date]));
-        setSharedMsg(date === today
-          ? (alreadyRewarded ? "QT 공유 완료! (오늘 보상은 이미 받았어요)" : "QT 공유 완료! +10M")
-          : "QT 기록이 공유되었습니다.");
+        setSharedMsg("QT 공유 완료!");
       } else {
         if (date) setLocallySharedDates(prev => new Set([...prev, date]));
-        setSharedMsg(date === today ? "오늘은 이미 공유했어요." : "이미 공유된 기록입니다.");
+        setSharedMsg("이미 공유된 기록입니다.");
       }
     } finally {
       setSharing(false);
@@ -50,7 +48,7 @@ export default function QTContent() {
 
   const handleUnshare = async (date?: string) => {
     if (sharing) return;
-    if (!confirm("공유를 취소하시겠습니까? (오늘 받은 공유 보상은 유지됩니다)")) return;
+    if (!confirm("공유를 취소하시겠습니까?")) return;
     setSharing(true);
     try {
       const ok = await unshareQT(date);
@@ -124,7 +122,7 @@ export default function QTContent() {
           </div>
           <button onClick={handleComplete} disabled={!remembered.trim() || !application.trim()}
             className="mt-4 w-full rounded-2xl bg-indigo-500 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition active:scale-[0.98] active:bg-indigo-600 disabled:opacity-40 disabled:shadow-none">
-            QT 완료 +20M
+            QT 완료
           </button>
         </section>
       ) : (
@@ -134,7 +132,7 @@ export default function QTContent() {
               <CheckCircle size={24} className="text-emerald-500" />
             </div>
             <p className="mt-2 text-sm font-bold text-emerald-700">QT 완료!</p>
-            <p className="mt-1 text-xs text-emerald-500">+20M 적립되었습니다</p>
+
           </Card>
 
         </section>
@@ -178,7 +176,7 @@ export default function QTContent() {
                     <p className="text-sm font-bold text-neutral-800">{r.passage}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-600">+{r.reward}M</span>
+
                     {(() => {
                       const isToday = r.date === today;
                       const isShared = sharedQTDates.includes(r.date) || locallySharedDates.has(r.date);
@@ -198,7 +196,7 @@ export default function QTContent() {
                           }`}
                         >
                           <Share2 size={10} />
-                          {isShared ? "공유됨" : canShare ? "공유" : ""}
+                          {isShared ? <CheckCircle size={10} /> : canShare ? <Share2 size={10} /> : ""}
                         </button>
                       ) : null;
                     })()}
