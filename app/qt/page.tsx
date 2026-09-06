@@ -196,7 +196,7 @@ export default function QTContent() {
                           }`}
                         >
                           <Share2 size={10} />
-                          {isShared ? <CheckCircle size={10} /> : canShare ? <Share2 size={10} /> : ""}
+                          {isShared ? "공유됨" : canShare ? "공유하기" : ""}
                         </button>
                       ) : null;
                     })()}
