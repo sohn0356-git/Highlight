@@ -269,12 +269,8 @@ export async function fetchBadges() {
   const s = sb();
   if (!s) return [];
   try {
-    let { data, error } = await s.from("badges").select("*").order("display_order");
-    if (error) {
-      // Try without order if display_order column doesn't exist
-      const r2 = await s.from("badges").select("*");
-      data = r2.data;
-    }
+    let { data, error } = await s.from("badges").select("*").order("id");
+    if (error) data = null;
     if (!data) return [];
     return data.filter((b: any) => b.active !== false);
   } catch { return []; }
@@ -1278,14 +1274,8 @@ export async function fetchStudentBadgesWithProgress(studentId: string) {
 
   try {
     // Get all active badges (display_order가 없으면 폴백)
-    let badgesData: any[] | null = null;
-    const attempt = await s.from("badges").select("*").order("display_order");
-    if (attempt.error) {
-      const retry = await s.from("badges").select("*");
-      badgesData = retry.data;
-    } else {
-      badgesData = attempt.data;
-    }
+    const attempt = await s.from("badges").select("*").order("id");
+    let badgesData: any[] | null = attempt.data;
     let badges = (badgesData || []).filter((b: any) => b.active !== false);
     if (!badges.length) return [];
 
