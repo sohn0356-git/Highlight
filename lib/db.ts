@@ -413,8 +413,9 @@ export async function fetchPrayerParticipants(prayerId: string) {
     const { data: studs } = await s.from("students").select("id, name").in("id", ids);
     if (studs) studs.forEach((st: any) => { nameMap[st.id] = st.name; });
   }
-  // 학생별 전체 기도 횟수 + 이 기도제목에 기도한 날짜 목록
-  const { data: allPrayers } = await s.from("prayer_participants").select("student_id, prayer_id, pray_date");
+  // 학생별 이 기도제목에 기도한 횟수 (같은 기도제목에서 여러 날 기도한 횟수)
+  const { data: allPrayers } = await s.from("prayer_participants")
+    .select("student_id, prayer_id, pray_date").eq("prayer_id", prayerId);
   const countMap: Record<string, number> = {};
   if (allPrayers) allPrayers.forEach((r: any) => { countMap[r.student_id] = (countMap[r.student_id] || 0) + 1; });
   return rows.map((r) => ({
@@ -465,11 +466,11 @@ export async function fetchAllPrayerData(prayerIds: string[], studentId: string,
     (studs || []).forEach((st: any) => { nameMap[st.id] = st.name; });
   }
 
-  // Build per-prayer totals (전체 기도 횟수는 prayer_count 컬럼에서 가져옴)
-  // We don't need the full table scan - just count per this prayer
-  const countMap: Record<string, number> = {};
+  // 기도제목별 × 학생별 기도 횟수 집계 (중복 없이 per-prayer count)
+  const countMap: Record<string, Record<string, number>> = {};
   (allParticipants || []).forEach((r: any) => {
-    countMap[r.student_id] = (countMap[r.student_id] || 0) + 1;
+    countMap[r.prayer_id] = countMap[r.prayer_id] || {};
+    countMap[r.prayer_id][r.student_id] = (countMap[r.prayer_id][r.student_id] || 0) + 1;
   });
 
   // Populate maps
@@ -497,7 +498,7 @@ export async function fetchAllPrayerData(prayerIds: string[], studentId: string,
         studentName: nameMap[p.student_id] || "(알수없음)",
         prayedAt: p.prayed_at || "",
         prayDate: p.pray_date || "",
-        totalPrayerCount: countMap[p.student_id] || 0,
+        totalPrayerCount: countMap[id]?.[p.student_id] || 0,
       }));
 
     // Prayed today
