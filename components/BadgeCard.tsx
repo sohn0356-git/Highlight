@@ -48,6 +48,16 @@ export default function BadgeCard({ badge }: BadgeCardProps) {
   const neededForNext = nextThreshold - prevThreshold;
   const pct = neededForNext > 0 ? Math.min((progressInLevel / neededForNext) * 100, 100) : 100;
 
+  const getHintText = (remaining: number): string => {
+    if (description.includes("연속")) return `QT ${remaining}일 연속`;
+    if (description.includes("QT 완료") || description.includes("QT count") || name.includes("말씀")) return `QT ${remaining}회 더 완료`;
+    if (description.includes("기도") || name.includes("기도")) return `기도 ${remaining}일 더 참여`;
+    if (description.includes("칭찬") || name.includes("칭찬")) return `칭찬 ${remaining}회 더 받기`;
+    if (description.includes("퀘스트") || description.includes("quest") || name.includes("퀘스트")) return `퀘스트 ${remaining}개 더 완료`;
+    if (description.includes("마일리지") || description.includes("mileage") || name.includes("마일리지")) return `마일리지 ${remaining}점 더 모으기`;
+    return `目標まであと${remaining}`;
+  };
+
   return (
     <div className={`relative flex flex-col items-center rounded-2xl border p-3.5 text-center transition ${
       currentLevel > 0 ? `${color!.border} ${color!.bg}` : "border-neutral-100 bg-neutral-50/80"
@@ -82,7 +92,7 @@ export default function BadgeCard({ badge }: BadgeCardProps) {
               {description.includes("연속") ? `최장 ${progress}일` : `${progress} / ${nextLevel.threshold}`}
             </p>
             <p className="text-[10px] text-neutral-400 mt-0.5">
-              {description.includes("연속") ? `다음 레벨까지 ${Math.max(0, nextLevel.threshold - progress)}일` : <>{nextLevel.title}까지<br />{Math.max(0, nextLevel.threshold - progress)}남음</>}
+              {getHintText(Math.max(0, nextLevel.threshold - progress))}
             </p>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-200/70">
               <div
