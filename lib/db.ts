@@ -1123,7 +1123,7 @@ export async function calculateQTStreak(studentId: string): Promise<number> {
 /* ── Badge ID to Metric Type Mapping ── */
 const BADGE_METRIC_MAP: Record<string, string> = {
   b1: "qt_count", b2: "attendance_count", b3: "prayer_count",
-  b4: "mission_count", b5: "mileage_total", b6: "qt_streak", b7: "praise_count",
+  b4: "daily_quest_count", b5: "mileage_total", b6: "qt_streak", b7: "praise_count",
 };
 
 export function getBadgeMetricType(badgeId: string): string {
@@ -1147,8 +1147,8 @@ export async function calculateBadgeProgress(studentId: string, badgeType: strin
       const { data } = await s.from("prayer_participants").select("id").eq("student_id", studentId);
       return data?.length || 0;
     }
-    case "mission_count": {
-      const { data } = await s.from("completed_missions").select("id").eq("student_id", studentId);
+    case "daily_quest_count": {
+      const { data } = await s.from("daily_quests").select("id").eq("student_id", studentId);
       return data?.length || 0;
     }
     case "mileage_total": {
@@ -1315,8 +1315,8 @@ export async function fetchStudentBadgesWithProgress(studentId: string) {
         const { data } = await dbClient.from("prayer_participants").select("id").eq("student_id", studentId);
         return data?.length || 0;
       }
-      if (type === "b4") { // Mission count
-        const { data } = await dbClient.from("completed_missions").select("id").eq("student_id", studentId);
+      if (type === "b4") { // Daily quest count
+        const { data } = await dbClient.from("daily_quests").select("id").eq("student_id", studentId);
         return data?.length || 0;
       }
       if (type === "b5") { // Mileage total
