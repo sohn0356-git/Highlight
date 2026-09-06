@@ -167,7 +167,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Shared QT dates
       const posts = await db.fetchSharedPosts();
-      const myShared = posts.filter((p: any) => p.student_id === student.id).map((p: any) => p.date);
+      const myShared = posts.filter((p: any) => p.studentId === student.id).map((p: any) => p.date);
       setSharedQTDates([...new Set(myShared)]);
 
       // Shared posts
