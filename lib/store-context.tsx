@@ -436,9 +436,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!ok) return false;
       setSharedQTDates(prev => [...prev, targetDate]);
 
-      // 공유 포인트(+10M)는 하루 1회만: 오늘 날짜일 때만
+      // 공유 포인트(+10D)는 하루 1회만: 오늘 날짜일 때만
       if (targetDate === today && !dailyQuestIds.includes("d2")) {
-        showPointToast("+10M");
+        showPointToast("+10D");
         const newTotal = (student.mileage || 0) + 10;
         await db.updateStudentField(student.id, "mileage", newTotal);
         await db.updateStudentField(student.id, "xp", newTotal);
@@ -462,7 +462,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const ok = await db.unshareQT(student.id, today);
       if (!ok) return false; // 공유한 내용이 없음
-      // 공유 취소는 게시물 삭제만: +10M 보상은 하루 1회 지급이므로 차감하지 않음
+      // 공유 취소는 게시물 삭제만: +10D 보상은 하루 1회 지급이므로 차감하지 않음
       // 삭제 대상 공유글 id 수집 후 로컬 상태 정리
       const removedIds = sharedPosts.filter(p => p.studentId === student.id && p.date === today).map(p => p.id);
       setSharedPosts(prev => prev.filter(p => !removedIds.includes(p.id)));
@@ -505,7 +505,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (postOwner !== student.id) {
       await db.completeDailyQuest(student.id, "d6", today, 5, 5);
       setDailyQuestIds(prev => [...prev, "d6"]);
-      showPointToast("+5M");
+      showPointToast("+5D");
       const newTotal = (student.mileage || 0) + 5;
       await db.updateStudentField(student.id, "mileage", newTotal);
       await db.updateStudentField(student.id, "xp", newTotal);
@@ -571,8 +571,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refreshAll();
       return true;
     }
-    const reward = 5;
-    showPointToast(`+${reward}M`);
+    const reward = 10;
+    showPointToast(`+${reward}D`);
     const newTotal = (student.mileage || 0) + reward;
     await Promise.all([
       db.updateStudentField(student.id, "mileage", newTotal),

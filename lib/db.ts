@@ -837,14 +837,14 @@ export async function fetchSettings() {
     return {
       defaultAttendanceMileage: Number(r.default_attendance_mileage) || 20,
       defaultQTMileage: Number(r.default_qt_mileage) || 20,
-      prayerMileage: Number(r.prayer_mileage) || 5,
+      prayerMileage: Number(r.prayer_mileage) || 10,
       weeklyMissionReward: Number(r.weekly_mission_reward) || 30,
       nameDisplayPolicy: r.name_display_policy || "full",
       anonymousPrayerEnabled: !!r.anonymous_prayer_enabled,
       mileageShopEnabled: !!r.mileage_shop_enabled,
     };
   }
-  return { defaultAttendanceMileage: 20, defaultQTMileage: 20, prayerMileage: 5, weeklyMissionReward: 30, nameDisplayPolicy: "full", anonymousPrayerEnabled: true, mileageShopEnabled: true };
+  return { defaultAttendanceMileage: 20, defaultQTMileage: 20, prayerMileage: 10, weeklyMissionReward: 30, nameDisplayPolicy: "full", anonymousPrayerEnabled: true, mileageShopEnabled: true };
 }
 
 export async function updateSettings(patch: any) {

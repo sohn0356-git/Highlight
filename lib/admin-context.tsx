@@ -99,7 +99,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [studentBadges, setStudentBadges] = useState<Record<string, string[]>>({});
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [settings, setSettings] = useState<AdminSettings>({
-    defaultAttendanceMileage: 20, defaultQTMileage: 20, prayerMileage: 5,
+    defaultAttendanceMileage: 20, defaultQTMileage: 20, prayerMileage: 10,
     weeklyMissionReward: 30, nameDisplayPolicy: "full", anonymousPrayerEnabled: true, mileageShopEnabled: true,
   });
 
@@ -529,7 +529,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setPrayers([]); setAnnouncements([]); setAllTx([]);
     setRewards([]); setRedemptions([]); setBadges([]);
     setStudentBadges({}); setAuditLogs([]);
-    setSettings({ defaultAttendanceMileage: 20, defaultQTMileage: 20, prayerMileage: 5, weeklyMissionReward: 30, nameDisplayPolicy: "full", anonymousPrayerEnabled: true, mileageShopEnabled: true });
+    setSettings({ defaultAttendanceMileage: 20, defaultQTMileage: 20, prayerMileage: 10, weeklyMissionReward: 30, nameDisplayPolicy: "full", anonymousPrayerEnabled: true, mileageShopEnabled: true });
   }, []);
 
   return (
