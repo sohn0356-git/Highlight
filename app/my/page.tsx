@@ -26,7 +26,7 @@ export default function MyContent() {
 
   if (!student || !isLoggedIn) return null;
 
-  const isAdmin = student.role === "teacher" || student.role === "admin" || student.isTeacher || teachers.some((t: any) => t.id === student.id);
+  const isAdmin = student.role === "admin";
 
   const studentLevel = getStudentLevel(student.xp || 0);
   const studentNextXp = getNextLevelXp(studentLevel.level, false);
