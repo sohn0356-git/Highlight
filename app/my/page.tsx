@@ -6,7 +6,7 @@ import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
 import BadgeCard from "@/components/BadgeCard";
 import { useApp, useViewMode } from "@/lib/store-context";
-import { getStudentLevel, getClassLevel, getNextLevelXp, fetchStudentBadgesWithProgress } from "@/lib/db";
+import { getStudentLevel, getNextLevelXp, fetchStudentBadgesWithProgress } from "@/lib/db";
 
 export default function MyContent() {
   const { student, isLoggedIn, classes, logout, missions, completedMissionIds, completeMission, dailyQuests, dailyQuestIds, completeDailyQuest, badgeRefreshKey, teachers } = useApp();
@@ -27,11 +27,10 @@ export default function MyContent() {
   if (!student || !isLoggedIn) return null;
 
   const isAdmin = student.role === "teacher" || student.role === "admin" || student.isTeacher || teachers.some((t: any) => t.id === student.id);
-  const myClass = classes.find((c: any) => c.id === student.classId) as any;
+
   const studentLevel = getStudentLevel(student.xp || 0);
   const studentNextXp = getNextLevelXp(studentLevel.level, false);
-  const classLevel = getClassLevel(myClass?.xp || 0);
-  const classNextXp = getNextLevelXp(classLevel.level, true);
+
 
   // 관리자 페이지에서 등록한 미션 전체(스페셜 포함) - 프로필 탭에 표시
   const activeMissions = missions.filter((m: any) => m.active !== false);
@@ -77,21 +76,7 @@ export default function MyContent() {
         </Card>
       </section>
 
-      {myClass && (
-        <section className="mt-3 px-5">
-          <Card className="bg-gradient-to-br from-amber-400 to-orange-400 border-0 text-white shadow-lg shadow-amber-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-extrabold">{myClass.name}</p>
-                <p className="mt-1 text-sm text-amber-50">LV.{classLevel.level}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-extrabold">{(myClass.xp ?? 0).toLocaleString()} XP</p>
-              </div>
-            </div>
-          </Card>
-        </section>
-      )}
+
 
       {/* ── 오늘의 퀘스트 ── */}
       <section className="mt-5 px-5">
