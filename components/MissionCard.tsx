@@ -11,7 +11,7 @@ export default function MissionCard({ mission, completed, onComplete }: {
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-neutral-900">{mission.title}</h3>
-            <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-600">+{mission.reward}M</span>
+            <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-600">+{mission.reward}D</span>
           </div>
           <p className="mt-1 text-xs leading-relaxed text-neutral-500">{mission.description}</p>
         </div>

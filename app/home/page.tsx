@@ -84,7 +84,7 @@ export default function HomeContent() {
               <p className="mt-1 text-xs font-bold tracking-widest text-indigo-200">{myClass?.name || "반 미배정"}</p>
               <div className="mt-2 flex items-baseline gap-2">
                 <p className="text-2xl font-extrabold">{(student.mileage || 0).toLocaleString()}</p>
-                <span className="text-sm font-bold text-indigo-200">M</span>
+                <span className="text-sm font-bold text-indigo-200">D</span>
               </div>
             </div>
             <div className="text-right">

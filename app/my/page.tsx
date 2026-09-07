@@ -60,8 +60,8 @@ export default function MyContent() {
               <p className="mt-0.5 text-xs text-indigo-200">총 {(student.xp || 0).toLocaleString()} XP</p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-extrabold">{(student.mileage || 0).toLocaleString()}<span className="text-sm font-bold text-indigo-200 ml-1">M</span></p>
-              <p className="text-xs text-indigo-200">내 마일리지</p>
+              <p className="text-lg font-extrabold">{(student.mileage || 0).toLocaleString()}<span className="text-sm font-bold text-indigo-200 ml-1">D</span></p>
+              <p className="text-xs text-indigo-200">내 달란트</p>
             </div>
           </div>
           {studentNextXp < Infinity && (
@@ -114,7 +114,7 @@ export default function MyContent() {
                     <p className={`text-sm font-bold ${done ? "text-emerald-700" : "text-neutral-800"}`}>{q.title}</p>
                     <p className="text-[11px] text-neutral-400">{q.description}</p>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${done ? "bg-emerald-100 text-emerald-600" : "bg-indigo-50 text-indigo-600"}`}>+{q.reward}M</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${done ? "bg-emerald-100 text-emerald-600" : "bg-indigo-50 text-indigo-600"}`}>+{q.reward}D</span>
                   {done && <CheckCircle2 size={16} className="text-emerald-500" />}
                 </div>
               </div>
@@ -142,7 +142,7 @@ export default function MyContent() {
                       <p className={`text-sm font-bold ${done ? "text-emerald-700" : "text-neutral-800"}`}>{m.title}</p>
                       <p className="text-[11px] text-neutral-400">{m.description}</p>
                     </div>
-                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">+{m.reward}M</span>
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">+{m.reward}D</span>
                     {done && <CheckCircle2 size={16} className="text-emerald-500" />}
                   </div>
                 </div>
@@ -176,7 +176,7 @@ export default function MyContent() {
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-500 text-white"><ShieldCheck size={22} /></span>
             <div className="flex-1">
               <p className="text-sm font-bold text-indigo-800">관리자 페이지</p>
-              <p className="text-xs text-indigo-500">학생/출석/미션/마일리지 관리</p>
+              <p className="text-xs text-indigo-500">학생/출석/미션/달란트 관리</p>
             </div>
             <ChevronRight size={18} className="text-indigo-400" />
           </button>

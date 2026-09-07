@@ -147,7 +147,7 @@ export default function AdminContent() {
                 <span className="text-xl">{m.icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-neutral-800 truncate">{m.title}</p>
-                  <p className="text-[11px] text-neutral-400">{m.type === "weekly" ? "주간" : m.type === "special" ? "스페셜" : m.type === "event" ? "이벤트" : "반별"} · {m.reward}M</p>
+                  <p className="text-[11px] text-neutral-400">{m.type === "weekly" ? "주간" : m.type === "special" ? "스페셜" : m.type === "event" ? "이벤트" : "반별"} · {m.reward}D</p>
                 </div>
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${m.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
                   {m.active ? "활성" : "비활성"}

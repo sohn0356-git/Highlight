@@ -189,7 +189,7 @@ export default function PraiseContent() {
               <button onClick={handleSubmit}
                 disabled={!praisedId || !reason.trim() || submitting}
                 className="rounded-full bg-amber-500 px-4 py-2 text-xs font-bold text-white active:scale-95 transition disabled:opacity-40">
-                {submitting ? (<span className="flex items-center gap-1.5"><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" /> 등록 중...</span>) : "등록 (+5M)"}
+                {submitting ? (<span className="flex items-center gap-1.5"><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" /> 등록 중...</span>) : "등록 (+5D)"}
               </button>
             </div>
           </Card>
@@ -218,7 +218,7 @@ export default function PraiseContent() {
                     </p>
                   </div>
                 </div>
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">+10M</span>
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">+10D</span>
               </div>
               <p className="mt-2 text-sm leading-relaxed text-neutral-600">{p.reason}</p>
             </Card>

@@ -52,9 +52,9 @@ export default function BadgeCard({ badge }: BadgeCardProps) {
     if (description.includes("연속")) return `QT ${remaining}일 연속`;
     if (description.includes("QT 완료") || description.includes("QT count") || name.includes("말씀")) return `QT ${remaining}회 더 완료`;
     if (description.includes("기도") || name.includes("기도")) return `기도 ${remaining}일 더 참여`;
-    if (description.includes("칭찬") || name.includes("칭찬")) return `칭찬 ${remaining}회 더 받기`;
+    if (description.includes("칭찬") || name.includes("칭찬")) return `칭찬 ${remaining}회 더 하기`;
     if (description.includes("퀘스트") || description.includes("quest") || name.includes("퀘스트")) return `퀘스트 ${remaining}개 더 완료`;
-    if (description.includes("마일리지") || description.includes("mileage") || name.includes("마일리지")) return `마일리지 ${remaining}점 더 모으기`;
+    if (description.includes("마일리지") || description.includes("mileage") || name.includes("마일리지") || description.includes("달란트")) return `달란트 ${remaining}점 더 모으기`;
     return `目標まであと${remaining}`;
   };
 

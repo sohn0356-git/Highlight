@@ -118,7 +118,7 @@ export default function AdminStudents() {
           <div className="p-4 space-y-3">
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { label: "마일리지", value: `${detailStudent.mileage}M` },
+                { label: "달란트", value: `${detailStudent.mileage}M` },
                 { label: "출석", value: "84%" },
                 { label: "QT", value: `${detailQTCount}회` },
                 { label: "미션", value: `${detailMissionCount}개` },
@@ -141,7 +141,7 @@ export default function AdminStudents() {
             </div>
             {detailTx.length > 0 && (
               <div>
-                <h4 className="text-xs font-bold text-neutral-500 mb-2">최근 마일리지 내역</h4>
+                <h4 className="text-xs font-bold text-neutral-500 mb-2">최근 달란트 내역</h4>
                 <div className="max-h-36 overflow-y-auto space-y-1">
                   {detailTx.slice(-6).reverse().map((tx, i) => (
                     <div key={i} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2">
@@ -149,7 +149,7 @@ export default function AdminStudents() {
                         <p className="text-xs font-semibold text-neutral-700">{tx.type}</p>
                         <p className="text-[10px] text-neutral-400">{tx.date}</p>
                       </div>
-                      <span className={`text-xs font-bold ${tx.amount > 0 ? "text-indigo-600" : "text-rose-500"}`}>{tx.amount > 0 ? "+" : ""}{tx.amount}M</span>
+                      <span className={`text-xs font-bold ${tx.amount > 0 ? "text-indigo-600" : "text-rose-500"}`}>{tx.amount > 0 ? "+" : ""}{tx.amount}D</span>
                     </div>
                   ))}
                 </div>
@@ -195,7 +195,7 @@ export default function AdminStudents() {
                 ))}
                 <button onClick={() => setMileageSort(prev => prev === "asc" ? "desc" : prev === "desc" ? "none" : "asc")} className="shrink-0 flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold bg-white border border-neutral-200 text-neutral-600">
                   <ArrowUpDown size={12} />
-                  {mileageSort === "asc" ? "마일리지 ↑" : mileageSort === "desc" ? "마일리지 ↓" : "정렬"}
+                  {mileageSort === "asc" ? "달란트 ↑" : mileageSort === "desc" ? "달란트 ↓" : "정렬"}
                 </button>
               </div>
 
@@ -213,7 +213,7 @@ export default function AdminStudents() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-indigo-600">{s.mileage}M</span>
+                        <span className="text-xs font-bold text-indigo-600">{s.mileage}D</span>
                         <ChevronRight size={16} className="text-neutral-300" />
                       </div>
                     </button>
@@ -273,7 +273,7 @@ export default function AdminStudents() {
           <input className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" placeholder="보호자 연락처 (선택)" value={form.guardianPhone} onChange={e => setForm({ ...form, guardianPhone: e.target.value })} />
           {editId && (
             <div>
-              <label className="mb-1 block text-xs font-semibold text-neutral-600">마일리지</label>
+              <label className="mb-1 block text-xs font-semibold text-neutral-600">달란트</label>
               <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" value={form.mileage} onChange={e => setForm({ ...form, mileage: +e.target.value })} />
             </div>
           )}

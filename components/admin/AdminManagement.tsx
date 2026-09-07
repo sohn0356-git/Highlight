@@ -20,7 +20,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   const [tab, setTab] = useState<MgmtTab>("mileage");
 
   const tabs: { id: MgmtTab; label: string; icon: typeof Coins }[] = [
-    { id: "mileage", label: "마일리지", icon: Coins },
+    { id: "mileage", label: "달란트", icon: Coins },
     { id: "rewards", label: "상점", icon: Gift },
     { id: "season", label: "시즌", icon: Sun },
     { id: "badges", label: "배지", icon: Award },
@@ -85,7 +85,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       {tab === "mileage" && (
         <div className="space-y-4">
           <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
-            <h3 className="text-sm font-bold text-neutral-800">마일리지 지급/차감</h3>
+            <h3 className="text-sm font-bold text-neutral-800">달란트 지급/차감</h3>
             <div className="grid grid-cols-2 gap-2">
               <select className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={mileageTarget} onChange={e => { setMileageTarget(e.target.value); setMileageTargetId(""); }}>
                 <option value="student">개별 학생</option>
@@ -127,7 +127,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
             <div className="px-4 py-3 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-neutral-800">마일리지 내역</h3>
+                <h3 className="text-sm font-bold text-neutral-800">달란트 내역</h3>
                 <p className="text-[11px] text-neutral-400 mt-0.5">전체 {allTransactions.length}건</p>
               </div>
               <button onClick={() => setIsTxOpen(prev => !prev)} className="rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-600">
@@ -144,7 +144,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                       <p className="text-[11px] text-neutral-400">{tx.description}</p>
                     </div>
                     <div className="text-right">
-                      <span className={`text-sm font-bold ${tx.amount > 0 ? "text-indigo-600" : "text-rose-500"}`}>{tx.amount > 0 ? "+" : ""}{tx.amount}M</span>
+                      <span className={`text-sm font-bold ${tx.amount > 0 ? "text-indigo-600" : "text-rose-500"}`}>{tx.amount > 0 ? "+" : ""}{tx.amount}D</span>
                       <p className="text-[10px] text-neutral-400">{tx.date}</p>
                     </div>
                   </div>
@@ -172,7 +172,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
               <textarea className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="설명" value={rewardForm.description} onChange={e => setRewardForm({ ...rewardForm, description: e.target.value })} rows={2} />
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-[11px] text-neutral-500">마일리지</label>
+                  <label className="text-[11px] text-neutral-500">달란트</label>
                   <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={rewardForm.mileageCost} onChange={e => setRewardForm({ ...rewardForm, mileageCost: +e.target.value })} />
                 </div>
                 <div>
@@ -217,7 +217,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                   <div key={r.id} className="flex items-center justify-between px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold text-neutral-700">{r.studentName} → {r.rewardName}</p>
-                      <p className="text-[11px] text-neutral-400">{r.mileageCost}M</p>
+                      <p className="text-[11px] text-neutral-400">{r.mileageCost}D</p>
                     </div>
                     <div className="flex gap-1.5">
                       <button onClick={() => updateRedemption(r.id, "approved")} className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white">승인</button>
@@ -329,8 +329,8 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
               { label: "QT 참여율", value: "72%", change: "+12% 전주 대비" },
               { label: "미션 참여", value: "62%", change: "+5% 전주 대비" },
               { label: "기도 참여", value: "45%", change: "+8% 전주 대비" },
-              { label: "마일리지 지급", value: `${allTransactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0).toLocaleString()}M`, change: "이번 달" },
-              { label: "마일리지 사용", value: `${allTransactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0).toLocaleString()}M`, change: "이번 달" },
+              { label: "달란트 지급", value: `${allTransactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0).toLocaleString()}M`, change: "이번 달" },
+              { label: "달란트 사용", value: `${allTransactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0).toLocaleString()}M`, change: "이번 달" },
             ].map((s, i) => (
               <div key={i} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
                 <p className="text-[11px] text-neutral-400">{s.label}</p>
@@ -364,12 +364,12 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       {tab === "audit" && (
         <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
           <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-neutral-800">마일리지 내역</h3>
+            <h3 className="text-sm font-bold text-neutral-800">달란트 내역</h3>
             <span className="text-[11px] text-neutral-400">{allTransactions.length}건</span>
           </div>
           <div className="max-h-[600px] overflow-y-auto divide-y divide-neutral-50">
             {allTransactions.length === 0 && (
-              <p className="py-8 text-center text-xs text-neutral-400">아직 마일리지 내역이 없습니다.</p>
+              <p className="py-8 text-center text-xs text-neutral-400">아직 달란트 내역이 없습니다.</p>
             )}
             {allTransactions.map((tx: any) => (
               <div key={tx.id} className="px-4 py-3">
@@ -400,11 +400,11 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       {tab === "settings" && (
         <div className="space-y-4">
           <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-neutral-800">기본 마일리지 설정</h3>
+            <h3 className="text-sm font-bold text-neutral-800">기본 달란트 설정</h3>
             {[
-              { key: "defaultAttendanceMileage", label: "기본 출석 마일리지", icon: "📅" },
-              { key: "defaultQTMileage", label: "기본 QT 마일리지", icon: "📖" },
-              { key: "prayerMileage", label: "기도 참여 마일리지", icon: "🙏" },
+              { key: "defaultAttendanceMileage", label: "기본 출석 달란트", icon: "📅" },
+              { key: "defaultQTMileage", label: "기본 QT 달란트", icon: "📖" },
+              { key: "prayerMileage", label: "기도 참여 달란트", icon: "🙏" },
               { key: "weeklyMissionReward", label: "주간 미션 기본 보상", icon: "🎯" },
             ].map(item => (
               <div key={item.key} className="flex items-center justify-between">
@@ -416,7 +416,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                     value={(settings as any)[item.key]}
                     onChange={e => updateSettings({ [item.key]: +e.target.value })}
                   />
-                  <span className="text-xs text-neutral-400">M</span>
+                  <span className="text-xs text-neutral-400">D</span>
                 </div>
               </div>
             ))}
@@ -426,7 +426,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
             <h3 className="text-sm font-bold text-neutral-800">앱 설정</h3>
             {[
               { key: "anonymousPrayerEnabled", label: "익명 기도 활성화" },
-              { key: "mileageShopEnabled", label: "마일리지 상점 활성화" },
+              { key: "mileageShopEnabled", label: "달란트 상점 활성화" },
             ].map(item => (
               <div key={item.key} className="flex items-center justify-between">
                 <span className="text-sm text-neutral-700">{item.label}</span>

@@ -112,7 +112,7 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-3">
-                      <p className="text-sm font-bold text-indigo-600">{r.mileage_cost.toLocaleString()}M</p>
+                      <p className="text-sm font-bold text-indigo-600">{r.mileage_cost.toLocaleString()}D</p>
                       <button
                         onClick={() => handlePurchase(r)}
                         disabled={!canAfford || !inStock || isPurchasing}
@@ -123,7 +123,7 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
                       >
                         {isPurchasing ? (
                           <Loader2 size={12} className="animate-spin" />
-                        ) : !inStock ? "품절" : !canAfford ? "마일리지 부족" : "신청하기"}
+                        ) : !inStock ? "품절" : !canAfford ? "달란트 부족" : "신청하기"}
                       </button>
                     </div>
                   </div>

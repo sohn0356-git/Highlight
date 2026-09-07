@@ -1159,7 +1159,7 @@ export async function calculateBadgeProgress(studentId: string, badgeType: strin
       return await calculateQTStreak(studentId);
     }
     case "praise_count": {
-      const { data } = await s.from("praises").select("id").eq("praised_id", studentId);
+      const { data } = await s.from("praises").select("id").eq("praiser_id", studentId);
       return data?.length || 0;
     }
     default: return 0;
@@ -1327,7 +1327,7 @@ export async function fetchStudentBadgesWithProgress(studentId: string) {
         return await calculateQTStreak(studentId);
       }
       if (type === "b7") { // Praise count
-        const { data } = await dbClient.from("praises").select("id").eq("praised_id", studentId);
+        const { data } = await dbClient.from("praises").select("id").eq("praiser_id", studentId);
         return data?.length || 0;
       }
       return 0;

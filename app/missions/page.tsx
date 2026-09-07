@@ -62,7 +62,7 @@ export default function MissionsContent() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className={`text-sm font-bold ${done ? "text-emerald-700" : "text-neutral-900"}`}>{q.title}</h3>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${done ? "bg-emerald-100 text-emerald-600" : "bg-indigo-50 text-indigo-600"}`}>+{q.reward}M</span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${done ? "bg-emerald-100 text-emerald-600" : "bg-indigo-50 text-indigo-600"}`}>+{q.reward}D</span>
                     </div>
                     <p className="mt-1 text-xs leading-relaxed text-neutral-500">{q.description}</p>
                   </div>
@@ -97,7 +97,7 @@ export default function MissionsContent() {
                       <div className="flex items-center justify-between gap-2">
                         <h3 className={`text-sm font-bold ${done ? "text-emerald-700" : "text-neutral-900"}`}>{m.title}</h3>
                         <div className="flex items-center gap-2">
-                          <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-600">+{m.reward}M</span>
+                          <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-600">+{m.reward}D</span>
                           {done && <CheckCircle2 size={18} className="text-emerald-500" />}
                         </div>
                       </div>

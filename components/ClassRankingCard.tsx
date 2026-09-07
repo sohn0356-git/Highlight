@@ -29,7 +29,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
 }) {
   const [tab, setTab] = useState<RankTab>("grade");
 
-  /* ── 학년별 마일리지 집계 (학생 DB 기준) ── */
+  /* ── 학년별 달란트 집계 (학생 DB 기준) ── */
   const gradeTotals = new Map<number, number>();
   const gradeSet = new Map<number, string>();
   (classes || []).forEach((c: any) => {
@@ -56,7 +56,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
     .sort((a, b) => b.value - a.value || Number(a.name.replace(/\D/g, "")) - Number(b.name.replace(/\D/g, "")));
   const topGrade = gradeRows[0];
 
-  /* ── 개인별 마일리지 랭킹 (최대 10위) ── */
+  /* ── 개인별 달란트 랭킹 (최대 10위) ── */
   const personalRows: RankRow[] = (students || [])
     .map((s: any) => ({
       key: s.id,
@@ -152,7 +152,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
         </>
       ) : (
         <>
-          <p className="mt-3 text-[10px] text-neutral-400">개인 마일리지 기준 TOP 10</p>
+          <p className="mt-3 text-[10px] text-neutral-400">개인 달란트 기준 TOP 10</p>
           {renderRows(personalRows, topStudent, "M")}
           {/* 개인 1위 메시지 제거 */}
         </>
