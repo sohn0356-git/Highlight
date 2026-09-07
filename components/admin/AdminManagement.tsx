@@ -284,7 +284,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[11px] text-neutral-500">공동 목표 XP</label>
+              <label className="text-[11px] text-neutral-500">공동 목표 D</label>
               <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={season.sharedGoalXp} onChange={e => updateSeason({ sharedGoalXp: +e.target.value })} />
             </div>
             <div>
@@ -342,13 +342,13 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
 
           {/* Class XP growth */}
           <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-neutral-800 mb-3">반별 XP</h3>
+            <h3 className="text-sm font-bold text-neutral-800 mb-3">반별 D</h3>
             <div className="space-y-2.5">
               {classes.sort((a: any, b: any) => b.xp - a.xp).map((c: any) => (
                 <div key={c.id}>
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-neutral-700">{c.name}</span>
-                    <span className="text-neutral-500">{c.xp.toLocaleString()} XP</span>
+                    <span className="text-neutral-500">{c.xp.toLocaleString()} D</span>
                   </div>
                   <div className="mt-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
                     <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${(c.xp / 15000) * 100}%` }} />

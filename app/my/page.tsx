@@ -56,7 +56,7 @@ export default function MyContent() {
             <div>
               <p className="text-sm font-bold text-indigo-200">내 레벨</p>
               <p className="mt-1 text-2xl font-extrabold">LV.{studentLevel.level}</p>
-              <p className="mt-0.5 text-xs text-indigo-200">총 {(student.xp || 0).toLocaleString()} XP</p>
+              <p className="mt-0.5 text-xs text-indigo-200">총 {(student.xp || 0).toLocaleString()} D</p>
             </div>
             <div className="text-right">
               <p className="text-lg font-extrabold">{(student.mileage || 0).toLocaleString()}<span className="text-sm font-bold text-indigo-200 ml-1">D</span></p>
@@ -70,7 +70,7 @@ export default function MyContent() {
                 <span>LV.{studentLevel.level + 1}</span>
               </div>
               <ProgressBar value={student.xp || 0} max={studentNextXp} className="bg-white/20" barClassName="bg-white" />
-              <p className="mt-1 text-[10px] text-indigo-200 text-right">{studentNextXp - (student.xp || 0)} XP 남음</p>
+              <p className="mt-1 text-[10px] text-indigo-200 text-right">{studentNextXp - (student.xp || 0)} D 남음</p>
             </div>
           )}
         </Card>

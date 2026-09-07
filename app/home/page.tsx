@@ -97,7 +97,7 @@ export default function HomeContent() {
           {nextXp < Infinity && (
             <div className="mt-3">
               <ProgressBar value={student.xp || 0} max={nextXp} className="bg-white/20" barClassName="bg-white" />
-              <p className="mt-1 text-[10px] text-indigo-200 text-right">다음 레벨까지 {nextXp - (student.xp || 0)} XP</p>
+              <p className="mt-1 text-[10px] text-indigo-200 text-right">다음 레벨까지 {nextXp - (student.xp || 0)} D</p>
             </div>
           )}
         </Card>

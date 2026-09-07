@@ -63,7 +63,7 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
           </div>
           <div className="text-right">
             <p className="text-[11px] text-indigo-100">공동 목표</p>
-            <p className="text-base font-bold">{(season.sharedGoalXp / 1000).toFixed(1)}K XP</p>
+            <p className="text-base font-bold">{(season.sharedGoalXp / 1000).toFixed(1)}K D</p>
           </div>
         </div>
       </div>
@@ -130,7 +130,7 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
                 </div>
                 <p className="mt-1 text-xs text-neutral-400">담당: {teacher?.name || "미배정"} · {classStudents.length}명</p>
                 <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-2.5 text-[11px]">
-                  <span className="text-neutral-500">{c.xp.toLocaleString()} XP</span>
+                  <span className="text-neutral-500">{c.xp.toLocaleString()} D</span>
                   <span className="font-semibold text-emerald-600">+{c.weeklyXp} 이번 주</span>
                 </div>
               </button>
