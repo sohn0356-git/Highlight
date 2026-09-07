@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: '30 14 * * *'
     - cron: '00 15 * * *'
+    - cron: '10 15 * * *'
   workflow_dispatch:
     inputs:
       date:
@@ -20,7 +21,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Fetch and store QT
         env:
