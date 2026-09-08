@@ -157,7 +157,11 @@ export default function QTContent() {
               <Copy size={13} /> 선택한 절 복사 ({selectedVerses.size}절)
             </button>
           )}
-          {copied && <p className="mt-1 text-[10px] text-indigo-400 text-center">✅ 복사됨</p>}
+          {copied && (
+            <div className="pointer-events-none mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-100 py-3 text-sm font-bold text-emerald-600">
+              ✅ 복사 완료!
+            </div>
+          )}
         </Card>
       </section>
 
@@ -209,7 +213,7 @@ export default function QTContent() {
 
       {showRecordModal && (
         <div className="fixed inset-0 z-50 flex flex-col bg-white">
-          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4 pt-[env(safe-area-inset-top)]">
+          <div style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }} className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
             <h2 className="text-base font-bold text-neutral-900">QT 기록 ({qtRecords.length}개)</h2>
             <button onClick={() => { setShowRecordModal(false); setEditRecordId(null); }}
               className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">✕</button>
