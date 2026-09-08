@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { BookOpen, CheckCircle, ChevronDown, Share2, X, Calendar } from "lucide-react";
+import { BookOpen, CheckCircle, ChevronDown, Share2, X, Calendar, Copy } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import SharedQTFeed from "@/components/SharedQTFeed";
@@ -21,7 +21,32 @@ export default function QTContent() {
   const [editApplication, setEditApplication] = useState("");
   const [recordsPage, setRecordsPage] = useState(0);
   const [locallySharedDates, setLocallySharedDates] = useState<Set<string>>(new Set());
+  const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set());
   const PAGE_SIZE = 5;
+
+  // 절 파싱: 숫자로 시작하는 줄을 절로 간주
+  const parseVerses = (content: string): string[] => {
+    if (!content) return [];
+    return content.split("\n").filter((line) => /^\d{1,3}\s/.test(line.trim()));
+  };
+  const verses = parseVerses(qtToday.content || "");
+
+  const toggleVerse = (idx: number) => {
+    setSelectedVerses((prev) => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
+    });
+  };
+
+  const copySelectedVerses = () => {
+    const text = verses.filter((_, i) => selectedVerses.has(i)).join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setSelectedVerses(new Set());
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
 
   if (!student || !isLoggedIn) return null;
 
@@ -102,18 +127,36 @@ export default function QTContent() {
           <blockquote className="mt-3 border-l-2 border-indigo-200 pl-3.5 text-sm italic leading-relaxed text-neutral-700">
             &ldquo;{qtToday.verse}&rdquo;
           </blockquote>
-          <div
-            onClick={() => {
-              const text = qtToday.passage + "\n\n" + qtToday.verse + "\n\n" + qtToday.content;
-              navigator.clipboard.writeText(text).then(() => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1500);
-              });
-            }}
-            className="mt-3 text-sm leading-relaxed text-neutral-600 whitespace-pre-line cursor-pointer active:bg-indigo-50 rounded-lg p-1 -m-1 transition"
-          >
-            {qtToday.content}
+          <div className="mt-3 space-y-0.5">
+            {verses.length > 0 ? (
+              verses.map((v, i) => {
+                const sel = selectedVerses.has(i);
+                return (
+                  <button
+                    key={i}
+                    onClick={() => toggleVerse(i)}
+                    className={`w-full text-left text-sm leading-relaxed rounded-md px-2 py-1 -mx-2 transition ${
+                      sel
+                        ? "bg-indigo-100 text-indigo-800 font-medium"
+                        : "text-neutral-600 hover:bg-neutral-50"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="text-sm leading-relaxed text-neutral-600 whitespace-pre-line">{qtToday.content}</div>
+            )}
           </div>
+          {selectedVerses.size > 0 && (
+            <button
+              onClick={copySelectedVerses}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-500 py-2.5 text-xs font-bold text-white transition active:scale-[0.98]"
+            >
+              <Copy size={13} /> 선택한 절 복사 ({selectedVerses.size}절)
+            </button>
+          )}
           {copied && <p className="mt-1 text-[10px] text-indigo-400 text-center">✅ 복사됨</p>}
         </Card>
       </section>
