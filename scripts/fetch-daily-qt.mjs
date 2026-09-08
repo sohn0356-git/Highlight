@@ -83,12 +83,12 @@ function parseDurannoHTML(html, qtDate) {
   const rawPassage = h1s.length > 1 ? stripTags(h1s[h1s.length - 1]) : "";
 
   let passage = rawPassage.trim();
-  const passageMatch = passage.match(/^([가-힣]+(?:\s?[0-9]+)?(?:\s?[0-9]+)?(?:\s?:\s?[0-9~\-]+))\s*(.*)$/);
+  const passageMatch = passage.match(/^([가-힣]+(?:\s?[0-9]+)?(?:\s?[0-9]+)?(?:\s?:\s?[0-9~\-]+))/);
   let bibleReference = passage;
   let verse = "";
   if (passageMatch) {
     bibleReference = passageMatch[1].trim();
-    verse = passageMatch[2].trim();
+    verse = "";
   }
 
   const bibleDivRegex = /<div[^>]*class="[^"]*\bbible\b[^"]*"[^>]*>([\s\S]*?)<\/div>/;

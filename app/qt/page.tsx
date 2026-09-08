@@ -59,6 +59,8 @@ export default function QTContent() {
     }
   };
 
+  const [copied, setCopied] = useState(false);
+
   const handleComplete = () => {
     if (!remembered.trim() || !application.trim()) return;
     completeQT(remembered.trim(), application.trim());
@@ -100,7 +102,19 @@ export default function QTContent() {
           <blockquote className="mt-3 border-l-2 border-indigo-200 pl-3.5 text-sm italic leading-relaxed text-neutral-700">
             &ldquo;{qtToday.verse}&rdquo;
           </blockquote>
-          <div className="mt-3 text-sm leading-relaxed text-neutral-600 whitespace-pre-line">{qtToday.content}</div>
+          <div
+            onClick={() => {
+              const text = qtToday.passage + "\n\n" + qtToday.verse + "\n\n" + qtToday.content;
+              navigator.clipboard.writeText(text).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              });
+            }}
+            className="mt-3 text-sm leading-relaxed text-neutral-600 whitespace-pre-line cursor-pointer active:bg-indigo-50 rounded-lg p-1 -m-1 transition"
+          >
+            {qtToday.content}
+          </div>
+          {copied && <p className="mt-1 text-[10px] text-indigo-400 text-center">✅ 복사됨</p>}
         </Card>
       </section>
 
@@ -152,7 +166,7 @@ export default function QTContent() {
 
       {showRecordModal && (
         <div className="fixed inset-0 z-50 flex flex-col bg-white">
-          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4 pt-[env(safe-area-inset-top)]">
             <h2 className="text-base font-bold text-neutral-900">QT 기록 ({qtRecords.length}개)</h2>
             <button onClick={() => { setShowRecordModal(false); setEditRecordId(null); }}
               className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">✕</button>
