@@ -191,7 +191,7 @@ async function storeQT(qtData, qtDate) {
   const payload = {
     date: qtDate,
     passage: qtData.passage || "",
-    verse: "",
+    verse: null,
     content: qtData.content || "",
     prayer: qtData.prayer || "",
     song: qtData.song || "",
