@@ -116,8 +116,8 @@ export default function HomeContent() {
       {/* ── 공지 상세 모달 ── */}
       {selectedAnn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedAnn(null)}>
-          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white shadow-xl p-5" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
+          <div className="mx-4 w-full max-w-sm max-h-[80vh] flex flex-col rounded-2xl bg-white shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-neutral-100">
               <div className="flex items-center gap-1.5">
                 {selectedAnn.important && <span className="text-xs">📌</span>}
                 <h3 className="text-sm font-bold text-neutral-800">{selectedAnn.title}</h3>
@@ -126,8 +126,10 @@ export default function HomeContent() {
                 <X size={16} />
               </button>
             </div>
+            <div className="flex-1 overflow-y-auto px-5 pb-5 pt-0">
             {selectedAnn.content && <p className="text-sm leading-relaxed text-neutral-600 whitespace-pre-line">{selectedAnn.content}</p>}
             <p className="mt-3 text-[10px] text-neutral-400">{selectedAnn.createdAt?.slice(0, 10) || ""}</p>
+            </div>
           </div>
         </div>
       )}
