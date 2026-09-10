@@ -147,13 +147,13 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
 
       {tab === "grade" ? (
         <>
-          {renderRows(gradeRows, topGrade, "M")}
+          {renderRows(gradeRows, topGrade, "D")}
           {/* 1위 메시지 제거 */}
         </>
       ) : (
         <>
           <p className="mt-3 text-[10px] text-neutral-400">개인 달란트 기준 TOP 10</p>
-          {renderRows(personalRows, topStudent, "M")}
+          {renderRows(personalRows, topStudent, "D")}
           {/* 개인 1위 메시지 제거 */}
         </>
       )}

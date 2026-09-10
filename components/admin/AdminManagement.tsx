@@ -54,7 +54,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     if (!mileageReason) return;
     const target = mileageTarget as "student" | "class" | "grade" | "all";
     awardsMileage(target, mileageTargetId, mileageAmount, mileageReason);
-    addAuditLog({ actorName: "관리자", actorRole: "admin", actionType: "mileage_award", target: mileageTarget, description: `${mileageAmount}M 지급: ${mileageReason}` });
+    addAuditLog({ actorName: "관리자", actorRole: "admin", actionType: "mileage_award", target: mileageTarget, description: `${mileageAmount}D 지급: ${mileageReason}` });
     setMileageReason("");
   }
 
@@ -194,7 +194,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                 <div>
                   <p className="text-sm font-semibold text-neutral-800">{r.name}</p>
                   <p className="text-[11px] text-neutral-400">{r.description}</p>
-                  <p className="text-xs text-indigo-600 font-bold mt-0.5">{r.mileageCost}M · 재고 {r.inventory}</p>
+                  <p className="text-xs text-indigo-600 font-bold mt-0.5">{r.mileageCost}D · 재고 {r.inventory}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
@@ -329,8 +329,8 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
               { label: "QT 참여율", value: "72%", change: "+12% 전주 대비" },
               { label: "미션 참여", value: "62%", change: "+5% 전주 대비" },
               { label: "기도 참여", value: "45%", change: "+8% 전주 대비" },
-              { label: "달란트 지급", value: `${allTransactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0).toLocaleString()}M`, change: "이번 달" },
-              { label: "달란트 사용", value: `${allTransactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0).toLocaleString()}M`, change: "이번 달" },
+              { label: "달란트 지급", value: `${allTransactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0).toLocaleString()}D`, change: "이번 달" },
+              { label: "달란트 사용", value: `${allTransactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0).toLocaleString()}D`, change: "이번 달" },
             ].map((s, i) => (
               <div key={i} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
                 <p className="text-[11px] text-neutral-400">{s.label}</p>

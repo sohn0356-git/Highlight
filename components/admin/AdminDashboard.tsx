@@ -48,7 +48,7 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
     { label: "이번 주 QT", value: `${thisWeekQT.length * 3}회`, icon: <BookOpen size={16} />, tone: "bg-indigo-50 text-indigo-600" },
     { label: "미션 완료", value: `${approvedMissions}회`, icon: <Target size={16} />, tone: "bg-sky-50 text-sky-600" },
     { label: "기도 참여", value: `${prayerParticipations}명`, icon: <HandHeart size={16} />, tone: "bg-rose-50 text-rose-600" },
-    { label: "달란트 지급", value: `${totalMileageAwarded.toLocaleString()}M`, icon: <Coins size={16} />, tone: "bg-amber-50 text-amber-600" },
+    { label: "달란트 지급", value: `${totalMileageAwarded.toLocaleString()}D`, icon: <Coins size={16} />, tone: "bg-amber-50 text-amber-600" },
   ];
 
   return (

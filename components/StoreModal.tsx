@@ -72,7 +72,7 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
         </div>
         <div className="flex items-center gap-3">
           <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
-            {(student.mileage || 0).toLocaleString()}M
+            {(student.mileage || 0).toLocaleString()}D
           </span>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200">
             <X size={18} />

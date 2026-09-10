@@ -118,7 +118,7 @@ export default function AdminStudents() {
           <div className="p-4 space-y-3">
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { label: "달란트", value: `${detailStudent.mileage}M` },
+                { label: "달란트", value: `${detailStudent.mileage}D` },
                 { label: "출석", value: "84%" },
                 { label: "QT", value: `${detailQTCount}회` },
                 { label: "미션", value: `${detailMissionCount}개` },
