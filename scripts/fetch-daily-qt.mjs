@@ -74,6 +74,39 @@ function normalizeBibleText(text) {
     .replace(/(\d{1,3})\s*([가-힣])/g, "$1 $2")
     .replace(/(?=\b\d{1,3}\s+[가-힣])/g, "\n")
     .replace(/\n{3,}/g, "\n\n");
+
+  // Remove standalone section header lines (Korean text + verse reference)
+  result = result.split("\n").filter(line => {
+    if (/^\d{1,3}\s/.test(line.trim())) return true;
+    if (/\d+\s*:\s*\d+/.test(line) && !/^\d{1,3}\s/.test(line.trim())) return false;
+    return true;
+  }).join("\n");
+
+  // Remove embedded section headers at end of verse lines
+  result = result.split("\n").map(line => {
+    const chapterMatch = line.match(/(\d+\s*:\s*\d+[~\-]\d+)\s*$/);
+    if (!chapterMatch || !chapterMatch.index) return line;
+    const refStart = chapterMatch.index;
+    const beforeRef = line.substring(0, refStart).trimEnd();
+    if (!beforeRef) return line;
+    let lastDigitIdx = -1;
+    for (let i = beforeRef.length - 1; i >= 0; i--) {
+      if (/\d/.test(beforeRef[i])) { lastDigitIdx = i; break; }
+    }
+    if (lastDigitIdx < 0) return line;
+    const afterDigit = beforeRef.substring(lastDigitIdx + 1);
+    if (!afterDigit.trim()) return line;
+    if (/^\d/.test(afterDigit.trim())) return line;
+    const headerStart = beforeRef.indexOf(afterDigit.trim());
+    if (headerStart <= 0) return line;
+    return beforeRef.substring(0, headerStart).trimEnd();
+  }).join("\n");
+
+  // Clean trailing whitespace, empty lines, and verse-number-only lines
+  result = result.split("\n")
+    .map(l => l.trimEnd())
+    .filter(l => l.trim().length > 0 && !/^\d{1,3}$/.test(l.trim()))
+    .join("\n");
   return result.trim();
 }
 
@@ -85,10 +118,9 @@ function parseDurannoHTML(html, qtDate) {
   let passage = rawPassage.trim();
   const passageMatch = passage.match(/^([가-힣]+(?:\s?[0-9]+)?(?:\s?[0-9]+)?(?:\s?:\s?[0-9~\-]+))/);
   let bibleReference = passage;
-  let verse = "";
+  // Verse (section title) is no longer extracted
   if (passageMatch) {
     bibleReference = passageMatch[1].trim();
-    verse = "";
   }
 
   const bibleDivRegex = /<div[^>]*class="[^"]*\bbible\b[^"]*"[^>]*>([\s\S]*?)<\/div>/;
@@ -142,7 +174,6 @@ function parseDurannoHTML(html, qtDate) {
 
   return {
     passage: bibleReference,
-    verse,
     content: bibleText,
     prayer,
     song,
@@ -160,7 +191,7 @@ async function storeQT(qtData, qtDate) {
   const payload = {
     date: qtDate,
     passage: qtData.passage || "",
-    verse: qtData.verse || "",
+    verse: "",
     content: qtData.content || "",
     prayer: qtData.prayer || "",
     song: qtData.song || "",
@@ -193,7 +224,7 @@ async function main() {
 
   const parsed = parseDurannoHTML(html, targetDate);
   console.log(`[QT Fetcher] Parsed passage: "${parsed.passage}"`);
-  console.log(`[QT Fetcher] Verse: "${parsed.verse}"`);
+  // verse removed
   console.log(`[QT Fetcher] Content length: ${parsed.content.length}`);
   console.log(`[QT Fetcher] Prayer length: ${parsed.prayer.length}`);
   console.log(`[QT Fetcher] Song length: ${parsed.song.length}`);
@@ -202,7 +233,7 @@ async function main() {
   try {
     const result = await storeQT(parsed, targetDate);
     console.log(`[QT Fetcher] SUCCESS (${result.action}) for ${targetDate}`);
-    console.log(JSON.stringify({ passage: parsed.passage, verse: parsed.verse, contentLength: parsed.content.length }, null, 2));
+    console.log(JSON.stringify({ passage: parsed.passage, contentLength: parsed.content.length }, null, 2));
     process.exit(0);
   } catch (e) {
     console.error(`[QT Fetcher] FAILED: ${e.message}`);

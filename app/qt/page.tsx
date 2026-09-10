@@ -124,9 +124,6 @@ export default function QTContent() {
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-sm">📖</span>
             <p className="text-sm font-bold text-indigo-700">{qtToday.passage}</p>
           </div>
-          <blockquote className="mt-3 border-l-2 border-indigo-200 pl-3.5 text-sm italic leading-relaxed text-neutral-700">
-            &ldquo;{qtToday.verse}&rdquo;
-          </blockquote>
           <div className="mt-3 space-y-0.5">
             {verses.length > 0 ? (
               verses.map((v, i) => {
@@ -284,7 +281,7 @@ export default function QTContent() {
                       </div>
                     ) : (
                       <>
-                        <blockquote className="border-l-2 border-indigo-200 pl-3 text-sm italic text-neutral-600">&ldquo;{r.verse}&rdquo;</blockquote>
+
                         <div className="mt-3 space-y-2">
                           <div className="rounded-lg bg-indigo-50/70 px-3 py-2.5">
                             <p className="text-[11px] font-bold text-indigo-600">💡 기억나는 말씀</p>

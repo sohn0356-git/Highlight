@@ -45,7 +45,6 @@ export default function SharedQTFeed({ limit = 20 }: { limit?: number }) {
 
               <div className="mt-3 rounded-xl bg-neutral-50 p-3">
                 <p className="text-xs font-bold text-indigo-700">{post.passage}</p>
-                <p className="mt-1 text-sm leading-relaxed text-neutral-700">"{post.verse}"</p>
                 {post.remembered && <p className="mt-2 text-xs text-neutral-500">💡 {post.remembered}</p>}
                 {post.application && <p className="mt-1 text-xs text-neutral-500">🌱 {post.application}</p>}
               </div>

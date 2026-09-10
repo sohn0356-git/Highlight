@@ -17,7 +17,6 @@ interface MockData {
   activities: CommunityActivity[];
   qt_today: { date: string; passage: string; verse: string; content: string };
   shared_goal: { label: string; current: number; target: number; reward: string };
-  shared_posts: SharedQTPost[];
   qt_comments: Record<string, QTComment[]>;
 }
 
