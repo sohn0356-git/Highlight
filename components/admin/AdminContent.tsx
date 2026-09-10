@@ -133,7 +133,7 @@ export default function AdminContent() {
               <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="미션 제목" value={missionForm.title} onChange={e => setMissionForm({ ...missionForm, title: e.target.value })} />
               <textarea className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="미션 설명" value={missionForm.description} onChange={e => setMissionForm({ ...missionForm, description: e.target.value })} rows={2} />
               <div>
-                <label className="text-[11px] text-neutral-500">획득 포인트 (M)</label>
+                <label className="text-[11px] text-neutral-500">획득 포인트 (D)</label>
                 <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={missionForm.reward} onChange={e => setMissionForm({ ...missionForm, reward: Number(e.target.value) })} />
               </div>
               <button onClick={submitMission} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editId ? "수정 완료" : "등록하기"}</button>

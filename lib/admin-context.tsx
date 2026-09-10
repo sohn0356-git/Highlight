@@ -163,7 +163,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         if (mData.length) setMissionAdmins(mData.map((m: any) => ({
           id: m.id, title: m.title, description: m.description || "",
           icon: m.icon || "🎯", type: m.type || "weekly",
-          reward: Number(m.mileage_reward) || 30,
+          reward: Number(m.mileage_reward) || 0,
           startDate: m.start_date || "", endDate: m.end_date || "",
           target: m.target || "all", approvalRequired: !!m.approval_required,
           active: m.active !== false,

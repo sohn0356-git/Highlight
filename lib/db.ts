@@ -177,9 +177,8 @@ export async function insertMission(mission: any) {
       icon: mission.icon || "🎯", type: mission.type || "weekly",
       target: mission.target || "all", active: true,
     };
-    // Try adding optional columns
-    try { row.mileage_reward = mission.reward || 30; } catch {}
-    try { row.xp_reward = mission.reward || 30; } catch {}
+    row.mileage_reward = mission.reward ?? 0;
+    row.xp_reward = mission.reward ?? 0;
     try { row.start_date = mission.startDate || ""; } catch {}
     try { row.end_date = mission.endDate || ""; } catch {}
     try { row.approval_required = !!mission.approvalRequired; } catch {}
@@ -194,7 +193,17 @@ export async function updateMission(id: string, patch: any) {
   if (patch.title !== undefined) update.title = patch.title;
   if (patch.description !== undefined) update.description = patch.description;
   if (patch.active !== undefined) update.active = patch.active;
-  if (patch.mileageReward !== undefined) update.mileage_reward = patch.mileageReward;
+  if (patch.reward !== undefined) {
+    update.mileage_reward = patch.reward;
+    update.xp_reward = patch.reward;
+  }
+  if (patch.mileageReward !== undefined) {
+    update.mileage_reward = patch.mileageReward;
+    update.xp_reward = patch.mileageReward;
+  }
+  if (patch.type !== undefined) update.type = patch.type;
+  if (patch.target !== undefined) update.target = patch.target;
+  if (patch.approvalRequired !== undefined) update.approval_required = !!patch.approvalRequired;
   await s.from("missions").update(update).eq("id", id);
 }
 

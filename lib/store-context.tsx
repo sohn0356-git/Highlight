@@ -551,8 +551,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!mission) return;
     await db.completeMission(student.id, missionId, "pending");
     setCompletedMissionIds(prev => [...prev, missionId]);
-    const reward = mission.reward || 30;
-    showPointToast(`+${reward}M`);
+    const reward = mission.reward ?? 0;
+    showPointToast(`+${reward}D`);
     const newTotal = (student.mileage || 0) + reward;
     await db.updateStudentField(student.id, "mileage", newTotal);
     await db.updateStudentField(student.id, "xp", newTotal);
