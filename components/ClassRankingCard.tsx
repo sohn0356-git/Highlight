@@ -34,6 +34,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
   const gradeSet = new Map<number, string>();
   (classes || []).forEach((c: any) => {
     const g = getGradeFromClass(String(c.id || ""));
+    if (g === 0) return;
     if (!gradeSet.has(g)) gradeSet.set(g, GRADE_NAMES[g] || `고${g}`);
     if (!gradeTotals.has(g)) gradeTotals.set(g, 0);
   });
