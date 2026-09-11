@@ -18,6 +18,7 @@ interface AdminState {
   teachers: AdminTeacher[];
   addTeacher: (t: AdminTeacher) => void;
   updateTeacher: (id: string, patch: Partial<AdminTeacher>) => void;
+  removeTeacher: (id: string) => void;
 
   attendanceSessions: AttendanceSession[];
   addAttendanceSession: (s: AttendanceSession) => void;
@@ -277,6 +278,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const updateTeacher = useCallback(async (id: string, patch: Partial<AdminTeacher>) => {
     setTeachers(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
     await db.upsertTeacher({ id, ...patch });
+  }, []);
+
+  const removeTeacher = useCallback(async (id: string) => {
+    setTeachers(prev => prev.map(t => t.id === id ? { ...t, active: false } : t));
+    await db.upsertTeacher({ id, active: false });
   }, []);
 
   /* ── Attendance (DB-backed) ── */
@@ -544,7 +550,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     <AdminCtx.Provider value={{
       currentUser, setCurrentUser,
       students, addStudent, updateStudent, deactivateStudent,
-      teachers, addTeacher, updateTeacher,
+      teachers, addTeacher, updateTeacher, removeTeacher,
       attendanceSessions: sessions, addAttendanceSession, closeAttendanceSession,
       attendanceRecords: records, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance, getStudentAttendanceCount, markStudentAttendance,
       qtContents, addQTContent, updateQTContent,

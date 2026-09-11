@@ -12,7 +12,7 @@ function parseGrade(classId: string) {
 }
 
 export default function AdminStudents() {
-  const { students, addStudent, updateStudent, deactivateStudent, teachers, addTeacher, updateTeacher } = useAdmin();
+  const { students, addStudent, updateStudent, deactivateStudent, teachers, addTeacher, updateTeacher, removeTeacher } = useAdmin();
   const { classes, transactions } = useApp();
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
@@ -214,6 +214,13 @@ export default function AdminStudents() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-bold text-indigo-600">{s.mileage}D</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (confirm(`"${s.name}" 학생을 삭제하시겠습니까?`)) deactivateStudent(s.id); }}
+                          className="grid h-7 w-7 place-items-center rounded-lg bg-rose-50 text-rose-500 active:bg-rose-100"
+                          aria-label="학생 삭제"
+                        >
+                          <UserX size={13} />
+                        </button>
                         <ChevronRight size={16} className="text-neutral-300" />
                       </div>
                     </button>
@@ -247,6 +254,13 @@ export default function AdminStudents() {
                       aria-label="교사 수정"
                     >
                       <Edit3 size={14} />
+                    </button>
+                    <button
+                      onClick={() => { if (confirm(`"${t.name}" 교사를 삭제하시겠습니까?`)) removeTeacher(t.id); }}
+                      className="grid h-8 w-8 place-items-center rounded-lg bg-rose-50 text-rose-500 active:bg-rose-100"
+                      aria-label="교사 삭제"
+                    >
+                      <UserX size={14} />
                     </button>
                   </div>
                 </div>
