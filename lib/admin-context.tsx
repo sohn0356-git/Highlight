@@ -470,25 +470,29 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   /* ── Mileage Award ── */
   const awardsMileage = useCallback(async (target: string, targetId: string, amount: number, reason: string) => {
     const date = koreaDate();
+    let targets: AdminStudent[] = [];
     if (target === "student") {
       const stu = students.find(s => s.id === targetId);
-      if (!stu) return;
-      await db.updateStudentField(targetId, "mileage", stu.mileage + amount);
-      setStudents(prev => prev.map(s => s.id === targetId ? { ...s, mileage: s.mileage + amount } : s));
-      const tx = { id: `atx_${Date.now()}`, studentId: targetId, studentName: stu.name, className: stu.classId, type: "manual_bonus" as MileageActionType, description: reason, amount, date, actorName: "관리자" };
+      if (stu) targets = [stu];
+    } else if (target === "class") {
+      targets = students.filter(s => s.classId === targetId);
+    } else if (target === "grade") {
+      const gradeNum = parseInt(targetId, 10);
+      targets = students.filter(s => s.grade === gradeNum);
+    } else if (target === "all") {
+      targets = [...students];
+    }
+    for (const stu of targets) {
+      await db.updateStudentField(stu.id, "mileage", (stu.mileage || 0) + amount);
+      const tx = { id: `atx_${Date.now()}_${stu.id}`, studentId: stu.id, studentName: stu.name, className: stu.classId, type: "manual_bonus" as MileageActionType, description: reason, amount, date, actorName: "관리자" };
       setAllTx(prev => [tx, ...prev]);
       await db.addTransaction(tx);
-    } else if (target === "class") {
-      const clsStudents = students.filter(s => s.classId === targetId);
-      for (const stu of clsStudents) {
-        await db.updateStudentField(stu.id, "mileage", stu.mileage + amount);
-      }
-      setStudents(prev => prev.map(s => s.classId === targetId ? { ...s, mileage: s.mileage + amount } : s));
-    } else if (target === "all") {
-      for (const stu of students) {
-        await db.updateStudentField(stu.id, "mileage", stu.mileage + amount);
-      }
-      setStudents(prev => prev.map(s => ({ ...s, mileage: s.mileage + amount })));
+    }
+    if (targets.length > 0) {
+      setStudents(prev => prev.map(s => {
+        const matched = targets.find(t => t.id === s.id);
+        return matched ? { ...s, mileage: (s.mileage || 0) + amount } : s;
+      }));
     }
   }, [students]);
 

@@ -53,11 +53,16 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   function handleAwardMileage() {
     if (!mileageReason) return;
     const target = mileageTarget as "student" | "class" | "grade" | "all";
+    const targetLabel = target === "student" ? students.find(s => s.id === mileageTargetId)?.name || ""
+      : target === "class" ? classes.find((c: any) => c.id === mileageTargetId)?.name || ""
+      : target === "grade" ? `${mileageTargetId}학년`
+      : "전체";
+    const direction = mileageAmount >= 0 ? "지급" : "차감";
+    if (!window.confirm(`${targetLabel}에게 ${Math.abs(mileageAmount)}D를 ${direction}하시겠습니까?`)) return;
     awardsMileage(target, mileageTargetId, mileageAmount, mileageReason);
-    addAuditLog({ actorName: "관리자", actorRole: "admin", actionType: "mileage_award", target: mileageTarget, description: `${mileageAmount}D 지급: ${mileageReason}` });
+    addAuditLog({ actorName: "관리자", actorRole: "admin", actionType: "mileage_award", target: mileageTarget, description: `${Math.abs(mileageAmount)}D ${direction} (${targetLabel}): ${mileageReason}` });
     setMileageReason("");
   }
-
   function submitReward() {
     if (!rewardForm.name) return;
     addReward({ id: "r_" + Date.now(), ...rewardForm, active: true, redemptionLimit: 2, image: "" });
@@ -105,10 +110,18 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                   {classes.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               )}
+              {mileageTarget === "grade" && (
+                <select className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={mileageTargetId} onChange={e => setMileageTargetId(e.target.value)}>
+                  <option value="">학년 선택</option>
+                  <option value="1">1학년</option>
+                  <option value="2">2학년</option>
+                  <option value="3">3학년</option>
+                </select>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[11px] text-neutral-500">금액 (M)</label>
+                <label className="text-[11px] text-neutral-500">금액 (D)</label>
                 <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={mileageAmount} onChange={e => setMileageAmount(+e.target.value)} />
               </div>
               <div>
