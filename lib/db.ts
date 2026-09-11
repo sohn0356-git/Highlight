@@ -18,7 +18,7 @@ function mapStudent(r: any): Student {
     name: r.name,
     birthDate: r.birth_date || "",
     classId,
-    grade: Number(r.grade) || (classId.includes("_g1_") ? 1 : classId.includes("_g2_") ? 2 : classId.includes("_g3_") ? 3 : 1),
+    grade: Number(r.grade) || (classId.includes("_g1_") ? 1 : classId.includes("_g2_") ? 2 : classId.includes("_g3_") ? 3 : 0),
     className: r.class_name || "",
     mileage: Number(r.mileage) || 0,
     xp: Number(r.mileage) || 0,
@@ -38,7 +38,7 @@ function mapClass(r: any) {
   return {
     id: r.id,
     name: r.name,
-    grade: Number(r.grade) || 1,
+    grade: Number(r.grade) || 0,
     level: Number(r.level) || 1,
     xp: Number(r.xp) || 0,
     weeklyXp: Number(r.weekly_xp) || 0,

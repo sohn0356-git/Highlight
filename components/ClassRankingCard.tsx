@@ -16,7 +16,7 @@ function getGradeFromClass(classId: string): number {
   if (classId.includes("_g1_")) return 1;
   if (classId.includes("_g2_")) return 2;
   if (classId.includes("_g3_")) return 3;
-  return 1;
+  return 0;
 }
 
 const GRADE_NAMES: Record<number, string> = { 1: "고1", 2: "고2", 3: "고3" };
@@ -42,11 +42,13 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
 
   (students || []).forEach((s: any) => {
     const g = s.grade || getGradeFromClass(String(s.classId || ""));
+    if (g === 0) return; // Skip unassigned students
     if (!gradeSet.has(g)) gradeSet.set(g, GRADE_NAMES[g] || `고${g}`);
     gradeTotals.set(g, (gradeTotals.get(g) || 0) + (Number(s.mileage) || 0));
   });
 
   const gradeRows: RankRow[] = [...gradeSet.entries()]
+    .filter(([grade]) => grade > 0) // Remove unassigned grade
     .map(([grade, name]) => ({
       key: `g${grade}`,
       name,
@@ -58,6 +60,10 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
 
   /* ── 개인별 달란트 랭킹 (최대 10위) ── */
   const personalRows: RankRow[] = (students || [])
+    .filter((s: any) => {
+      if (myGrade === 0) return false; // Unassigned students don't show in ranking
+      return (s.grade || 0) === myGrade;
+    })
     .map((s: any) => ({
       key: s.id,
       name: s.name || "이름없음",
