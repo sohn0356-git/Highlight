@@ -35,7 +35,6 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
   const totalMileageAwarded = allTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
 
   const quickActions = [
-    { label: "출석 직접 입력", icon: CalendarCheck, page: "attendance" as AdminPageId, tone: "bg-emerald-500" },
     { label: "달란트 지급", icon: Coins, page: "management" as AdminPageId, tone: "bg-amber-500" },
     { label: "QT 등록", icon: FilePlus2, page: "content" as AdminPageId, tone: "bg-rose-500" },
     { label: "미션 생성", icon: Target, page: "content" as AdminPageId, tone: "bg-sky-500" },

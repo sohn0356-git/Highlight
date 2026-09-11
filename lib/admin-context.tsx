@@ -314,7 +314,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   const bulkMarkAttendance = useCallback(async (studentIds: string[], sessionId: string, state: string) => {
     const newRecords: AttendanceRecordAdmin[] = studentIds.map(studentId => ({
-      id: `ar_${studentId}_${sessionId}`, studentId, sessionId,
+      id: `ar_${studentId}_${sessionId}_${Date.now()}`, studentId, sessionId,
       state: state as any, checkTime: new Date().toISOString(), method: "manual" as const,
     }));
     setRecords(prev => {
@@ -323,6 +323,9 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     });
     for (const r of newRecords) {
       await db.upsertAttendanceRecord(r);
+      if (state === "present" || state === "late") {
+        try { await db.processAttendanceReward(r.id, r.studentId); } catch {}
+      }
     }
   }, []);
 
@@ -345,10 +348,15 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     if (existing) {
       await updateAttendanceRecord(existing.id, { state: state as any });
     } else {
+      const recordId = `ar_${studentId}_${sessionId}_${Date.now()}`;
       await addAttendanceRecord({
-        id: `ar_${studentId}_${sessionId}_${Date.now()}`, studentId, sessionId,
+        id: recordId, studentId, sessionId,
         state: state as any, checkTime: new Date().toISOString(), method: "manual",
       });
+      // Present/late 출석 시 20D 달란트 지급
+      if (state === "present" || state === "late") {
+        try { await db.processAttendanceReward(recordId, studentId); } catch {}
+      }
     }
   }, [records, updateAttendanceRecord, addAttendanceRecord]);
 
