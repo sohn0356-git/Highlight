@@ -41,6 +41,7 @@ export default function AdminStudents() {
   });
 
   const filtered = students.filter(s => {
+    if (s.active === false) return false;
     if (gradeFilter !== "all" && !s.classId.includes(`_g${gradeFilter}_`)) return false;
     if (classFilter !== "all" && s.classId !== classFilter) return false;
     if (search && !s.name.includes(search)) return false;
@@ -204,7 +205,7 @@ export default function AdminStudents() {
                 {sorted.map(s => {
                   const cls = classes.find((c: any) => c.id === s.classId);
                   return (
-                    <button key={s.id} onClick={() => setDetailId(s.id)} className={`flex w-full items-center justify-between px-4 py-3 text-left ${!s.active ? "opacity-50" : ""}`}>
+                    <div key={s.id} role="button" tabIndex={0} onClick={() => setDetailId(s.id)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setDetailId(s.id); }} className={`flex w-full items-center justify-between px-4 py-3 text-left ${!s.active ? "opacity-50" : ""}`}>
                       <div className="flex items-center gap-3">
                         <span className="grid h-9 w-9 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">{s.name[0]}</span>
                         <div>
@@ -223,7 +224,7 @@ export default function AdminStudents() {
                         </button>
                         <ChevronRight size={16} className="text-neutral-300" />
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
                 {sorted.length === 0 && <p className="py-6 text-center text-xs text-neutral-400">검색 결과가 없습니다.</p>}
@@ -233,7 +234,7 @@ export default function AdminStudents() {
 
           {listTab === "teachers" && (
             <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50 overflow-hidden">
-              {teachers.filter(t => !search || t.name.includes(search)).map(t => (
+              {teachers.filter(t => t.active !== false && (!search || t.name.includes(search))).map(t => (
                 <div key={t.id} className="flex items-center justify-between px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-neutral-700">{t.name}</p>
@@ -265,7 +266,7 @@ export default function AdminStudents() {
                   </div>
                 </div>
               ))}
-              {teachers.filter(t => !search || t.name.includes(search)).length === 0 && <p className="py-6 text-center text-xs text-neutral-400">검색 결과가 없습니다.</p>}
+              {teachers.filter(t => t.active !== false && (!search || t.name.includes(search))).length === 0 && <p className="py-6 text-center text-xs text-neutral-400">검색 결과가 없습니다.</p>}
             </div>
           )}
         </>

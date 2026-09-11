@@ -265,9 +265,17 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const deactivateStudent = useCallback(async (id: string) => {
-    setStudents(prev => prev.map(s => s.id === id ? { ...s, active: false } : s));
-    await db.updateStudentField(id, "active", false);
-  }, []);
+    const stu = students.find(s => s.id === id);
+    if (stu) {
+      setStudents(prev => prev.map(s => s.id === id ? { ...s, active: false } : s));
+      try {
+        await db.updateStudentField(id, "active", false);
+      } catch (e) {
+        console.error("Failed to deactivate student:", e);
+        setStudents(prev => prev.map(s => s.id === id ? { ...s, active: true } : s));
+      }
+    }
+  }, [students]);
 
   /* ── Teachers CRUD (DB-backed) ── */
   const addTeacher = useCallback(async (t: AdminTeacher) => {
@@ -302,9 +310,17 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const removeTeacher = useCallback(async (id: string) => {
-    setTeachers(prev => prev.map(t => t.id === id ? { ...t, active: false } : t));
-    await db.updateTeacherField(id, "active", false);
-  }, []);
+    const tea = teachers.find(t => t.id === id);
+    if (tea) {
+      setTeachers(prev => prev.map(t => t.id === id ? { ...t, active: false } : t));
+      try {
+        await db.updateTeacherField(id, "active", false);
+      } catch (e) {
+        console.error("Failed to remove teacher:", e);
+        setTeachers(prev => prev.map(t => t.id === id ? { ...t, active: true } : t));
+      }
+    }
+  }, [teachers]);
 
   /* ── Attendance (DB-backed) ── */
   const addAttendanceSession = useCallback(async (s: AttendanceSession) => {
