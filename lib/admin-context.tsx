@@ -277,12 +277,33 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   const updateTeacher = useCallback(async (id: string, patch: Partial<AdminTeacher>) => {
     setTeachers(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
-    await db.upsertTeacher({ id, ...patch });
+    // Use targeted field updates to avoid overwriting other fields
+    const fieldMap: Record<string, string> = {
+      name: "name",
+      birthDate: "birth_date",
+      role: "role",
+      assignedClassIds: "assigned_class_ids",
+      active: "active",
+    };
+    for (const [key, dbField] of Object.entries(fieldMap)) {
+      if (key in patch && (patch as any)[key] !== undefined) {
+        await db.updateTeacherField(id, dbField, (patch as any)[key]);
+      }
+    }
+    // Sync role change to student record (for teacher login sessions)
+    if (patch.role !== undefined) {
+      await db.updateStudentField(id, "role", patch.role);
+      setStudents(prev => prev.map(s => s.id === id ? { ...s, role: patch.role as any } : s));
+    }
+    if (patch.name !== undefined) {
+      await db.updateStudentField(id, "name", patch.name);
+      setStudents(prev => prev.map(s => s.id === id ? { ...s, name: patch.name as any } : s));
+    }
   }, []);
 
   const removeTeacher = useCallback(async (id: string) => {
     setTeachers(prev => prev.map(t => t.id === id ? { ...t, active: false } : t));
-    await db.upsertTeacher({ id, active: false });
+    await db.updateTeacherField(id, "active", false);
   }, []);
 
   /* ── Attendance (DB-backed) ── */

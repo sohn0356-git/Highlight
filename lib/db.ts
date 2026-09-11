@@ -143,7 +143,7 @@ export async function upsertTeacher(teacher: any) {
     id: teacher.id, name: teacher.name, birth_date: teacher.birthDate || "",
     role: teacher.role || "teacher", assigned_class_ids: teacher.assignedClassIds || [],
     active: teacher.active !== false,
-  });
+  }, { onConflict: "id" });
 }
 
 /* ── Missions ── */
@@ -1060,6 +1060,12 @@ export async function updateStudentField(studentId: string, field: string, value
   const s = sb();
   if (!s) return;
   await s.from("students").update({ [field]: value }).eq("id", studentId);
+}
+
+export async function updateTeacherField(teacherId: string, field: string, value: any) {
+  const s = sb();
+  if (!s) return;
+  await s.from("teachers").update({ [field]: value }).eq("id", teacherId);
 }
 
 /* ── Level Calculation ── */

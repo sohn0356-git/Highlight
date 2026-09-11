@@ -66,8 +66,7 @@ export function useApp() { const ctx = useContext(Ctx); if (!ctx) throw new Erro
 /* ── Daily Quest Definitions ── */
 /* ── Admin check ── */
 function isAdminUser(s: Student | null): boolean {
-  // Admin can now participate in student activities
-  return false;
+  return !!s && s.role === "admin";
 }
 
 /* ── Daily Quest Definitions ── */
@@ -193,6 +192,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Refresh student data from DB
       const updatedStudent = await db.fetchStudentById(student.id);
       if (updatedStudent) {
+        // Sync teacher role from teachers table
+        if (updatedStudent.isTeacher) {
+          const teachers = await db.fetchTeachers();
+          const matchedTeacher = teachers.find((t: any) => t.id === student.id);
+          if (matchedTeacher && matchedTeacher.role !== updatedStudent.role) {
+            updatedStudent.role = matchedTeacher.role as any;
+            await db.updateStudentField(student.id, "role", matchedTeacher.role);
+          }
+        }
         setStudent(updatedStudent);
         localStorage.setItem("mileage_session", JSON.stringify(updatedStudent));
       }
