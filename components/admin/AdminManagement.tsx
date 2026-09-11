@@ -1,15 +1,15 @@
 "use client";
 import { useState } from "react";
-import { Coins, Gift, Sun, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, RefreshCw } from "lucide-react";
+import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, RefreshCw } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
 import type { AdminPageId } from "@/lib/admin-types";
 
-type MgmtTab = "mileage" | "rewards" | "season" | "badges" | "stats" | "audit" | "settings";
+type MgmtTab = "mileage" | "rewards" | "badges" | "stats" | "audit" | "settings";
 
 export default function AdminManagement({ onNavigate }: { onNavigate: (page: AdminPageId) => void }) {
   const {
-    students, teachers, season, updateSeason,
+    students, teachers,
     rewards, addReward, updateReward, redemptions, updateRedemption,
     badges, addBadge, updateBadge,
     allTransactions, awardsMileage,
@@ -22,7 +22,6 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   const tabs: { id: MgmtTab; label: string; icon: typeof Coins }[] = [
     { id: "mileage", label: "달란트", icon: Coins },
     { id: "rewards", label: "상점", icon: Gift },
-    { id: "season", label: "시즌", icon: Sun },
     { id: "badges", label: "배지", icon: Award },
     { id: "stats", label: "통계", icon: BarChart3 },
     { id: "audit", label: "기록", icon: ScrollText },
@@ -270,43 +269,6 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       )}
 
       {/* Season tab */}
-      {tab === "season" && (
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-neutral-800">시즌 관리</h3>
-          <div className="rounded-lg bg-indigo-50 p-4">
-            <p className="text-xs font-semibold text-indigo-600">{season.name}</p>
-            <p className="text-base font-bold text-indigo-800 mt-1">{season.subtitle}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] text-neutral-500">시즌 이름</label>
-              <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={season.name} onChange={e => updateSeason({ name: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-[11px] text-neutral-500">테마</label>
-              <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={season.subtitle} onChange={e => updateSeason({ subtitle: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-[11px] text-neutral-500">시작일</label>
-              <input type="date" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={season.startDate} onChange={e => updateSeason({ startDate: e.target.value })} />
-            </div>
-            <div>
-              <label className="text-[11px] text-neutral-500">종료일</label>
-              <input type="date" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={season.endDate} onChange={e => updateSeason({ endDate: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] text-neutral-500">공동 목표 D</label>
-              <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={season.sharedGoalXp} onChange={e => updateSeason({ sharedGoalXp: +e.target.value })} />
-            </div>
-            <div>
-              <label className="text-[11px] text-neutral-500">상품</label>
-              <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={season.sharedReward} onChange={e => updateSeason({ sharedReward: e.target.value })} />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Badges tab */}
       {tab === "badges" && (
