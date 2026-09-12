@@ -66,7 +66,9 @@ export function useApp() { const ctx = useContext(Ctx); if (!ctx) throw new Erro
 /* ── Daily Quest Definitions ── */
 /* ── Admin check ── */
 function isAdminUser(s: Student | null): boolean {
-  return !!s && s.role === "admin";
+  // Admins/teachers can participate in activities (earn points) like students.
+  // They are excluded from rankings via fetchActiveStudents instead.
+  return false;
 }
 
 /* ── Daily Quest Definitions ── */

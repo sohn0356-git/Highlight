@@ -105,6 +105,8 @@ export async function fetchStudentById(id: string) {
 }
 
 export async function fetchActiveStudents() {
+  // Ranking population: teachers/admins are excluded from rankings
+  // but they still earn points via their own activity flows
   return (await fetchStudents()).filter((s: any) => s.active !== false && s.isTeacher !== true);
 }
 
