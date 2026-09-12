@@ -381,7 +381,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                   </div>
                   <div className="text-right shrink-0 ml-2">
                     <p className={`text-sm font-bold ${tx.amount > 0 ? "text-emerald-600" : "text-rose-500"}`}>
-                      {tx.amount > 0 ? "+" : ""}{tx.amount}M
+                      {tx.amount > 0 ? "+" : ""}{tx.amount}D
                     </p>
                     <p className="text-[10px] text-neutral-400">{tx.date}</p>
                   </div>

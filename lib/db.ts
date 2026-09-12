@@ -562,13 +562,12 @@ export async function fetchTransactions(studentId: string) {
 export async function addTransaction(tx: any) {
   const s = sb();
   if (!s) return;
+  // student_name/class_name/actor_name 컬럼은 일부 환경에 없어 제외
+  // (관리자 기록 화면은 students 테이블에서 이름을 매핑하므로 불필요)
   await s.from("mileage_transactions").insert([{
     id: tx.id || `tx_${Date.now()}`, student_id: tx.studentId || tx.student_id,
-    student_name: tx.studentName || tx.student_name || "",
-    class_name: tx.className || tx.class_name || "",
     type: tx.type || "", description: tx.description || "",
     amount: tx.amount || 0, date: tx.date || koreaDate(),
-    actor_name: tx.actorName || tx.actor_name || "",
     created_at: new Date().toISOString(),
   }]);
 }
@@ -1015,7 +1014,7 @@ export async function deleteComment(commentId: string, postId: string) {
 export async function fetchAllTransactions() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("mileage_transactions").select("*").order("created_at", { ascending: false }).limit(200);
+  const { data, error } = await s.from("mileage_transactions").select("*").order("created_at", { ascending: false }).limit(1000);
   if (error || !data) return [];
   // Get student names
   const { data: studs } = await s.from("students").select("id, name, class_id");
@@ -1496,10 +1495,9 @@ export async function processAttendanceReward(attendanceRecordId: string, studen
 
   await s.from("mileage_transactions").insert({
     id: `atx_attrew_${attendanceRecordId}`,
-    student_id: studentId, student_name: student.name || "",
-    class_name: student.class_id || "", type: "attendance",
+    student_id: studentId, type: "출석",
     description: "출석 마일리지", amount: 20, date,
-    actor_name: "시스템",
+    created_at: new Date().toISOString(),
   });
 
   // Update student mileage
@@ -1524,10 +1522,9 @@ export async function reverseAttendanceReward(attendanceRecordId: string, studen
   const { data: student } = await s.from("students").select("name, class_id, mileage").eq("id", studentId).single();
   await s.from("mileage_transactions").insert({
     id: `atx_attrev_${attendanceRecordId}`,
-    student_id: studentId, student_name: student?.name || "",
-    class_name: student?.class_id || "", type: "attendance_reversal",
+    student_id: studentId, type: "출석 취소",
     description: "출석 마일리지 취소", amount: -20, date: koreaDate(),
-    actor_name: "시스템",
+    created_at: new Date().toISOString(),
   });
 
   // Update student mileage
