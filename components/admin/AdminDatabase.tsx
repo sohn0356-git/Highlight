@@ -128,7 +128,7 @@ export default function AdminDatabase() {
         action,
         target_type: table,
         target_id: targetId,
-        description: `DB 편집기: ${table} ${action === "db_delete" ? "삭제" : action === "db_insert" ? "추가" : action === "db_drop_column" ? "컬럼 삭제" : "수정"} (${targetId})`,
+        description: `DB 편집기: ${table} ${action === "db_delete" ? "삭제" : action === "db_insert" ? "추가" : action === "db_drop_column" ? "컬럼 삭제" : action === "db_delete_all" ? "전체 삭제" : "수정"} (${targetId})`,
         created_at: new Date().toISOString(),
       }]);
     } catch { /* 감사 기록 실패는 편집을 막지 않음 */ }
@@ -285,6 +285,37 @@ export default function AdminDatabase() {
     }
   };
 
+  const deleteAllRows = async () => {
+    if (saving || rows === null) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    if (!window.confirm(`[${table}] 테이블의 모든 데이터(${total.toLocaleString()}건)를 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+    setSaving(true);
+    setError("");
+    try {
+      let res: any = await sb.rpc("admin_delete_all", { p_table: table, p_cascade: false });
+      let err = res?.error;
+      if (err) {
+        const cascaded = window.confirm(
+          `[${table}] 연결된 하위 데이터가 있어 일반 삭제가 불가능합니다.\n\n관련 하위 데이터까지 모두 삭제(CASCADE)하시겠습니까?\n\n예: students 전체 삭제 시 출석·QT·기도·포인트 기록도 함께 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.`
+        );
+        if (!cascaded) return;
+        res = await sb.rpc("admin_delete_all", { p_table: table, p_cascade: true });
+        err = res?.error;
+        if (err) throw err;
+      }
+      await writeAudit("db_delete_all", table, "", "all rows");
+      flash(`${table} 전체 삭제 완료!`);
+      setSelected(new Set());
+      setViewRow(null);
+      load(table, page);
+    } catch (e: any) {
+      setError(e?.message || "전체 삭제에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openAdd = () => {
     setAdding(true);
     setEditRow(null);
@@ -365,6 +396,13 @@ export default function AdminDatabase() {
           className="flex items-center gap-1.5 rounded-xl bg-indigo-500 px-3 py-2 text-xs font-bold text-white shadow-sm active:scale-95"
         >
           <Plus size={14} /> 행 추가
+        </button>
+        <button
+          onClick={deleteAllRows}
+          disabled={rows === null || saving}
+          className="flex items-center gap-1.5 rounded-xl bg-rose-500 px-3 py-2 text-xs font-bold text-white shadow-sm active:scale-95 disabled:opacity-40"
+        >
+          <Trash2 size={14} /> 전체 삭제
         </button>
       </div>
 
