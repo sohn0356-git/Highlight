@@ -49,6 +49,7 @@ interface AdminState {
   updateAnnouncement: (id: string, patch: Partial<Announcement>) => void;
 
   awardsMileage: (target: string, targetId: string, amount: number, reason: string) => void;
+  resetAllTalents: () => Promise<boolean>;
   allTransactions: any[];
 
   rewards: Reward[];
@@ -520,6 +521,18 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     }
   }, [students]);
 
+  /* ── Reset All Talents ── */
+  const resetAllTalents = useCallback(async (): Promise<boolean> => {
+    const ok = await db.resetAllTalents();
+    if (!ok) return false;
+    setStudents(prev => prev.map(s => ({ ...s, mileage: 0 })));
+    try {
+      const txData = await db.fetchAllTransactions();
+      if (txData.length) setAllTx(txData);
+    } catch {}
+    return true;
+  }, []);
+
   /* ── Rewards (DB-backed) ── */
   const addReward = useCallback(async (r: Reward) => {
     setRewards(prev => [r, ...prev]);
@@ -636,7 +649,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       missionCompletions, approveMissionCompletion, rejectMissionCompletion,
       prayers, updatePrayerStatus,
       announcements, addAnnouncement, updateAnnouncement,
-      awardsMileage, allTransactions: allTx,
+      awardsMileage, resetAllTalents, allTransactions: allTx,
       rewards, addReward, updateReward, redemptions, updateRedemption,
       season, updateSeason,
       badges, addBadge, updateBadge, studentBadges, earnBadge,

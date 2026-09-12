@@ -190,7 +190,7 @@ export default function AdminDatabase() {
   };
 
   const deleteRow = async (row: any) => {
-    if (!window.confirm(`[${table}] ${String((row as any).name || row[keyCol] || "이 행")} 을(를) 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+    if (!window.confirm(`[${table}] ${String((row as any).name || row[keyCol] || "이 행")} 을(를) 정말 삭제하시겠습니까?\n\n연결된 하위 데이터(FK)도 함께 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.`)) return;
     const sb = getSupabase();
     if (!sb) return;
     try {
@@ -229,7 +229,7 @@ export default function AdminDatabase() {
   const bulkDelete = async () => {
     if (selected.size === 0 || saving) return;
     const sample = [...selected].slice(0, 3).join(", ");
-    if (!window.confirm(`[${table}] 선택한 ${selected.size}개 행을 정말 삭제하시겠습니까?\n\n${selected.size > 3 ? `${sample} 외 ${selected.size - 3}개...` : sample}\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+    if (!window.confirm(`[${table}] 선택한 ${selected.size}개 행을 정말 삭제하시겠습니까?\n\n${selected.size > 3 ? `${sample} 외 ${selected.size - 3}개...` : sample}\n\n연결된 하위 데이터(FK)도 함께 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.`)) return;
     const sb = getSupabase();
     if (!sb) return;
     setSaving(true);
@@ -289,7 +289,7 @@ export default function AdminDatabase() {
     if (saving || rows === null) return;
     const sb = getSupabase();
     if (!sb) return;
-    if (!window.confirm(`[${table}] 테이블의 모든 데이터(${total.toLocaleString()}건)를 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+    if (!window.confirm(`[${table}] 테이블의 모든 데이터(${total.toLocaleString()}건)를 정말 삭제하시겠습니까?\n\n연결된 하위 데이터(FK)도 함께 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.`)) return;
     setSaving(true);
     setError("");
     try {

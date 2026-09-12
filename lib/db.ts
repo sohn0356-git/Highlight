@@ -1069,6 +1069,13 @@ export async function getStudentTotalXP(studentId: string): Promise<number> {
   return student?.mileage || 0;
 }
 
+export async function resetAllTalents(): Promise<boolean> {
+  const s = sb();
+  if (!s) return false;
+  const { error } = await s.rpc("admin_reset_all_talents");
+  return !error;
+}
+
 export async function updateStudentField(studentId: string, field: string, value: any) {
   const s = sb();
   if (!s) return;

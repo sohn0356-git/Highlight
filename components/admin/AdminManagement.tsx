@@ -13,7 +13,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     students, teachers,
     rewards, addReward, updateReward, redemptions, updateRedemption,
     badges, addBadge, updateBadge,
-    allTransactions, awardsMileage,
+    allTransactions, awardsMileage, resetAllTalents,
     auditLogs, addAuditLog,
     settings, updateSettings, resetToSeedData,
   } = useAdmin();
@@ -64,6 +64,13 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     if (!window.confirm(`${targetLabel}에게 ${Math.abs(mileageAmount)}D를 ${direction}하시겠습니까?`)) return;
     awardsMileage(target, mileageTargetId, mileageAmount, mileageReason);
     setMileageReason("");
+  }
+  function handleResetAllTalents() {
+    if (!window.confirm("모든 학생의 달란트를 0으로 리셋하시겠습니까?\n\n기존 달란트 내역은 mileage_transactions 원장에 보존됩니다.\n반(클래스) 총합도 함께 0이 됩니다.\n이 작업은 되돌릴 수 없습니다.")) return;
+    resetAllTalents().then(ok => {
+      if (ok) window.alert("모든 달란트가 0으로 리셋되었습니다.");
+      else window.alert("리셋에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    });
   }
   function submitReward() {
     if (!rewardForm.name) return;
@@ -153,6 +160,13 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
             </div>
             <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="사유를 입력하세요" value={mileageReason} onChange={e => setMileageReason(e.target.value)} />
             <button onClick={handleAwardMileage} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">지급하기</button>
+
+            <button
+              onClick={handleResetAllTalents}
+              className="w-full rounded-lg border border-rose-200 bg-rose-50 py-3 text-sm font-bold text-rose-600"
+            >
+              모든 달란트 0으로 리셋
+            </button>
           </div>
 
           {/* Transaction history */}
