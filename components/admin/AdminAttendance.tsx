@@ -48,6 +48,27 @@ export default function AdminAttendance() {
     return list;
   }, [students, selectedClass]);
 
+  // 4열 구성: 1학년 / 2학년 / 3학년 / 교사
+  const byGroup = useMemo(() => {
+    const groups = [
+      { key: "g1", label: "1학년", list: [] as any[] },
+      { key: "g2", label: "2학년", list: [] as any[] },
+      { key: "g3", label: "3학년", list: [] as any[] },
+      { key: "gt", label: "교사", list: [] as any[] },
+    ];
+    const unassigned: any[] = [];
+    for (const s of filteredStudents) {
+      if (s.role === "teacher" || s.role === "admin") groups[3].list.push(s);
+      else if (s.grade === 1) groups[0].list.push(s);
+      else if (s.grade === 2) groups[1].list.push(s);
+      else if (s.grade === 3) groups[2].list.push(s);
+      else unassigned.push(s);
+    }
+    groups.forEach(g => g.list.sort((a: any, b: any) => a.name.localeCompare(b.name, "ko")));
+    unassigned.sort((a: any, b: any) => a.name.localeCompare(b.name, "ko"));
+    return { groups, unassigned };
+  }, [filteredStudents]);
+
   const getRecord = useCallback((studentId: string) => {
     return attendanceRecords.find(r => r.studentId === studentId && r.year === selectedYear && r.week === selectedWeek) || null;
   }, [attendanceRecords, selectedYear, selectedWeek]);
@@ -140,43 +161,63 @@ export default function AdminAttendance() {
 
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-neutral-500">
-              {filteredStudents.length}명 · {filteredStudents.filter(s => { const r = getRecord(s.id); return r?.state === "present" || r?.state === "late" || r?.state === "online"; }).length}명 출석
+              총 {filteredStudents.length}명 · 출석 {filteredStudents.filter(s => { const r = getRecord(s.id); return r?.state === "present" || r?.state === "late" || r?.state === "online"; }).length}명
             </p>
           </div>
 
-          <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-100">
-            {filteredStudents.length === 0 && (
-              <div className="flex flex-col items-center gap-2 py-8 text-neutral-400">
-                <User size={24} />
-                <p className="text-xs">등록된 학생이 없습니다.</p>
-              </div>
-            )}
-            {filteredStudents.map(stu => {
-              const record = getRecord(stu.id);
-              const stuClass = classes.find((c: any) => c.id === stu.classId);
-              return (
-                <div key={stu.id} className="flex items-center gap-3 px-3 py-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-600">
-                    {stu.name.slice(0, 1)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-neutral-700 truncate">{stu.name}</p>
-                    <p className="text-[10px] text-neutral-400">{stuClass?.name || ""}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    {(["present", "late", "online", "absent"] as AttendanceState[]).map(s => (
-                      <button key={s} onClick={() => markStudentAttendance(stu.id, selectedYear, selectedWeek, s)}
-                        className={`rounded-lg px-2 py-1.5 text-[10px] font-bold transition border ${
-                          record?.state === s ? stateColor(s) : "border-neutral-200 bg-white text-neutral-400 hover:bg-neutral-50"
-                        }`}>
-                        {stateLabel(s)}
-                      </button>
-                    ))}
-                  </div>
+          {filteredStudents.length === 0 && (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-neutral-200 bg-white py-8 text-neutral-400">
+              <User size={24} />
+              <p className="text-xs">등록된 학생이 없습니다.</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {byGroup.groups.map(g => (
+              <div key={g.key} className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-neutral-200 bg-neutral-50 px-3 py-2">
+                  <p className="text-xs font-bold text-neutral-600">{g.label}</p>
+                  <p className="text-[10px] font-semibold text-neutral-400">
+                    {g.list.length}명 · 출석 {g.list.filter(s => { const r = getRecord(s.id); return r?.state === "present" || r?.state === "late" || r?.state === "online"; }).length}명
+                  </p>
                 </div>
-              );
-            })}
+                <div className="max-h-[62vh] divide-y divide-neutral-100 overflow-y-auto">
+                  {g.list.length === 0 && (
+                    <p className="py-6 text-center text-xs text-neutral-400">없음</p>
+                  )}
+                  {g.list.map(stu => {
+                    const record = getRecord(stu.id);
+                    const stuClass = classes.find((c: any) => c.id === stu.classId);
+                    return (
+                      <div key={stu.id} className="flex items-center gap-1.5 px-2.5 py-1.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold text-neutral-700">{stu.name}</p>
+                          {stuClass && <p className="text-[9px] text-neutral-400">{stuClass.name}</p>}
+                        </div>
+                        <div className="flex shrink-0 gap-0.5">
+                          {(["present", "late", "online", "absent"] as AttendanceState[]).map(s => (
+                            <button key={s} onClick={() => markStudentAttendance(stu.id, selectedYear, selectedWeek, s)}
+                              className={`rounded-md border px-1.5 py-1 text-[9px] font-bold transition ${
+                                record?.state === s ? stateColor(s) : "border-neutral-200 bg-white text-neutral-400 hover:bg-neutral-50"
+                              }`}>
+                              {stateLabel(s)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
+
+          {byGroup.unassigned.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2">
+              <p className="text-[11px] font-bold text-amber-600">미배정 ({byGroup.unassigned.length}명)</p>
+              <p className="mt-0.5 text-[10px] text-amber-600/80">{byGroup.unassigned.map((s: any) => s.name).join(", ")}</p>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <button
