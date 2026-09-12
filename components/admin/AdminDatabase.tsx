@@ -54,6 +54,7 @@ export default function AdminDatabase() {
   const [search, setSearch] = useState("");
 
   const [viewRow, setViewRow] = useState<any | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editRow, setEditRow] = useState<any | null>(null);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState(false);
@@ -87,6 +88,7 @@ export default function AdminDatabase() {
     setPage(0);
     setEditRow(null);
     setAdding(false);
+    setSelected(new Set());
     load(table, 0);
   }, [table, load]);
 
@@ -182,6 +184,55 @@ export default function AdminDatabase() {
       load(table, page);
     } catch (e: any) {
       setError(e?.message || "삭제에 실패했습니다.");
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (!filteredRows.length) return;
+    const pageIds = filteredRows.map(r => String(r[keyCol]));
+    const allSelected = pageIds.every(id => selected.has(id));
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach(id => next.delete(id));
+      else pageIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
+  const bulkDelete = async () => {
+    if (selected.size === 0 || saving) return;
+    const sample = [...selected].slice(0, 3).join(", ");
+    if (!window.confirm(`[${table}] 선택한 ${selected.size}개 행을 정말 삭제하시겠습니까?\n\n${selected.size > 3 ? `${sample} 외 ${selected.size - 3}개...` : sample}\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    setSaving(true);
+    setError("");
+    try {
+      let ok = 0, fail = 0;
+      for (const id of selected) {
+        const { error: err } = await sb.from(table).delete().eq(keyCol, id);
+        if (err) { fail++; console.error("삭제 실패:", id, err); }
+        else {
+          ok++;
+          await writeAudit("db_delete_bulk", id, "", "");
+        }
+      }
+      flash(`일괄 삭제 완료: ${ok}건${fail ? `, 실패 ${fail}건` : ""}`);
+      if (fail) setError(`${fail}건 삭제하지 못했습니다.`);
+      setSelected(new Set());
+      load(table, page);
+    } catch (e: any) {
+      setError(e?.message || "일괄 삭제에 실패했습니다.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -402,6 +453,15 @@ export default function AdminDatabase() {
             <table className="w-full min-w-max text-left">
               <thead>
                 <tr className="border-b border-neutral-100 bg-neutral-50">
+                  <th className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={filteredRows.length > 0 && filteredRows.every(r => selected.has(String(r[keyCol])))}
+                      onChange={toggleSelectAll}
+                      className="accent-indigo-500"
+                      aria-label="전체 선택"
+                    />
+                  </th>
                   {columns.map(k => (
                     <th key={k} className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-neutral-500">{k}</th>
                   ))}
@@ -410,7 +470,16 @@ export default function AdminDatabase() {
               </thead>
               <tbody className="divide-y divide-neutral-50">
                 {filteredRows.map((row, idx) => (
-                  <tr key={idx} onClick={() => setViewRow(row)} className="cursor-pointer hover:bg-indigo-50/50 transition">
+                  <tr key={idx} onClick={() => setViewRow(row)} className={`cursor-pointer transition ${selected.has(String(row[keyCol])) ? "bg-indigo-50/70" : "hover:bg-indigo-50/40"}`}>
+                    <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(String(row[keyCol]))}
+                        onChange={() => toggleSelect(String(row[keyCol]))}
+                        className="accent-indigo-500"
+                        aria-label="행 선택"
+                      />
+                    </td>
                     {columns.map(k => (
                       <td key={k} className="max-w-[220px] truncate px-3 py-2 text-xs text-neutral-700 whitespace-nowrap">
                         {row[k] === null || row[k] === undefined ? <span className="text-neutral-300">NULL</span> : String(typeof row[k] === "object" ? JSON.stringify(row[k]) : row[k])}
@@ -429,6 +498,28 @@ export default function AdminDatabase() {
           </div>
         )}
       </div>
+
+      {/* ── 일괄 삭제 바 ── */}
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-2.5">
+          <p className="text-xs font-bold text-rose-600">{selected.size}개 행 선택됨</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelected(new Set())}
+              className="rounded-lg bg-white border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-600"
+            >
+              선택 해제
+            </button>
+            <button
+              onClick={bulkDelete}
+              disabled={saving}
+              className="rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
+            >
+              {saving ? "삭제 중..." : "선택 삭제"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── 행 상세 모달 ── */}
       {viewRow && (
