@@ -7,6 +7,7 @@ import AdminStudents from "./AdminStudents";
 import AdminContent from "./AdminContent";
 import AdminManagement from "./AdminManagement";
 import AdminDatabase from "./AdminDatabase";
+import QRScanHandler from "./QRScanHandler";
 import { AdminProvider } from "@/lib/admin-context";
 import type { AdminPageId } from "@/lib/admin-types";
 
@@ -23,6 +24,7 @@ export default function AdminApp({ onExit }: { onExit: () => void }) {
         {activePage === "management" && <AdminManagement onNavigate={setActivePage} />}
         {activePage === "database" && <AdminDatabase />}
       </AdminShell>
+      <QRScanHandler />
     </AdminProvider>
   );
 }

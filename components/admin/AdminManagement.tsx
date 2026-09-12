@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, RefreshCw, Database as DatabaseIcon } from "lucide-react";
+import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, RefreshCw, Database as DatabaseIcon, QrCode } from "lucide-react";
+import QRCodeModal from "./QRCodeModal";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
 import type { AdminPageId } from "@/lib/admin-types";
@@ -43,6 +44,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   const [rewardForm, setRewardForm] = useState({
     name: "", description: "", mileageCost: 500, inventory: 10, category: "교환권",
   });
+  const [qrModalReward, setQrModalReward] = useState<{ id: string; name: string; price: number } | null>(null);
 
   // Badge form state
   const [showBadgeForm, setShowBadgeForm] = useState(false);
@@ -77,7 +79,9 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     if (editingRewardId) {
       updateReward(editingRewardId, { ...rewardForm });
     } else {
-      addReward({ id: "r_" + Date.now(), ...rewardForm, active: true, redemptionLimit: 2, image: "" });
+      const newId = "r_" + Date.now();
+      addReward({ id: newId, ...rewardForm, active: true, redemptionLimit: 2, image: "" });
+      setQrModalReward({ id: newId, name: rewardForm.name, price: rewardForm.mileageCost });
     }
     setShowRewardForm(false);
     setEditingRewardId(null);
@@ -209,7 +213,8 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
           </button>
 
           {showRewardForm && (
-            <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
+            <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50">
+            <div className="mx-4 w-full max-w-md rounded-2xl bg-white shadow-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold">{editingRewardId ? "보상 수정" : "새 보상 추가"}</h3>
                 <button onClick={() => { setShowRewardForm(false); setEditingRewardId(null); }}><X size={18} className="text-neutral-400" /></button>
@@ -232,6 +237,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
               </div>
               <button onClick={submitReward} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editingRewardId ? "수정 완료" : "추가하기"}</button>
             </div>
+            </div>
           )}
 
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50">
@@ -247,6 +253,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                     {r.active ? "활성" : "비활성"}
                   </span>
                   <button onClick={() => openRewardForm(r)} className="text-[11px] font-bold text-indigo-600">수정</button>
+                  <button onClick={() => setQrModalReward({ id: r.id, name: r.name, price: r.mileageCost })} className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 transition"><QrCode size={16} /></button>
                   <button onClick={() => { if (confirm(`"${r.name}" 상품을 삭제하시겠습니까?`)) updateReward(r.id, { active: false }); }} className="text-[11px] font-bold text-rose-500">삭제</button>
                 </div>
               </div>

@@ -4,8 +4,9 @@ import {
   LayoutDashboard, ClipboardCheck, Users, FileText, Settings,
   Menu, X, ChevronLeft, Bell, GraduationCap,
   CalendarCheck, BookOpen, Target, Megaphone, HandHeart,
-  Award, Gift, Sun, ShieldCheck, BarChart3, ScrollText, Database as DatabaseIcon,
+  Award, Gift, Sun, ShieldCheck, BarChart3, ScrollText, Database as DatabaseIcon, Camera,
 } from "lucide-react";
+import QRScannerModal from "./QRScannerModal";
 import type { AdminPageId } from "@/lib/admin-types";
 import { useAdmin } from "@/lib/admin-context";
 
@@ -51,6 +52,7 @@ const mobileNavItems: { id: AdminPageId; label: string; icon: typeof LayoutDashb
 export default function AdminShell({ children, activePage, onNavigate, onExit }: AdminShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const { currentUser } = useAdmin();
 
   useEffect(() => {
@@ -178,11 +180,12 @@ export default function AdminShell({ children, activePage, onNavigate, onExit }:
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isMobile && (
-              <button onClick={onExit} className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600">
-                학생 앱
-              </button>
-            )}
+            <button onClick={() => setShowScanner(true)} className="rounded-lg bg-neutral-100 p-2 text-neutral-600 hover:bg-neutral-200 transition" title="상점 QR 스캔">
+              <Camera size={18} />
+            </button>
+            <button onClick={onExit} className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600">
+              학생 앱
+            </button>
           </div>
         </header>
 
@@ -215,6 +218,22 @@ export default function AdminShell({ children, activePage, onNavigate, onExit }:
           </div>
         </nav>
       )}
+    {showScanner && (
+      <QRScannerModal onScan={(data) => {
+        setShowScanner(false);
+        try {
+          const payload = JSON.parse(data);
+          if (payload.t === "store" && payload.id) {
+            // Dispatch custom event that the app root can listen to
+            window.dispatchEvent(new CustomEvent("qr-scanned", { detail: payload }));
+          } else {
+            alert("알 수 없는 QR 코드입니다.");
+          }
+        } catch {
+          alert("QR 코드를 인식할 수 없습니다.");
+        }
+      }} onClose={() => setShowScanner(false)} />
+    )}
     </div>
   );
 }

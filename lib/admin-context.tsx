@@ -6,11 +6,23 @@ import { koreaDate } from "./korea-date";
 import { isSupabaseReady } from "./config";
 import * as db from "./db";
 
+function toAdminStudent(s: any): AdminStudent {
+  return {
+    id: s.id, name: s.name, birthDate: s.birthDate || "", classId: s.classId || "",
+    mileage: s.mileage || 0,
+    grade: String(s.classId || "").includes("_g1_") ? 1 : String(s.classId || "").includes("_g2_") ? 2 : String(s.classId || "").includes("_g3_") ? 3 : 0,
+    role: (s.role || "student") as "student" | "teacher" | "admin",
+    active: s.active !== false,
+    phone: s.phone || "", guardianPhone: s.guardianPhone || "", memo: s.memo || "",
+  };
+}
+
 interface AdminState {
   currentUser: { id: string; name: string; role: string; assignedClassIds?: string[] } | null;
   setCurrentUser: (user: { id: string; name: string; role: string; assignedClassIds?: string[] }) => void;
 
   students: AdminStudent[];
+  refreshStudents: () => Promise<void>;
   addStudent: (s: AdminStudent) => void;
   updateStudent: (id: string, patch: Partial<AdminStudent>) => void;
   deactivateStudent: (id: string) => void;
@@ -109,15 +121,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       try {
         // Students
         const sData = await db.fetchStudents();
-        setStudents(sData.map((s: any) => ({
-          id: s.id, name: s.name, birthDate: s.birthDate || "", classId: s.classId || "",
-          mileage: s.mileage || 0, xp: s.xp || 0,
-          grade: String(s.classId || "").includes("_g1_") ? 1 : String(s.classId || "").includes("_g2_") ? 2 : String(s.classId || "").includes("_g3_") ? 3 : 0,
-          role: (s.role || "student") as "student" | "teacher" | "admin",
-          active: s.active !== false,
-          phone: s.phone || "", guardianPhone: s.guardianPhone || "", memo: s.memo || "",
-          enrollmentStatus: s.enrollmentStatus || "active",
-        })));
+        setStudents(sData.map(toAdminStudent));
 
         // Teachers
         const tData = await db.fetchTeachers();
@@ -506,6 +510,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     }
   }, [students]);
 
+  const refreshStudents = useCallback(async () => {
+    try {
+      const sData = await db.fetchStudents();
+      if (sData.length) setStudents(sData.map(toAdminStudent));
+    } catch {}
+  }, []);
+
   /* ── Reset All Talents ── */
   const resetAllTalents = useCallback(async (): Promise<boolean> => {
     const ok = await db.resetAllTalents();
@@ -625,7 +636,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   return (
     <AdminCtx.Provider value={{
       currentUser, setCurrentUser,
-      students, addStudent, updateStudent, deactivateStudent,
+      students, refreshStudents, addStudent, updateStudent, deactivateStudent,
       teachers, addTeacher, updateTeacher, removeTeacher,
       attendanceRecords: records, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance, getStudentAttendanceCount, markStudentAttendance, confirmAttendanceRewards,
       qtContents, addQTContent, updateQTContent,
