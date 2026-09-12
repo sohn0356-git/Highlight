@@ -53,6 +53,7 @@ export default function AdminDatabase() {
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
 
+  const [viewRow, setViewRow] = useState<any | null>(null);
   const [editRow, setEditRow] = useState<any | null>(null);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState(false);
@@ -177,6 +178,7 @@ export default function AdminDatabase() {
       if (err) throw err;
       await writeAudit("db_delete", String(row[keyCol]), before, "");
       flash("삭제 완료!");
+      setViewRow(null);
       load(table, page);
     } catch (e: any) {
       setError(e?.message || "삭제에 실패했습니다.");
@@ -408,7 +410,7 @@ export default function AdminDatabase() {
               </thead>
               <tbody className="divide-y divide-neutral-50">
                 {filteredRows.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-50/60">
+                  <tr key={idx} onClick={() => setViewRow(row)} className="cursor-pointer hover:bg-indigo-50/50 transition">
                     {columns.map(k => (
                       <td key={k} className="max-w-[220px] truncate px-3 py-2 text-xs text-neutral-700 whitespace-nowrap">
                         {row[k] === null || row[k] === undefined ? <span className="text-neutral-300">NULL</span> : String(typeof row[k] === "object" ? JSON.stringify(row[k]) : row[k])}
@@ -416,8 +418,8 @@ export default function AdminDatabase() {
                     ))}
                     <td className="sticky right-0 bg-white px-3 py-2">
                       <div className="flex gap-1">
-                        <button onClick={() => startEdit(row)} className="rounded-lg bg-amber-50 p-1.5 text-amber-600 hover:bg-amber-100" aria-label="수정"><Pencil size={13} /></button>
-                        <button onClick={() => deleteRow(row)} className="rounded-lg bg-rose-50 p-1.5 text-rose-500 hover:bg-rose-100" aria-label="삭제"><Trash2 size={13} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); startEdit(row); }} className="rounded-lg bg-amber-50 p-1.5 text-amber-600 hover:bg-amber-100" aria-label="수정"><Pencil size={13} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); deleteRow(row); }} className="rounded-lg bg-rose-50 p-1.5 text-rose-500 hover:bg-rose-100" aria-label="삭제"><Trash2 size={13} /></button>
                       </div>
                     </td>
                   </tr>
@@ -427,6 +429,75 @@ export default function AdminDatabase() {
           </div>
         )}
       </div>
+
+      {/* ── 행 상세 모달 ── */}
+      {viewRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setViewRow(null)}>
+          <div className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">{table}</p>
+                <h3 className="truncate text-sm font-bold text-neutral-800">
+                  {(viewRow as any).name || viewRow[keyCol] || "행 상세"}
+                </h3>
+              </div>
+              <button onClick={() => setViewRow(null)} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-500 transition active:bg-neutral-200" aria-label="닫기">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <div className="divide-y divide-neutral-50 rounded-xl border border-neutral-100">
+                {columns.map(k => {
+                  const v = viewRow[k];
+                  const isKey = k === keyCol;
+                  return (
+                    <div key={k} className="flex items-start gap-3 px-3.5 py-2.5">
+                      <span className={`mt-0.5 w-40 shrink-0 truncate text-[11px] font-bold ${isKey ? "text-indigo-600" : "text-neutral-400"}`}>
+                        {k}{isKey ? " (키)" : ""}
+                      </span>
+                      <span className="min-w-0 flex-1 break-all text-xs leading-relaxed text-neutral-700">
+                        {v === null || v === undefined ? (
+                          <span className="text-neutral-300">NULL</span>
+                        ) : typeof v === "boolean" ? (
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${v ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
+                            {v ? "true" : "false"}
+                          </span>
+                        ) : typeof v === "object" ? (
+                          <pre className="whitespace-pre-wrap rounded-lg bg-neutral-50 p-2 font-mono text-[10px] leading-relaxed text-neutral-600">{JSON.stringify(v, null, 2)}</pre>
+                        ) : (
+                          v
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-2 border-t border-neutral-100 px-5 py-3.5">
+              <button
+                onClick={() => { startEdit(viewRow); setViewRow(null); }}
+                className="flex-1 rounded-lg bg-amber-500 py-2.5 text-xs font-bold text-white transition active:scale-[0.98]"
+              >
+                수정
+              </button>
+              <button
+                onClick={() => deleteRow(viewRow)}
+                className="flex-1 rounded-lg bg-rose-500 py-2.5 text-xs font-bold text-white transition active:scale-[0.98]"
+              >
+                삭제
+              </button>
+              <button
+                onClick={() => setViewRow(null)}
+                className="flex-1 rounded-lg bg-neutral-100 py-2.5 text-xs font-bold text-neutral-600 transition active:scale-[0.98]"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pagination */}
       {!loading && rows && rows.length > 0 && (
