@@ -13,6 +13,7 @@ function sb() { return getSupabase(); }
 
 function mapStudent(r: any): Student {
   const classId = r.class_id || "";
+  const role = (r.role || "student") as "student" | "teacher" | "admin";
   return {
     id: r.id,
     name: r.name,
@@ -21,16 +22,16 @@ function mapStudent(r: any): Student {
     grade: classId.includes("_g1_") ? 1 : classId.includes("_g2_") ? 2 : classId.includes("_g3_") ? 3 : 0,
     className: r.class_name || "",
     mileage: Number(r.mileage) || 0,
-    xp: Number(r.mileage) || 0,
-    weeklyXp: 0,
-    isTeacher: false,
-    role: "student" as "student",
-    assignedClassIds: [],
-    phone: "",
-    guardianPhone: "",
-    memo: "",
-    active: true,
-    enrollmentStatus: "active",
+    xp: Number(r.xp) || 0,
+    weeklyXp: Number(r.weekly_xp) || 0,
+    isTeacher: !!r.is_teacher || role !== "student",
+    role,
+    assignedClassIds: r.assigned_class_ids || [],
+    phone: r.phone || "",
+    guardianPhone: r.guardian_phone || "",
+    memo: r.memo || "",
+    active: r.active !== false,
+    enrollmentStatus: r.enrollment_status || "active",
   };
 }
 
