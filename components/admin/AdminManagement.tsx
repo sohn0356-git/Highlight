@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
-import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, RefreshCw } from "lucide-react";
+import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, RefreshCw, Database as DatabaseIcon } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
 import type { AdminPageId } from "@/lib/admin-types";
+import AdminDatabase from "./AdminDatabase";
 
-type MgmtTab = "mileage" | "rewards" | "badges" | "stats" | "audit" | "settings";
+type MgmtTab = "mileage" | "rewards" | "badges" | "stats" | "audit" | "settings" | "db";
 
 export default function AdminManagement({ onNavigate }: { onNavigate: (page: AdminPageId) => void }) {
   const {
@@ -25,6 +26,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     { id: "badges", label: "배지", icon: Award },
     { id: "stats", label: "통계", icon: BarChart3 },
     { id: "audit", label: "기록", icon: ScrollText },
+    { id: "db", label: "DB", icon: DatabaseIcon },
     { id: "settings", label: "설정", icon: Settings },
   ];
 
@@ -388,6 +390,11 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
             ))}
           </div>
         </div>
+      )}
+
+      {/* DB tab */}
+      {tab === "db" && (
+        <AdminDatabase />
       )}
 
       {/* Settings tab */}
