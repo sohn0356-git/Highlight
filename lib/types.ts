@@ -71,7 +71,6 @@ export interface Badge {
   icon: string;
   name: string;
   description: string;
-  criteria: number;
   progress: number;
   locked?: boolean;
   levelThresholds?: number[];

@@ -50,11 +50,7 @@ function mapClass(r: any) {
     level: Number(r.level) || 1,
     xp: Number(r.xp) || 0,
     weeklyXp: Number(r.weekly_xp) || 0,
-    attendance: { attended: Number(r.attendance_attended || 0), total: Number(r.attendance_total || 0) },
     qtCount: Number(r.qt_count || 0),
-    missionCount: Number(r.mission_count || 0),
-    prayerCount: Number(r.prayer_count || 0),
-    classMessage: r.class_message || "",
   };
 }
 
