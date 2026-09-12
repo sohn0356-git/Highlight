@@ -17,7 +17,7 @@ BEGIN
   INSERT INTO mileage_transactions (id, student_id, type, description, amount, date, created_at)
   SELECT 'rst_' || id || '_' || floor(extract(epoch from now()) * 1000)::text,
          id, '전체 리셋', '관리자 달란트 전체 리셋', -COALESCE(talents, 0),
-         to_char(now() AT TIME ZONE 'Asia/Seoul', 'YYYY-MM-DD'), now()
+         (now() AT TIME ZONE 'Asia/Seoul')::date, now()
   FROM students
   WHERE COALESCE(talents, 0) <> 0;
 
