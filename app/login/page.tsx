@@ -3,34 +3,15 @@ import { FormEvent, useState } from "react";
 import { useApp } from "@/lib/store-context";
 import { Calendar } from "lucide-react";
 
-const DEMO_ACCOUNTS = [
-  { name: "손경주", birthDate: "1994-02-28", label: "관리자", isAdmin: true },
-  { name: "허지성", birthDate: "2010-01-02", label: "고1-2반" },
-  { name: "최다솔", birthDate: "2010-03-28", label: "고1-1반" },
-  { name: "최종율", birthDate: "2009-02-21", label: "고2-1반" },
-  { name: "전진민", birthDate: "2010-01-11", label: "고2-3반" },
-  { name: "강예슬", birthDate: "2008-08-11", label: "고3-1반" },
-  { name: "김하윤", birthDate: "2010-05-28", label: "고1-3반" },
-];
-
 export default function LoginPage() {
   const { login, isLoggedIn } = useApp();
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [error, setError] = useState(false);
-  const [showHint, setShowHint] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const ok = await login(name, birthDate);
-    if (!ok) setError(true);
-  };
-
-  const doLogin = async (accName: string, accBirth: string) => {
-    setName(accName);
-    setBirthDate(accBirth);
-    setError(false);
-    const ok = await login(accName, accBirth);
     if (!ok) setError(true);
   };
 
@@ -79,35 +60,6 @@ export default function LoginPage() {
         >
           시작하기
         </button>
-
-        <button
-          type="button"
-          onClick={() => setShowHint(v => !v)}
-          className="mt-1 text-xs text-neutral-400 underline underline-offset-2"
-        >
-          데모 계정 보기
-        </button>
-        {showHint && (
-          <div className="rounded-xl bg-neutral-100 px-4 py-3 text-center">
-            <p className="text-xs font-semibold text-neutral-600">로그인 가능한 데모 계정</p>
-            <div className="mt-2 space-y-1.5">
-              {DEMO_ACCOUNTS.map(acc => (
-                <button
-                  key={acc.name}
-                  type="button"
-                  onClick={() => doLogin(acc.name, acc.birthDate)}
-                  className="flex w-full items-center justify-between rounded-lg bg-white px-3 py-2 text-xs transition active:scale-[0.98]"
-                >
-                  <span className="text-neutral-700 font-medium">{acc.name} · {acc.birthDate}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    acc.isAdmin ? "bg-indigo-100 text-indigo-600" :
-                    "bg-neutral-200 text-neutral-500"
-                  }`}>{acc.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </form>
 
       <p className="mt-6 text-center text-[11px] leading-relaxed text-neutral-300">
