@@ -28,8 +28,8 @@ function mapStudent(r: any): Student {
     classId,
     grade: gradeFromClassId(classId),
     className: r.class_name || "",
-    mileage: Number(r.mileage) || 0,
-    xp: Number(r.xp) || 0,
+    mileage: Number(r.talents ?? r.mileage) || 0,
+    xp: Number(r.talents ?? r.xp) || 0,
     weeklyXp: Number(r.weekly_xp) || 0,
     isTeacher: !!r.is_teacher || role !== "student",
     role,
@@ -112,7 +112,7 @@ export async function upsertStudent(student: any) {
   const grade = gradeFromClassId(String(student.classId || "")) || student.grade || 0;
   await s.from("students").upsert({
     id: student.id, name: student.name, birth_date: student.birthDate || "",
-    class_id: student.classId || "", mileage: student.mileage || 0,
+    class_id: student.classId || "", talents: student.mileage || 0,
     role: student.role || "student", is_teacher: !!student.isTeacher,
     active: student.active !== false, grade,
     class_name: student.className || "",
@@ -1180,8 +1180,8 @@ export async function calculateBadgeProgress(studentId: string, badgeType: strin
       return data?.length || 0;
     }
     case "mileage_total": {
-      const { data } = await s.from("students").select("mileage").eq("id", studentId).single();
-      return Number(data?.mileage) || 0;
+      const { data } = await s.from("students").select("talents").eq("id", studentId).single();
+      return Number(data?.talents) || 0;
     }
     case "qt_streak": {
       return await calculateQTStreak(studentId);
@@ -1347,9 +1347,9 @@ export async function fetchStudentBadgesWithProgress(studentId: string) {
         const { data } = await dbClient.from("daily_quests").select("id").eq("student_id", studentId);
         return data?.length || 0;
       }
-      if (type === "b5") { // Mileage total
-        const { data } = await dbClient.from("students").select("mileage").eq("id", studentId).single();
-        return Number(data?.mileage) || 0;
+      if (type === "b5") { // Talents total
+        const { data } = await dbClient.from("students").select("talents").eq("id", studentId).single();
+        return Number(data?.talents) || 0;
       }
       if (type === "b6") { // QT Streak
         return await calculateQTStreak(studentId);
@@ -1437,8 +1437,8 @@ export async function fetchTopMileageRanking() {
   if (!s) return [];
   try {
     const { data, error } = await s.from("students")
-      .select("id, name, class_id, mileage, xp")
-      .order("mileage", { ascending: false })
+      .select("id, name, class_id, talents")
+      .order("talents", { ascending: false })
       .limit(10);
     if (error || !data) return [];
     return data
@@ -1452,7 +1452,7 @@ export async function fetchTopMileageRanking() {
       .slice(0, 5)
       .map((r: any, i: number) => ({
         rank: i + 1, id: r.id, name: r.name,
-        classId: r.class_id || "", mileage: Number(r.mileage) || 0,
+        classId: r.class_id || "", mileage: Number(r.talents ?? r.mileage) || 0,
       }));
   } catch { return []; }
 }
@@ -1496,8 +1496,8 @@ export async function processAttendanceReward(attendanceRecordId: string, studen
     created_at: new Date().toISOString(),
   });
 
-  // Update student mileage
-  await s.from("students").update({ mileage: (student.mileage || 0) + 20 }).eq("id", studentId);
+  // Update student talents balance
+  await s.from("students").update({ talents: (Number(student.talents ?? student.mileage) || 0) + 20 }).eq("id", studentId);
 
   return true;
 }
@@ -1515,7 +1515,7 @@ export async function reverseAttendanceReward(attendanceRecordId: string, studen
     .eq("id", existing[0].id);
 
   // Create reversal transaction
-  const { data: student } = await s.from("students").select("name, class_id, mileage").eq("id", studentId).single();
+  const { data: student } = await s.from("students").select("name, class_id, talents").eq("id", studentId).single();
   await s.from("mileage_transactions").insert({
     id: `atx_attrev_${attendanceRecordId}`,
     student_id: studentId, type: "출석 취소",
@@ -1525,7 +1525,7 @@ export async function reverseAttendanceReward(attendanceRecordId: string, studen
 
   // Update student mileage
   if (student) {
-    await s.from("students").update({ mileage: Math.max(0, (student.mileage || 0) - 20) }).eq("id", studentId);
+    await s.from("students").update({ talents: Math.max(0, (Number(student.talents) || 0) - 20) }).eq("id", studentId);
   }
 
   return true;

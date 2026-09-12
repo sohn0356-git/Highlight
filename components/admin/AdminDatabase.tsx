@@ -129,7 +129,7 @@ export default function AdminDatabase() {
         action,
         target_type: table,
         target_id: targetId,
-        description: `DB 편집기: ${table} ${action === "db_delete" ? "삭제" : action === "db_insert" ? "추가" : "수정"} (${targetId})`,
+        description: `DB 편집기: ${table} ${action === "db_delete" ? "삭제" : action === "db_insert" ? "추가" : action === "db_drop_column" ? "컬럼 삭제" : "수정"} (${targetId})`,
         before_data: before || "",
         after_data: after || "",
         created_at: new Date().toISOString(),
@@ -162,21 +162,19 @@ export default function AdminDatabase() {
       if (err) throw err;
       await writeAudit("db_update", String(editRow[keyCol]), before, after);
 
-      // 포인트 원장 반영: students 테이블의 mileage/xp 수정 시 단일 원장(mileage_transactions)에 기록
+      // 포인트 원장 반영: students 테이블의 talents 수정 시 단일 원장(mileage_transactions)에 기록
       if (table === "students") {
-        const prevM = Number(editRow.mileage || 0);
-        const nextM = Number(patch.mileage ?? editRow.mileage ?? 0);
-        const prevX = Number(editRow.xp || 0);
-        const nextX = Number(patch.xp ?? editRow.xp ?? 0);
-        if (nextM !== prevM || nextX !== prevX) {
+        const prevM = Number(editRow.talents ?? editRow.mileage ?? 0);
+        const nextM = Number(patch.talents ?? editRow.talents ?? editRow.mileage ?? 0);
+        if (nextM !== prevM) {
           const { getSupabase: sb2 } = await import("@/lib/supabase");
           const c = sb2();
-          if (c && (nextM !== prevM)) {
+          if (c) {
             await c.from("mileage_transactions").insert([{
               id: `atx_db_${Date.now()}_${editRow[keyCol]}`,
               student_id: editRow[keyCol],
               type: "관리자 수정",
-              description: `관리자 직접 수정: mileage ${prevM} → ${nextM}${nextX !== prevX ? `, xp ${prevX} → ${nextX}` : ""}`,
+              description: `관리자 직접 수정: 달란트 ${prevM} → ${nextM}`,
               amount: nextM - prevM,
               date: koreaDate(),
               created_at: new Date().toISOString(),
@@ -255,6 +253,36 @@ export default function AdminDatabase() {
       load(table, page);
     } catch (e: any) {
       setError(e?.message || "일괄 삭제에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const dropColumn = async (col: string) => {
+    if (saving || !rows || rows.length === 0) return;
+    if (col === keyCol) {
+      setError(`기본 키 컬럼(${keyCol})은 삭제할 수 없습니다.`);
+      return;
+    }
+    if (!window.confirm(`[${table}] 컬럼 "${col}"을(를) 정말 삭제하시겠습니까?\n\n이 컬럼의 모든 데이터가 영구 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.`)) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    setSaving(true);
+    setError("");
+    try {
+      const before = columns.join(", ");
+      const { error: err } = await sb.rpc("admin_drop_column", { p_table: table, p_column: col });
+      if (err) throw err;
+      await writeAudit("db_drop_column", col, before, columns.filter(c => c !== col).join(", "));
+      flash(`컬럼 "${col}" 삭제 완료!`);
+      setViewRow(null);
+      load(table, page);
+    } catch (e: any) {
+      const msg = e?.message || "컬럼 삭제에 실패했습니다.";
+      const needsRpc = msg.includes("admin_drop_column") || msg.includes("Could not find the function");
+      setError(needsRpc
+        ? `${msg}\n\n관리자용 RPC 마이그레이션(20260913140000_admin_drop_column_rpc.sql)을 Supabase SQL Editor에서 먼저 실행해주세요.`
+        : msg);
     } finally {
       setSaving(false);
     }
@@ -487,7 +515,20 @@ export default function AdminDatabase() {
                     />
                   </th>
                   {columns.map(k => (
-                    <th key={k} className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-neutral-500">{k}</th>
+                    <th key={k} className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-neutral-500 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1">
+                        {k}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); dropColumn(k); }}
+                          disabled={k === keyCol || saving}
+                          className="rounded p-0.5 text-neutral-300 hover:bg-rose-50 hover:text-rose-500 disabled:opacity-30"
+                          aria-label={`컬럼 ${k} 삭제`}
+                          title={k === keyCol ? "기본 키 컬럼은 삭제할 수 없습니다" : `컬럼 ${k} 삭제`}
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </span>
+                    </th>
                   ))}
                   <th className="sticky right-0 bg-neutral-50 px-3 py-2 text-[10px] font-bold text-neutral-500">관리</th>
                 </tr>

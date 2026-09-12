@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import { useApp } from "@/lib/store-context";
 import { koreaDate } from "@/lib/korea-date";
+import { recalculateBadgeProgress } from "@/lib/db";
 
 interface PraiseRecord {
   id: string;
@@ -94,9 +95,9 @@ export default function PraiseContent() {
 
       // Award mileage: praised +10, praiser +5 (교사는 students 계정으로 지급)
       const praisedMileage = (praised.mileage || 0) + 10;
-      await sb.from("students").update({ mileage: praisedMileage }).eq("id", praisedId);
+      await sb.from("students").update({ talents: praisedMileage }).eq("id", praisedId);
       const myMileage = (student.mileage || 0) + 5;
-      await sb.from("students").update({ mileage: myMileage }).eq("id", student.id);
+      await sb.from("students").update({ talents: myMileage }).eq("id", student.id);
 
       // Add transactions (실제 mileage_transactions 스키마 컬럼만 사용)
       await sb.from("mileage_transactions").insert([
@@ -108,6 +109,9 @@ export default function PraiseContent() {
       if (!dailyQuestIds.includes("d9")) {
         await completeDailyQuest("d9");
       }
+
+      // 칭찬 횟수 배지 캐시 즉시 갱신
+      recalculateBadgeProgress(student.id);
 
       setHasPraisedToday(true);
       setShowForm(false);

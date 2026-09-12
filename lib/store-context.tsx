@@ -242,7 +242,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         channel = sb.channel("store-updates")
           .on("postgres_changes", { event: "*", schema: "public", table: "students" }, (payload: any) => {
             if (payload.eventType === "UPDATE" && payload.new?.id === student.id) {
-              const updated = { ...student, mileage: payload.new.mileage, xp: payload.new.xp };
+              const updated = { ...student, mileage: payload.new.talents ?? payload.new.mileage, xp: payload.new.talents ?? payload.new.xp };
               setStudent(updated);
               localStorage.setItem("mileage_session", JSON.stringify(updated));
             }
@@ -390,8 +390,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showPointToast(`+${reward}M`);
     // Mileage + XP
     const newTotal = (student.mileage || 0) + reward;
-    await db.updateStudentField(student.id, "mileage", newTotal);
-    await db.updateStudentField(student.id, "xp", newTotal);
+    await db.updateStudentField(student.id, "talents", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "qt", description: "QT 완료", amount: reward, date: today });
     await db.addActivity("qt", `${student.name}님이 QT를 완료했습니다`);
     // Class XP
@@ -450,13 +449,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (targetDate === today && !dailyQuestIds.includes("d2")) {
         showPointToast("+10D");
         const newTotal = (student.mileage || 0) + 10;
-        await db.updateStudentField(student.id, "mileage", newTotal);
-        await db.updateStudentField(student.id, "xp", newTotal);
+        await db.updateStudentField(student.id, "talents", newTotal);
         await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "QT 공유", description: "QT 공유", amount: 10, date: today });
         await db.completeDailyQuest(student.id, "d2", today, 10, 10);
         setDailyQuestIds(prev => [...prev, "d2"]);
       }
 
+      updateBadgeProgress(student.id);
       setBadgeRefreshKey(k => k + 1);
       refreshAll();
       return true;
@@ -517,8 +516,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setDailyQuestIds(prev => [...prev, "d6"]);
       showPointToast("+5D");
       const newTotal = (student.mileage || 0) + 5;
-      await db.updateStudentField(student.id, "mileage", newTotal);
-      await db.updateStudentField(student.id, "xp", newTotal);
+      await db.updateStudentField(student.id, "talents", newTotal);
+      updateBadgeProgress(student.id);
       setBadgeRefreshKey(k => k + 1);
     }
   }, [student, sharedPosts, today, loadComments]);
@@ -547,9 +546,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDailyQuestIds(prev => [...prev, questId]);
     showPointToast(`+${quest.reward}M`);
     const newTotal = (student.mileage || 0) + quest.reward;
-    await db.updateStudentField(student.id, "mileage", newTotal);
-    await db.updateStudentField(student.id, "xp", newTotal);
+    await db.updateStudentField(student.id, "talents", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "일일퀘스트", description: quest.title, amount: quest.reward, date: today });
+    updateBadgeProgress(student.id);
     setBadgeRefreshKey(k => k + 1);
     refreshAll();
   }, [student, dailyQuestIds, today]);
@@ -564,9 +563,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const reward = mission.reward ?? 0;
     showPointToast(`+${reward}D`);
     const newTotal = (student.mileage || 0) + reward;
-    await db.updateStudentField(student.id, "mileage", newTotal);
-    await db.updateStudentField(student.id, "xp", newTotal);
+    await db.updateStudentField(student.id, "talents", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "미션완료", description: mission.title, amount: reward, date: today });
+    updateBadgeProgress(student.id);
     setBadgeRefreshKey(k => k + 1);
     refreshAll();
   }, [student, completedMissionIds, missions, today]);
@@ -585,10 +584,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     showPointToast(`+${reward}D`);
     const newTotal = (student.mileage || 0) + reward;
     await Promise.all([
-      db.updateStudentField(student.id, "mileage", newTotal),
-      db.updateStudentField(student.id, "xp", newTotal),
+      db.updateStudentField(student.id, "talents", newTotal),
       db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "기도", description: "기도 참여", amount: reward, date: today }),
     ]);
+    updateBadgeProgress(student.id);
     setBadgeRefreshKey(k => k + 1);
     refreshAll();
     return true;
@@ -648,18 +647,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 /* ── Badge Progress Helper ── */
 async function updateBadgeProgress(studentId: string) {
+  // 단일 공용 서비스(db.recalculateBadgeProgress)로 진행률 재계산 + student_badge_progress 캐시에 즉시 저장
   try {
-    const badges = await db.fetchBadges();
-    for (const badge of badges) {
-      const metricType = db.getBadgeMetricType(badge.id);
-      if (!metricType) continue;
-      const progress = await db.calculateBadgeProgress(studentId, metricType);
-      const thresholds = badge.level_thresholds || [10, 30, 60, 100, 200];
-      let level = 0;
-      for (let i = 0; i < thresholds.length; i++) {
-        if (progress >= thresholds[i]) level = i + 1;
-      }
-      await db.upsertStudentBadge(studentId, badge.id, level, progress);
-    }
+    await db.recalculateBadgeProgress(studentId);
   } catch {}
 }

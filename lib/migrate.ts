@@ -59,8 +59,8 @@ CREATE INDEX IF NOT EXISTS idx_students_class ON students(class_id);
 CREATE INDEX IF NOT EXISTS idx_teachers_active ON teachers(active);
 
 -- Son Gyeongju admin
-INSERT INTO students (id, name, birth_date, class_id, role, is_teacher, active, mileage, xp)
-VALUES ('admin_son', '손경주', '1994-02-28', '', 'admin', true, true, 0, 0)
+INSERT INTO students (id, name, birth_date, class_id, role, is_teacher, active, talents)
+VALUES ('admin_son', '손경주', '1994-02-28', '', 'admin', true, true, 0)
 ON CONFLICT (id) DO UPDATE SET role = 'admin', is_teacher = true, active = true;
 
 -- Badge levels seed
@@ -204,7 +204,7 @@ async function runFallbackMigrations(sb: any) {
   try {
     await sb.from("students").upsert({
       id: "admin_son", name: "손경주", birth_date: "1994-02-28",
-      class_id: "", role: "admin", is_teacher: true, active: true, mileage: 0, xp: 0,
+      class_id: "", role: "admin", is_teacher: true, active: true, talents: 0,
     }, { onConflict: "id" });
   } catch {}
 

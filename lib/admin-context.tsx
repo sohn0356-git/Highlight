@@ -461,7 +461,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         await sb.from("completed_missions").update({ status: "approved", reviewed_at: new Date().toISOString() }).eq("id", id);
         const mission = missionAdmins.find(m => m.id === data.mission_id);
         if (mission) {
-          await db.updateStudentField(data.student_id, "mileage", (students.find(s => s.id === data.student_id)?.mileage || 0) + mission.reward);
+          await db.updateStudentField(data.student_id, "talents", (students.find(s => s.id === data.student_id)?.mileage || 0) + mission.reward);
           await db.addTransaction({ studentId: data.student_id, studentName: students.find(s => s.id === data.student_id)?.name || "", type: "미션승인", description: mission.title, amount: mission.reward });
         }
       }
@@ -507,7 +507,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       targets = [...students];
     }
     for (const stu of targets) {
-      await db.updateStudentField(stu.id, "mileage", (stu.mileage || 0) + amount);
+      await db.updateStudentField(stu.id, "talents", (stu.mileage || 0) + amount);
       const tx = { id: `atx_${Date.now()}_${stu.id}`, studentId: stu.id, studentName: stu.name, className: stu.classId, type: "manual_bonus" as MileageActionType, description: reason, amount, date, actorName: "관리자" };
       setAllTx(prev => [tx, ...prev]);
       await db.addTransaction(tx);
@@ -595,7 +595,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     if (badge && badge.mileageReward > 0) {
       const stu = students.find(s => s.id === studentId);
       if (stu) {
-        db.updateStudentField(studentId, "mileage", stu.mileage + badge.mileageReward);
+        db.updateStudentField(studentId, "talents", stu.mileage + badge.mileageReward);
         setStudents(prev => prev.map(s => s.id === studentId ? { ...s, mileage: s.mileage + badge.mileageReward } : s));
       }
     }
