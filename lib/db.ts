@@ -11,6 +11,13 @@ import { koreaDate } from "./korea-date";
 /* ── Helpers ── */
 function sb() { return getSupabase(); }
 
+export function gradeFromClassId(classId: string): number {
+  if (classId.includes("_g1_")) return 1;
+  if (classId.includes("_g2_")) return 2;
+  if (classId.includes("_g3_")) return 3;
+  return 0;
+}
+
 function mapStudent(r: any): Student {
   const classId = r.class_id || "";
   const role = (r.role || "student") as "student" | "teacher" | "admin";
@@ -19,7 +26,7 @@ function mapStudent(r: any): Student {
     name: r.name,
     birthDate: r.birth_date || "",
     classId,
-    grade: classId.includes("_g1_") ? 1 : classId.includes("_g2_") ? 2 : classId.includes("_g3_") ? 3 : 0,
+    grade: gradeFromClassId(classId),
     className: r.class_name || "",
     mileage: Number(r.mileage) || 0,
     xp: Number(r.xp) || 0,
@@ -104,7 +111,7 @@ export async function fetchActiveStudents() {
 export async function upsertStudent(student: any) {
   const s = sb();
   if (!s) return;
-  const grade = String(student.classId || "").includes("_g1_") ? 1 : String(student.classId || "").includes("_g2_") ? 2 : String(student.classId || "").includes("_g3_") ? 3 : student.grade || 0;
+  const grade = gradeFromClassId(String(student.classId || "")) || student.grade || 0;
   await s.from("students").upsert({
     id: student.id, name: student.name, birth_date: student.birthDate || "",
     class_id: student.classId || "", mileage: student.mileage || 0,

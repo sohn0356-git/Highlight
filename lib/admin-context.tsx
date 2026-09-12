@@ -308,6 +308,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       await db.updateStudentField(id, "name", patch.name);
       setStudents(prev => prev.map(s => s.id === id ? { ...s, name: patch.name as any } : s));
     }
+    // Sync class assignment to student record so grade/class ranking is correct
+    if (patch.assignedClassIds !== undefined) {
+      const classId = patch.assignedClassIds?.[0] || "";
+      await db.updateStudentField(id, "class_id", classId);
+      await db.updateStudentField(id, "grade", db.gradeFromClassId(classId));
+      setStudents(prev => prev.map(s => s.id === id ? { ...s, classId } : s));
+    }
   }, []);
 
   const removeTeacher = useCallback(async (id: string) => {
