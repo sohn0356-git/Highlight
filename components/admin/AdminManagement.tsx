@@ -19,6 +19,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   } = useAdmin();
   const { classes } = useApp();
   const [tab, setTab] = useState<MgmtTab>("mileage");
+  const [auditFilter, setAuditFilter] = useState<"points" | "system">("points");
 
   const tabs: { id: MgmtTab; label: string; icon: typeof Coins }[] = [
     { id: "mileage", label: "달란트", icon: Coins },
@@ -62,7 +63,6 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     const direction = mileageAmount >= 0 ? "지급" : "차감";
     if (!window.confirm(`${targetLabel}에게 ${Math.abs(mileageAmount)}D를 ${direction}하시겠습니까?`)) return;
     awardsMileage(target, mileageTargetId, mileageAmount, mileageReason);
-    addAuditLog({ actorName: "관리자", actorRole: "admin", actionType: "mileage_award", target: mileageTarget, description: `${Math.abs(mileageAmount)}D ${direction} (${targetLabel}): ${mileageReason}` });
     setMileageReason("");
   }
   function submitReward() {
@@ -356,39 +356,84 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
         </div>
       )}
 
-      {/* Audit tab - Mileage Transactions */}
+      {/* Audit tab - Unified Point Ledger + System Audit */}
       {tab === "audit" && (
-        <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
-          <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-neutral-800">달란트 내역</h3>
-            <span className="text-[11px] text-neutral-400">{allTransactions.length}건</span>
+        <div className="space-y-3">
+          <div className="flex gap-1.5 rounded-xl bg-neutral-100 p-1">
+            <button onClick={() => setAuditFilter("points")}
+              className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${auditFilter === "points" ? "bg-white text-indigo-600 shadow-sm" : "text-neutral-500"}`}>
+              포인트 기록 ({allTransactions.length})
+            </button>
+            <button onClick={() => setAuditFilter("system")}
+              className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${auditFilter === "system" ? "bg-white text-indigo-600 shadow-sm" : "text-neutral-500"}`}>
+              시스템 감사 ({auditLogs.length})
+            </button>
           </div>
-          <div className="max-h-[600px] overflow-y-auto divide-y divide-neutral-50">
-            {allTransactions.length === 0 && (
-              <p className="py-8 text-center text-xs text-neutral-400">아직 달란트 내역이 없습니다.</p>
-            )}
-            {allTransactions.map((tx: any) => (
-              <div key={tx.id} className="px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">
-                      {tx.studentName?.[0] || "?"}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-neutral-800 truncate">{tx.studentName}</p>
-                      <p className="text-[11px] text-neutral-400 truncate">{tx.description} · {tx.type}</p>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0 ml-2">
-                    <p className={`text-sm font-bold ${tx.amount > 0 ? "text-emerald-600" : "text-rose-500"}`}>
-                      {tx.amount > 0 ? "+" : ""}{tx.amount}D
-                    </p>
-                    <p className="text-[10px] text-neutral-400">{tx.date}</p>
-                  </div>
-                </div>
+
+          {auditFilter === "points" && (
+            <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
+              <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-neutral-800">💳 포인트 원장</h3>
+                <span className="text-[11px] text-neutral-400">모든 포인트 이동 · {allTransactions.length}건</span>
               </div>
-            ))}
-          </div>
+              <div className="max-h-[600px] overflow-y-auto divide-y divide-neutral-50">
+                {allTransactions.length === 0 && (
+                  <p className="py-8 text-center text-xs text-neutral-400">아직 포인트 이동 내역이 없습니다.</p>
+                )}
+                {allTransactions.map((tx: any) => (
+                  <div key={tx.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">
+                          {tx.studentName?.[0] || "?"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-neutral-800 truncate">{tx.studentName || "(알수없음)"}</p>
+                          <p className="text-[11px] text-neutral-400 truncate">{tx.description} · {tx.type}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 ml-2">
+                        <p className={`text-sm font-bold ${tx.amount > 0 ? "text-emerald-600" : "text-rose-500"}`}>
+                          {tx.amount > 0 ? "+" : ""}{tx.amount}D
+                        </p>
+                        <p className="text-[10px] text-neutral-400">{tx.date}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {auditFilter === "system" && (
+            <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
+              <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-neutral-800">📋 시스템 감사</h3>
+                <span className="text-[11px] text-neutral-400">관리자 작업 로그 · {auditLogs.length}건</span>
+              </div>
+              <div className="max-h-[600px] overflow-y-auto divide-y divide-neutral-50">
+                {auditLogs.length === 0 && (
+                  <p className="py-8 text-center text-xs text-neutral-400">아직 감사 기록이 없습니다.</p>
+                )}
+                {auditLogs.map((log: any) => (
+                  <div key={log.id || log.timestamp} className="px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-neutral-800 truncate">{log.actorName || "관리자"}</p>
+                        <p className="text-[11px] text-neutral-400 truncate">{log.description || `${log.target} · ${log.actionType}`}</p>
+                      </div>
+                      <div className="text-right shrink-0 ml-2">
+                        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold text-neutral-600">{log.actionType}</span>
+                        <p className="mt-0.5 text-[10px] text-neutral-400">
+                          {log.timestamp ? new Date(log.timestamp).toLocaleString("ko-KR") : ""}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Database, Plus, Pencil, Trash2, X, RefreshCw, ChevronLeft, ChevronRight, Save, Search } from "lucide-react";
 import { getSupabase } from "@/lib/supabase";
+import { koreaDate } from "@/lib/korea-date";
 
 /* 관리자 DB 편집기 - 실제 운영 테이블 (리모트 DB 존재 확인 완료) */
 const DB_TABLES = [
@@ -160,6 +161,29 @@ export default function AdminDatabase() {
       const { error: err } = await sb.from(table).update(patch).eq(keyCol, editRow[keyCol]);
       if (err) throw err;
       await writeAudit("db_update", String(editRow[keyCol]), before, after);
+
+      // 포인트 원장 반영: students 테이블의 mileage/xp 수정 시 단일 원장(mileage_transactions)에 기록
+      if (table === "students") {
+        const prevM = Number(editRow.mileage || 0);
+        const nextM = Number(patch.mileage ?? editRow.mileage ?? 0);
+        const prevX = Number(editRow.xp || 0);
+        const nextX = Number(patch.xp ?? editRow.xp ?? 0);
+        if (nextM !== prevM || nextX !== prevX) {
+          const { getSupabase: sb2 } = await import("@/lib/supabase");
+          const c = sb2();
+          if (c && (nextM !== prevM)) {
+            await c.from("mileage_transactions").insert([{
+              id: `atx_db_${Date.now()}_${editRow[keyCol]}`,
+              student_id: editRow[keyCol],
+              type: "관리자 수정",
+              description: `관리자 직접 수정: mileage ${prevM} → ${nextM}${nextX !== prevX ? `, xp ${prevX} → ${nextX}` : ""}`,
+              amount: nextM - prevM,
+              date: koreaDate(),
+              created_at: new Date().toISOString(),
+            }]);
+          }
+        }
+      }
       setEditRow(null);
       flash("수정 완료!");
       load(table, page);
