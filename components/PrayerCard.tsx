@@ -33,6 +33,8 @@ interface PrayerCardProps {
   onEditContentChange?: (v: string) => void;
   comments?: PrayerComment[];
   onAddComment?: (content: string) => void;
+  onUpdateComment?: (id: string, content: string) => void;
+  onDeleteComment?: (id: string) => void;
   studentName?: string;
   participants?: PrayerParticipant[];
   hasPrayedToday?: boolean;
@@ -42,13 +44,15 @@ export default function PrayerCard({
   prayer, studentId, onPray, nameMap,
   isOwner, isEditing, editContent,
   onStartEdit, onCancelEdit, onSaveEdit, onDelete, onEditContentChange,
-  comments = [], onAddComment, studentName,
+  comments = [], onAddComment, onUpdateComment, onDeleteComment, studentName,
   participants = [], hasPrayedToday = false,
 }: PrayerCardProps) {
   const [showParticipants, setShowParticipants] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
 
   return (
     <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm">
@@ -165,7 +169,10 @@ export default function PrayerCard({
             <div className="mt-2 rounded-xl bg-neutral-50 p-3 border border-neutral-100">
               {comments.length > 0 && (
                 <div className="space-y-2 mb-2">
-                  {comments.map(cm => (
+                  {comments.map(cm => {
+                    const isMine = cm.studentId === studentId;
+                    const isEditingThis = editingCommentId === cm.id;
+                    return (
                     <div key={cm.id} className="flex items-start gap-2">
                       <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[9px] font-bold text-indigo-600">
                         {(cm.studentName || "?").slice(0, 1)}
@@ -174,11 +181,37 @@ export default function PrayerCard({
                         <div className="flex items-center gap-1.5">
                           <p className="text-[11px] font-semibold text-neutral-700">{cm.studentName}</p>
                           {cm.createdAt && <p className="text-[9px] text-neutral-400">{new Date(cm.createdAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</p>}
+                          {isMine && !isEditingThis && (
+                            <span className="ml-auto flex items-center gap-0.5">
+                              <button onClick={() => { setEditingCommentId(cm.id); setEditCommentText(cm.content); }} className="rounded p-1 text-neutral-400 hover:text-indigo-500 transition" aria-label="댓글 수정"><Pencil size={10} /></button>
+                              <button onClick={() => onDeleteComment?.(cm.id)} className="rounded p-1 text-neutral-400 hover:text-red-500 transition" aria-label="댓글 삭제"><Trash2 size={10} /></button>
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-neutral-600">{cm.content}</p>
+                        {isEditingThis ? (
+                          <div className="mt-1">
+                            <textarea
+                              value={editCommentText}
+                              onChange={e => setEditCommentText(e.target.value)}
+                              rows={2}
+                              className="w-full rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400 resize-none"
+                            />
+                            <div className="mt-1 flex justify-end gap-1.5">
+                              <button onClick={() => { setEditingCommentId(null); setEditCommentText(""); }} className="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-bold text-neutral-500 active:scale-95 transition">취소</button>
+                              <button
+                                onClick={() => { if (editCommentText.trim()) { onUpdateComment?.(cm.id, editCommentText.trim()); setEditingCommentId(null); setEditCommentText(""); } }}
+                                disabled={!editCommentText.trim()}
+                                className="rounded-full bg-indigo-500 px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95 transition"
+                              >저장</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-neutral-600">{cm.content}</p>
+                        )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
               <div className="flex items-center gap-2">

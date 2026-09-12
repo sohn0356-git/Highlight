@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import PrayerCard from "@/components/PrayerCard";
 import { useApp } from "@/lib/store-context";
-import { fetchAllPrayerData, addPrayerComment } from "@/lib/db";
+import { fetchAllPrayerData, addPrayerComment, updatePrayerComment, deletePrayerComment } from "@/lib/db";
 import { koreaDate } from "@/lib/korea-date";
 
 export default function WeContent() {
@@ -74,6 +74,30 @@ export default function WeContent() {
     const newComment = { id: `temp_${Date.now()}`, prayerId, studentId: student!.id, studentName: student!.name, content: text, createdAt: new Date().toISOString() };
     setCommentsMap(prev => ({ ...prev, [prayerId]: [...(prev[prayerId] || []), newComment] }));
     await addPrayerComment({ prayerId, studentId: student!.id, studentName: student!.name, content: text });
+  };
+
+  const handleUpdateComment = async (commentId: string, text: string) => {
+    if (!text.trim()) return;
+    setCommentsMap(prev => {
+      const next: Record<string, any[]> = {};
+      for (const [pid, list] of Object.entries(prev)) {
+        next[pid] = list.map(c => c.id === commentId ? { ...c, content: text.trim() } : c);
+      }
+      return next;
+    });
+    await updatePrayerComment(commentId, text.trim());
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("댓글을 정말 삭제하시겠습니까?")) return;
+    setCommentsMap(prev => {
+      const next: Record<string, any[]> = {};
+      for (const [pid, list] of Object.entries(prev)) {
+        next[pid] = list.filter(c => c.id !== commentId);
+      }
+      return next;
+    });
+    await deletePrayerComment(commentId);
   };
 
   const handleAdd = async () => {
@@ -207,6 +231,8 @@ export default function WeContent() {
               onEditContentChange={setEditContent}
               comments={commentsMap[p.id] || []}
               onAddComment={(text) => handleAddComment(p.id, text)}
+              onUpdateComment={(id, text) => handleUpdateComment(id, text)}
+              onDeleteComment={(id) => handleDeleteComment(id)}
               studentName={student.name}
               participants={participantsMap[p.id] || []}
               hasPrayedToday={!!prayedTodayMap[p.id]}

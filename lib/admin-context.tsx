@@ -29,6 +29,7 @@ interface AdminState {
   bulkMarkAttendance: (studentIds: string[], sessionId: string, state: string) => void;
   getStudentAttendanceCount: (studentId: string, year?: number, month?: number) => number;
   markStudentAttendance: (studentId: string, sessionId: string, state: string) => void;
+  confirmAttendanceRewards: (sessionId: string) => Promise<{ attended: number; awarded: number; skipped: number; awardedIds: string[] }>;
 
   qtContents: QTContent[];
   addQTContent: (q: QTContent) => void;
@@ -398,7 +399,16 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const markStudentAttendance = useCallback(async (studentId: string, sessionId: string, state: string) => {
     const existing = records.find(r => r.studentId === studentId && r.sessionId === sessionId);
     if (existing) {
+      const prevState = existing.state;
       await updateAttendanceRecord(existing.id, { state: state as any });
+      const wasAttended = prevState === "present" || prevState === "late" || prevState === "online";
+      const isAttended = state === "present" || state === "late" || state === "online";
+      // 출석으로 바뀌면 20D 지급(1회), 결석으로 바뀌면 회수
+      if (!wasAttended && isAttended) {
+        try { await db.processAttendanceReward(existing.id, studentId); } catch {}
+      } else if (wasAttended && !isAttended) {
+        try { await db.reverseAttendanceReward(existing.id, studentId); } catch {}
+      }
     } else {
       const recordId = `ar_${studentId}_${sessionId}_${Date.now()}`;
       await addAttendanceRecord({
@@ -406,11 +416,20 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         state: state as any, checkTime: new Date().toISOString(), method: "manual",
       });
       // Present/late 출석 시 20D 달란트 지급
-      if (state === "present" || state === "late") {
+      if (state === "present" || state === "late" || state === "online") {
         try { await db.processAttendanceReward(recordId, studentId); } catch {}
       }
     }
   }, [records, updateAttendanceRecord, addAttendanceRecord]);
+
+  const confirmAttendanceRewards = useCallback(async (sessionId: string) => {
+    const result = await db.processAttendanceRewardsForSession(sessionId);
+    if (result.awardedIds.length) {
+      const ids = new Set(result.awardedIds);
+      setStudents(prev => prev.map(s => ids.has(s.id) ? { ...s, mileage: (Number(s.mileage) || 0) + 20 } : s));
+    }
+    return result;
+  }, []);
 
   /* ── QT Contents (DB-backed) ── */
   const addQTContent = useCallback(async (q: QTContent) => {
@@ -643,7 +662,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       students, addStudent, updateStudent, deactivateStudent,
       teachers, addTeacher, updateTeacher, removeTeacher,
       attendanceSessions: sessions, addAttendanceSession, closeAttendanceSession,
-      attendanceRecords: records, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance, getStudentAttendanceCount, markStudentAttendance,
+      attendanceRecords: records, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance, getStudentAttendanceCount, markStudentAttendance, confirmAttendanceRewards,
       qtContents, addQTContent, updateQTContent,
       missions: missionAdmins, addMission, updateMission,
       missionCompletions, approveMissionCompletion, rejectMissionCompletion,

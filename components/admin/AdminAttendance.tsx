@@ -19,7 +19,7 @@ function stateColor(s: AttendanceState) {
 }
 
 export default function AdminAttendance() {
-  const { attendanceSessions, attendanceRecords, addAttendanceSession, students, markStudentAttendance } = useAdmin();
+  const { attendanceSessions, attendanceRecords, addAttendanceSession, students, markStudentAttendance, confirmAttendanceRewards } = useAdmin();
   const { classes } = useApp();
 
   const [view, setView] = useState<"check" | "history">("check");
@@ -84,6 +84,30 @@ export default function AdminAttendance() {
 
   const [historyYear, setHistoryYear] = useState(thisYear);
   const [historyMonth, setHistoryMonth] = useState(new Date().getMonth() + 1);
+
+  const [confirming, setConfirming] = useState(false);
+  const [confirmMsg, setConfirmMsg] = useState("");
+
+  const attendedCount = useMemo(() => {
+    if (!thisWeekSession) return 0;
+    return attendanceRecords.filter(r => r.sessionId === thisWeekSession.id && (r.state === "present" || r.state === "late" || r.state === "online")).length;
+  }, [attendanceRecords, thisWeekSession]);
+
+  const handleConfirmAttendance = async () => {
+    if (!thisWeekSession) return;
+    if (!attendedCount) {
+      setConfirmMsg("이번 주 출석 기록이 없어요.");
+      setTimeout(() => setConfirmMsg(""), 2500);
+      return;
+    }
+    if (!confirm(`${attendedCount}명에게 20D씩 지급하시겠습니까?`)) return;
+    setConfirming(true);
+    setConfirmMsg("");
+    const result = await confirmAttendanceRewards(thisWeekSession.id);
+    setConfirming(false);
+    setConfirmMsg(result.awarded > 0 ? `${result.awarded}명에게 20D 지급 완료` : "이미 지급된 출석 기록이에요.");
+    setTimeout(() => setConfirmMsg(""), 3000);
+  };
 
   const historyRecords = useMemo(() => {
     return attendanceRecords.filter(r => {
@@ -190,6 +214,18 @@ export default function AdminAttendance() {
                     </div>
                   );
                 })}
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleConfirmAttendance}
+                  disabled={confirming}
+                  className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50 active:scale-[0.98] transition"
+                >
+                  {confirming ? "지급 중..." : `출석 확정 · ${attendedCount}명에게 20D 지급`}
+                </button>
+                {confirmMsg && (
+                  <p className="text-center text-xs font-semibold text-emerald-600">{confirmMsg}</p>
+                )}
               </div>
             </>
           )}

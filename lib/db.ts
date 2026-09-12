@@ -596,6 +596,14 @@ export async function addPrayerComment(comment: any) {
   } catch {}
 }
 
+export async function updatePrayerComment(id: string, content: string) {
+  const s = sb();
+  if (!s) return;
+  try {
+    await s.from("prayer_comments").update({ content }).eq("id", id);
+  } catch {}
+}
+
 export async function deletePrayerComment(id: string) {
   const s = sb();
   if (!s) return;
@@ -1538,4 +1546,22 @@ export async function reverseAttendanceReward(attendanceRecordId: string, studen
   }
 
   return true;
+}
+
+export async function processAttendanceRewardsForSession(sessionId: string): Promise<{ attended: number; awarded: number; skipped: number; awardedIds: string[] }> {
+  const s = sb();
+  if (!s) return { attended: 0, awarded: 0, skipped: 0, awardedIds: [] };
+  try {
+    const { data: records } = await s.from("attendance_records").select("id, student_id, state").eq("session_id", sessionId);
+    if (!records || !records.length) return { attended: 0, awarded: 0, skipped: 0, awardedIds: [] };
+    const attended = records.filter((r: any) => r.state === "present" || r.state === "late" || r.state === "online");
+    const awardedIds: string[] = [];
+    for (const r of attended) {
+      const ok = await processAttendanceReward(r.id, r.student_id);
+      if (ok) awardedIds.push(r.student_id);
+    }
+    return { attended: attended.length, awarded: awardedIds.length, skipped: attended.length - awardedIds.length, awardedIds };
+  } catch {
+    return { attended: 0, awarded: 0, skipped: 0, awardedIds: [] };
+  }
 }
