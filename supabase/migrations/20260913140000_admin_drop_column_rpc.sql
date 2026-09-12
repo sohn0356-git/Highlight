@@ -17,8 +17,7 @@ DECLARE
     'praises','missions','completed_missions','daily_quests',
     'community_activities','announcements','store_products','store_requests',
     'badges','badge_levels','student_badge_progress',
-    'mileage_transactions','audit_logs','seasons','settings','shared_goal',
-    'rewards','redemptions','activities','shared_posts','student_badges'
+    'mileage_transactions','audit_logs','settings'
   ];
 BEGIN
   IF p_table IS NULL OR p_column IS NULL OR trim(p_table) = '' OR trim(p_column) = '' THEN

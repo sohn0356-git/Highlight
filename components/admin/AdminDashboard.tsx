@@ -11,7 +11,7 @@ import { koreaDate } from "@/lib/korea-date";
 import type { AdminPageId } from "@/lib/admin-types";
 
 export default function AdminDashboard({ onNavigate }: { onNavigate: (page: AdminPageId) => void }) {
-  const { students, teachers, attendanceSessions, attendanceRecords, qtContents, missions, missionCompletions, prayers, allTransactions, season } = useAdmin();
+  const { students, teachers, attendanceSessions, attendanceRecords, qtContents, missions, missionCompletions, prayers, allTransactions } = useAdmin();
   const { classes } = useApp();
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const today = koreaDate();
@@ -52,21 +52,6 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
 
   return (
     <div className="space-y-5">
-      {/* Season banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-100">{season.name}</p>
-            <h2 className="mt-1 text-lg font-bold">{season.subtitle}</h2>
-            <p className="mt-1 text-xs text-indigo-100">{season.startDate} ~ {season.endDate}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[11px] text-indigo-100">공동 목표</p>
-            <p className="text-base font-bold">{(season.sharedGoalXp / 1000).toFixed(1)}K D</p>
-          </div>
-        </div>
-      </div>
-
       {/* Quick actions */}
       <section>
         <h3 className="mb-2 text-sm font-bold text-neutral-800">빠른 작업</h3>

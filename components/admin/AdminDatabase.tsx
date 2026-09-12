@@ -13,8 +13,7 @@ const DB_TABLES = [
   "praises", "missions", "completed_missions", "daily_quests",
   "community_activities", "announcements", "store_products", "store_requests",
   "badges", "badge_levels", "student_badge_progress",
-  "mileage_transactions", "audit_logs", "seasons", "settings", "shared_goal",
-  "rewards", "redemptions", "activities", "shared_posts", "student_badges",
+  "mileage_transactions", "audit_logs", "settings",
 ];
 
 type CellValue = string | number | boolean | null | undefined | Record<string, unknown> | unknown[];
@@ -130,8 +129,6 @@ export default function AdminDatabase() {
         target_type: table,
         target_id: targetId,
         description: `DB 편집기: ${table} ${action === "db_delete" ? "삭제" : action === "db_insert" ? "추가" : action === "db_drop_column" ? "컬럼 삭제" : "수정"} (${targetId})`,
-        before_data: before || "",
-        after_data: after || "",
         created_at: new Date().toISOString(),
       }]);
     } catch { /* 감사 기록 실패는 편집을 막지 않음 */ }
