@@ -314,13 +314,6 @@ export default function QTContent() {
                 </>
               );
             })()}
-          {qtRecords.length > PAGE_SIZE && (
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <button onClick={() => setRecordsPage(p => Math.max(0, p - 1))} disabled={recordsPage === 0} className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40">← 이전</button>
-              <span className="text-xs text-neutral-400">{recordsPage + 1}/{Math.ceil(qtRecords.length / PAGE_SIZE)}</span>
-              <button onClick={() => setRecordsPage(p => p + 1)} disabled={(recordsPage + 1) * PAGE_SIZE >= qtRecords.length} className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40">다음 →</button>
-            </div>
-          )}
           </div>
         </div>
       )}

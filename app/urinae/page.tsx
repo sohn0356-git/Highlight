@@ -95,8 +95,8 @@ export default function WeContent() {
       [prayerId]: [...(prev[prayerId] || []), { studentId: student!.id, studentName: student!.name, prayedAt: new Date().toISOString(), totalPrayerCount: 1 }],
     }));
     const ok = await prayFor(prayerId, prayerStudentId);
-    // 실제로 기도 기록이 생성됐을 때만 d5 퀘스트 완료
-    if (ok && !dailyQuestIds.includes("d5")) {
+    // 실제로 기도 기록이 생성됐을 때만 d5 퀘스트 완료 (자기 기도제목 제외)
+    if (ok && prayerStudentId !== student!.id && !dailyQuestIds.includes("d5")) {
       completeDailyQuest("d5");
     }
     // 전체 리패치 제거: 낙관적 UI 유지, 서버와 싱크는 다음 방문 시

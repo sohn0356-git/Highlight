@@ -1444,16 +1444,18 @@ export async function fetchTopMileageRanking() {
   if (!s) return [];
   try {
     const { data, error } = await s.from("students")
-      .select("id, name, class_id, talents")
+      .select("id, name, class_id, talents, is_teacher, role, active")
       .order("talents", { ascending: false })
-      .limit(10);
+      .limit(20);
     if (error || !data) return [];
     return data
       .filter((r: any) => {
         const name = (r.name || "").trim();
         if (!name) return false;
-        // Filter out teachers/admins by naming patterns
-        if (name.includes("선생님") || name.includes("목사")) return false;
+        // 교사/관리자/비활성 계정은 랭킹에서 제외
+        if (r.is_teacher === true) return false;
+        if (r.role === "admin" || r.role === "teacher") return false;
+        if (r.active === false) return false;
         return true;
       })
       .slice(0, 5)

@@ -387,7 +387,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!rec) return;
     setQtRecords(prev => [rec as QTRecord, ...prev]);
     setQtDoneToday(true);
-    showPointToast(`+${reward}M`);
+    showPointToast(`+${reward}D`);
     // Mileage + XP
     const newTotal = (student.mileage || 0) + reward;
     await db.updateStudentField(student.id, "talents", newTotal);
@@ -544,7 +544,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!quest) return;
     await db.completeDailyQuest(student.id, questId, today, quest.reward, quest.reward);
     setDailyQuestIds(prev => [...prev, questId]);
-    showPointToast(`+${quest.reward}M`);
+    showPointToast(`+${quest.reward}D`);
     const newTotal = (student.mileage || 0) + quest.reward;
     await db.updateStudentField(student.id, "talents", newTotal);
     await db.addTransaction({ studentId: student.id, studentName: student.name, className: student.classId, type: "일일퀘스트", description: quest.title, amount: quest.reward, date: today });

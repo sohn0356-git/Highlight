@@ -94,7 +94,20 @@ export default function PraiseContent() {
       }
 
       // Award mileage: praised +10, praiser +5 (교사는 students 계정으로 지급)
-      const praisedMileage = (praised.mileage || 0) + 10;
+      let praisedBase: number = praised.mileage || 0;
+      if (praised.isTeacher) {
+        // 교사에게 칭찬 시 FK 대상인 students 행 보장 (+ 기존 잔액 유지)
+        const { data: st } = await sb.from("students").select("id, talents").eq("id", praisedId).limit(1);
+        if (!st || !st.length) {
+          await sb.from("students").insert([{
+            id: praisedId, name: praised.name, birth_date: "", class_id: praised.classId || "",
+            role: "teacher", is_teacher: true, active: true, grade: 0, talents: 0,
+          }]);
+        } else {
+          praisedBase = Number(st[0].talents) || 0;
+        }
+      }
+      const praisedMileage = praisedBase + 10;
       await sb.from("students").update({ talents: praisedMileage }).eq("id", praisedId);
       const myMileage = (student.mileage || 0) + 5;
       await sb.from("students").update({ talents: myMileage }).eq("id", student.id);

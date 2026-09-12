@@ -68,7 +68,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
       isMine: s.id === myStudentId,
     }))
     .filter(r => r.name !== "이름없음")
-    .sort((a, b) => b.value - a.value || (a.isMine ? -1 : b.isMine ? 1 : 0))
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, "ko"))
     .slice(0, 10);
   const topStudent = personalRows[0];
 
