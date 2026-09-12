@@ -18,7 +18,7 @@ function mapStudent(r: any): Student {
     name: r.name,
     birthDate: r.birth_date || "",
     classId,
-    grade: Number(r.grade) || (classId.includes("_g1_") ? 1 : classId.includes("_g2_") ? 2 : classId.includes("_g3_") ? 3 : 0),
+    grade: classId.includes("_g1_") ? 1 : classId.includes("_g2_") ? 2 : classId.includes("_g3_") ? 3 : 0,
     className: r.class_name || "",
     mileage: Number(r.mileage) || 0,
     xp: Number(r.mileage) || 0,
@@ -103,7 +103,7 @@ export async function fetchActiveStudents() {
 export async function upsertStudent(student: any) {
   const s = sb();
   if (!s) return;
-  const grade = student.grade || (String(student.classId || "").includes("_g1_") ? 1 : String(student.classId || "").includes("_g2_") ? 2 : String(student.classId || "").includes("_g3_") ? 3 : 1);
+  const grade = String(student.classId || "").includes("_g1_") ? 1 : String(student.classId || "").includes("_g2_") ? 2 : String(student.classId || "").includes("_g3_") ? 3 : student.grade || 0;
   await s.from("students").upsert({
     id: student.id, name: student.name, birth_date: student.birthDate || "",
     class_id: student.classId || "", mileage: student.mileage || 0,

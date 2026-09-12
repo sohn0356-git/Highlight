@@ -113,7 +113,8 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         const sData = await db.fetchStudents();
         setStudents(sData.map((s: any) => ({
           id: s.id, name: s.name, birthDate: s.birthDate || "", classId: s.classId || "",
-          mileage: s.mileage || 0, xp: s.xp || 0, grade: s.grade || 1,
+          mileage: s.mileage || 0, xp: s.xp || 0,
+          grade: String(s.classId || "").includes("_g1_") ? 1 : String(s.classId || "").includes("_g2_") ? 2 : String(s.classId || "").includes("_g3_") ? 3 : 0,
           role: (s.role || "student") as "student" | "teacher" | "admin",
           active: s.active !== false,
           phone: s.phone || "", guardianPhone: s.guardianPhone || "", memo: s.memo || "",
@@ -255,7 +256,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Students CRUD (DB-backed) ── */
   const addStudent = useCallback(async (s: AdminStudent) => {
-    await db.upsertStudent({ ...s, grade: Number(s.classId?.match(/_g(\d)_/)?.[1]) || 1 });
+    await db.upsertStudent({ ...s, grade: Number(s.classId?.match(/_g(\d)_/)?.[1]) || 0 });
     setStudents(prev => [...prev, s]);
   }, []);
 
