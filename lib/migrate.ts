@@ -47,7 +47,7 @@ CREATE POLICY "attrew_all" ON attendance_rewards FOR ALL USING (true);
 CREATE INDEX IF NOT EXISTS idx_mileage_tx_student ON mileage_transactions(student_id);
 CREATE INDEX IF NOT EXISTS idx_mileage_tx_date ON mileage_transactions(date);
 CREATE INDEX IF NOT EXISTS idx_attendance_records_student ON attendance_records(student_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_records_session ON attendance_records(session_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_records_year_week ON attendance_records(year, week);
 CREATE INDEX IF NOT EXISTS idx_qt_records_student ON qt_records(student_id);
 CREATE INDEX IF NOT EXISTS idx_qt_records_date ON qt_records(date);
 CREATE INDEX IF NOT EXISTS idx_student_badge_progress_student ON student_badge_progress(student_id);

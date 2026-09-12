@@ -7,11 +7,11 @@ import { useEffect, useState } from "react";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
 import { fetchRecentActivities, type RecentActivity } from "@/lib/admin-activity-service";
-import { koreaDate } from "@/lib/korea-date";
+import { koreaDate, getWeekNumber, sundayFromWeek, fmt } from "@/lib/korea-date";
 import type { AdminPageId } from "@/lib/admin-types";
 
 export default function AdminDashboard({ onNavigate }: { onNavigate: (page: AdminPageId) => void }) {
-  const { students, teachers, attendanceSessions, attendanceRecords, qtContents, missions, missionCompletions, prayers, allTransactions } = useAdmin();
+  const { students, teachers, attendanceRecords, qtContents, missions, missionCompletions, prayers, allTransactions } = useAdmin();
   const { classes } = useApp();
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const today = koreaDate();
@@ -20,10 +20,8 @@ export default function AdminDashboard({ onNavigate }: { onNavigate: (page: Admi
     fetchRecentActivities().then(setRecentActivities);
   }, []);
 
-  const todayRecords = attendanceRecords.filter(r => {
-    const session = attendanceSessions.find(s => s.id === r.sessionId);
-    return session?.date === today;
-  });
+  const todayYw = { year: new Date(today + "T00:00:00").getFullYear(), week: getWeekNumber(today) };
+  const todayRecords = attendanceRecords.filter(r => r.year === todayYw.year && r.week === todayYw.week);
   const thisWeekQT = qtContents.filter(q => q.active);
   const pendingMissions = missionCompletions.filter(m => m.status === "pending");
   const weekBonus = allTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);

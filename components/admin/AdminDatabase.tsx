@@ -7,7 +7,7 @@ import { koreaDate } from "@/lib/korea-date";
 /* 관리자 DB 편집기 - 실제 운영 테이블 (리모트 DB 존재 확인 완료) */
 const DB_TABLES = [
   "students", "teachers", "classes",
-  "attendance_sessions", "attendance_records", "attendance_rewards",
+  "attendance_records", "attendance_rewards",
   "qt_today", "qt_records", "qt_comments", "shared_qt_posts",
   "prayer_requests", "prayer_participants", "prayer_comments",
   "praises", "missions", "completed_missions", "daily_quests",

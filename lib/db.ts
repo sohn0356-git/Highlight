@@ -6,7 +6,7 @@
  */
 import { getSupabase } from "./supabase";
 import type { Student } from "./types";
-import { koreaDate } from "./korea-date";
+import { koreaDate, getWeekNumber, sundayFromWeek } from "./korea-date";
 
 /* ── Helpers ── */
 function sb() { return getSupabase(); }
@@ -672,48 +672,23 @@ export async function deleteQTRecord(id: string) {
 }
 
 /* ── Attendance ── */
-export async function fetchAttendanceSessions() {
-  const s = sb();
-  if (!s) return [];
-  const { data, error } = await s.from("attendance_sessions").select("*").order("date", { ascending: false });
-  if (error || !data) return [];
-  return data.map((r: any) => ({
-    id: r.id, eventName: r.event_name || "주일예배", date: r.date,
-    startTime: r.start_time || "10:00", endTime: r.end_time || "12:00",
-    active: !!r.active, mileageReward: Number(r.mileage_reward) || 20,
-    xpReward: Number(r.xp_reward) || 20, createdBy: r.created_by || "",
-  }));
+/** Get Korean year + week number from a date string */
+export function yearWeekFromDate(dateStr: string): { year: number; week: number } {
+  const d = new Date(dateStr + "T00:00:00");
+  return { year: d.getFullYear(), week: getWeekNumber(dateStr) };
 }
 
-export async function insertAttendanceSession(session: any) {
-  const s = sb();
-  if (!s) return;
-  await s.from("attendance_sessions").insert([{
-    id: session.id, event_name: session.eventName || "주일예배",
-    date: session.date, start_time: session.startTime || "10:00",
-    end_time: session.endTime || "12:00", active: session.active || false,
-    mileage_reward: session.mileageReward || 20, xp_reward: session.xpReward || 20,
-    created_by: session.createdBy || "",
-  }]);
-}
-
-export async function updateAttendanceSession(id: string, patch: any) {
-  const s = sb();
-  if (!s) return;
-  const update: any = {};
-  if (patch.active !== undefined) update.active = patch.active;
-  await s.from("attendance_sessions").update(update).eq("id", id);
-}
-
-export async function fetchAttendanceRecords(sessionId?: string) {
+export async function fetchAttendanceRecords(year?: number, week?: number) {
   const s = sb();
   if (!s) return [];
   let q = s.from("attendance_records").select("*");
-  if (sessionId) q = q.eq("session_id", sessionId);
+  if (year) q = q.eq("year", year);
+  if (week) q = q.eq("week", week);
   const { data, error } = await q;
   if (error || !data) return [];
   return data.map((r: any) => ({
-    id: r.id, studentId: r.student_id, sessionId: r.session_id,
+    id: r.id, studentId: r.student_id,
+    year: r.year, week: r.week,
     state: r.state || "absent", checkTime: r.check_time || "",
     method: r.method || "manual",
   }));
@@ -723,11 +698,12 @@ export async function upsertAttendanceRecord(record: any) {
   const s = sb();
   if (!s) return;
   await s.from("attendance_records").upsert({
-    id: record.id, session_id: record.sessionId,
-    student_id: record.studentId, state: record.state || "absent",
+    id: record.id, student_id: record.studentId,
+    year: record.year, week: record.week,
+    state: record.state || "absent",
     check_time: record.checkTime || new Date().toISOString(),
     method: record.method || "manual",
-  }, { onConflict: "session_id,student_id" });
+  }, { onConflict: "student_id,year,week" });
 }
 
 export async function updateAttendanceRecord(id: string, patch: any) {
@@ -742,7 +718,7 @@ export async function updateAttendanceRecord(id: string, patch: any) {
 export async function fetchAttendanceCount(studentId: string) {
   const s = sb();
   if (!s) return 0;
-  const { data, error } = await s.from("attendance_records").select("id, state, session_id").eq("student_id", studentId);
+  const { data, error } = await s.from("attendance_records").select("id, state").eq("student_id", studentId);
   if (error || !data) return 0;
   return data.filter((r: any) => r.state === "present" || r.state === "late").length;
 }
@@ -750,10 +726,8 @@ export async function fetchAttendanceCount(studentId: string) {
 export async function fetchStudentAttendanceForDate(studentId: string, date: string) {
   const s = sb();
   if (!s) return null;
-  // Find session for this date
-  const { data: sessions } = await s.from("attendance_sessions").select("id").eq("date", date).limit(1);
-  if (!sessions || !sessions.length) return null;
-  const { data } = await s.from("attendance_records").select("*").eq("session_id", sessions[0].id).eq("student_id", studentId).limit(1);
+  const { year, week } = yearWeekFromDate(date);
+  const { data } = await s.from("attendance_records").select("*").eq("student_id", studentId).eq("year", year).eq("week", week).limit(1);
   return data && data.length ? data[0] : null;
 }
 
@@ -1498,12 +1472,11 @@ export async function processAttendanceReward(attendanceRecordId: string, studen
   });
   if (rewErr) return false;
 
-  // Create mileage transaction
-  const { data: record } = await s.from("attendance_records").select("*").eq("id", attendanceRecordId).single();
+  // Create mileage transaction — compute date from year/week
+  const { data: record } = await s.from("attendance_records").select("year, week").eq("id", attendanceRecordId).single();
   let date = koreaDate();
-  if (record) {
-    const { data: session } = await s.from("attendance_sessions").select("date").eq("id", record.session_id).single();
-    if (session) date = session.date;
+  if (record && record.year && record.week) {
+    date = (() => { const sd = sundayFromWeek(record.year, record.week); const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(sd); return p; })();
   }
 
   await s.from("mileage_transactions").insert({
@@ -1548,11 +1521,11 @@ export async function reverseAttendanceReward(attendanceRecordId: string, studen
   return true;
 }
 
-export async function processAttendanceRewardsForSession(sessionId: string): Promise<{ attended: number; awarded: number; skipped: number; awardedIds: string[] }> {
+export async function processAttendanceRewardsForWeek(year: number, week: number): Promise<{ attended: number; awarded: number; skipped: number; awardedIds: string[] }> {
   const s = sb();
   if (!s) return { attended: 0, awarded: 0, skipped: 0, awardedIds: [] };
   try {
-    const { data: records } = await s.from("attendance_records").select("id, student_id, state").eq("session_id", sessionId);
+    const { data: records } = await s.from("attendance_records").select("id, student_id, state").eq("year", year).eq("week", week);
     if (!records || !records.length) return { attended: 0, awarded: 0, skipped: 0, awardedIds: [] };
     const attended = records.filter((r: any) => r.state === "present" || r.state === "late" || r.state === "online");
     const awardedIds: string[] = [];

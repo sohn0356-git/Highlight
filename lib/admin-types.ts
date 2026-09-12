@@ -31,21 +31,11 @@ export interface AdminTeacher extends User {
 /* ── Attendance ── */
 export type AttendanceState = "present" | "late" | "online" | "absent";
 
-export interface AttendanceSession {
-  id: string;
-  eventName: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  mileageReward: number;
-  xpReward: number;
-  active: boolean;
-}
-
 export interface AttendanceRecordAdmin {
   id: string;
   studentId: string;
-  sessionId: string;
+  year: number;
+  week: number;
   state: AttendanceState;
   checkTime: string;
   method: "manual";

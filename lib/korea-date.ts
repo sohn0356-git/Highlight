@@ -93,6 +93,21 @@ export function getWeekNumber(dateStr?: string): number {
   return Math.ceil((dayOfYear + jan1Day + 1) / 7);
 }
 
+/**
+ * Get the Sunday (주일) for a given year + week number (matching getWeekNumber).
+ * Week boundaries are Sunday; displayed range is Mon-Sun.
+ */
+export function sundayFromWeek(year: number, week: number): Date {
+  const jan1 = new Date(year, 0, 1);
+  const day1 = jan1.getDay();
+  const firstSunday = new Date(jan1);
+  firstSunday.setDate(jan1.getDate() + ((7 - day1) % 7));
+  const firstSunWeek = getWeekNumber(fmt(firstSunday));
+  const sunday = new Date(firstSunday);
+  sunday.setDate(firstSunday.getDate() + (week - firstSunWeek) * 7);
+  return sunday;
+}
+
 /** Is the given date today in Korea time? */
 export function isToday(dateStr: string): boolean {
   return dateStr === koreaDate();

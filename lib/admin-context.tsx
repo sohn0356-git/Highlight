@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import type { AdminStudent, AdminTeacher, AttendanceSession, AttendanceRecordAdmin, QTContent, MissionAdmin, MissionCompletionAdmin, Announcement, Reward, RewardRedemption, SeasonAdmin, BadgeAdmin, AuditLog, AdminSettings, MileageActionType } from "./admin-types";
+import type { AdminStudent, AdminTeacher, AttendanceRecordAdmin, QTContent, MissionAdmin, MissionCompletionAdmin, Announcement, Reward, RewardRedemption, SeasonAdmin, BadgeAdmin, AuditLog, AdminSettings, MileageActionType } from "./admin-types";
 import type { PrayerRequestAdmin } from "./admin-types";
 import { koreaDate } from "./korea-date";
 import { isSupabaseReady } from "./config";
@@ -20,16 +20,13 @@ interface AdminState {
   updateTeacher: (id: string, patch: Partial<AdminTeacher>) => void;
   removeTeacher: (id: string) => void;
 
-  attendanceSessions: AttendanceSession[];
-  addAttendanceSession: (s: AttendanceSession) => void;
-  closeAttendanceSession: (id: string) => void;
   attendanceRecords: AttendanceRecordAdmin[];
   addAttendanceRecord: (r: AttendanceRecordAdmin) => void;
   updateAttendanceRecord: (id: string, patch: Partial<AttendanceRecordAdmin>) => void;
-  bulkMarkAttendance: (studentIds: string[], sessionId: string, state: string) => void;
+  bulkMarkAttendance: (studentIds: string[], year: number, week: number, state: string) => void;
   getStudentAttendanceCount: (studentId: string, year?: number, month?: number) => number;
-  markStudentAttendance: (studentId: string, sessionId: string, state: string) => void;
-  confirmAttendanceRewards: (sessionId: string) => Promise<{ attended: number; awarded: number; skipped: number; awardedIds: string[] }>;
+  markStudentAttendance: (studentId: string, year: number, week: number, state: string) => void;
+  confirmAttendanceRewards: (year: number, week: number) => Promise<{ attended: number; awarded: number; skipped: number; awardedIds: string[] }>;
 
   qtContents: QTContent[];
   addQTContent: (q: QTContent) => void;
@@ -87,7 +84,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<AdminState["currentUser"]>(null);
   const [students, setStudents] = useState<AdminStudent[]>([]);
   const [teachers, setTeachers] = useState<AdminTeacher[]>([]);
-  const [sessions, setSessions] = useState<AttendanceSession[]>([]);
   const [records, setRecords] = useState<AttendanceRecordAdmin[]>([]);
   const [qtContents, setQTContents] = useState<QTContent[]>([]);
   const [missionAdmins, setMissionAdmins] = useState<MissionAdmin[]>([]);
@@ -130,17 +126,10 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           assignedClassIds: t.assignedClassIds || [], active: t.active !== false,
         })));
 
-        // Attendance sessions
-        const sessData = await db.fetchAttendanceSessions();
-        if (sessData.length) setSessions(sessData.map((s: any) => ({
-          id: s.id, eventName: s.eventName, date: s.date, startTime: s.startTime,
-          endTime: s.endTime, active: s.active, mileageReward: s.mileageReward, xpReward: s.xpReward,
-        })));
-
-        // Attendance records
+        // Attendance records (year + week 기반)
         const recData = await db.fetchAttendanceRecords();
         if (recData.length) setRecords(recData.map((r: any) => ({
-          id: r.id, studentId: r.studentId, sessionId: r.sessionId,
+          id: r.id, studentId: r.studentId, year: r.year, week: r.week,
           state: r.state as any, checkTime: r.checkTime, method: r.method as "manual",
         })));
 
@@ -333,24 +322,10 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   }, [teachers]);
 
   /* ── Attendance (DB-backed) ── */
-  const addAttendanceSession = useCallback(async (s: AttendanceSession) => {
-    setSessions(prev => [...prev, s]);
-    try {
-      await db.insertAttendanceSession(s);
-    } catch (e) {
-      console.error("Failed to save attendance session:", e);
-    }
-  }, []);
-
-  const closeAttendanceSession = useCallback(async (id: string) => {
-    setSessions(prev => prev.map(s => s.id === id ? { ...s, active: false } : s));
-    await db.updateAttendanceSession(id, { active: false });
-  }, []);
-
   const addAttendanceRecord = useCallback(async (r: AttendanceRecordAdmin) => {
     setRecords(prev => {
-      const exists = prev.some(x => x.studentId === r.studentId && x.sessionId === r.sessionId);
-      if (exists) return prev.map(x => x.studentId === r.studentId && x.sessionId === r.sessionId ? { ...x, state: r.state } : x);
+      const exists = prev.some(x => x.studentId === r.studentId && x.year === r.year && x.week === r.week);
+      if (exists) return prev.map(x => x.studentId === r.studentId && x.year === r.year && x.week === r.week ? { ...x, state: r.state } : x);
       return [...prev, r];
     });
     try {
@@ -365,18 +340,18 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     if (patch.state) await db.updateAttendanceRecord(id, patch);
   }, []);
 
-  const bulkMarkAttendance = useCallback(async (studentIds: string[], sessionId: string, state: string) => {
+  const bulkMarkAttendance = useCallback(async (studentIds: string[], year: number, week: number, state: string) => {
     const newRecords: AttendanceRecordAdmin[] = studentIds.map(studentId => ({
-      id: `ar_${studentId}_${sessionId}_${Date.now()}`, studentId, sessionId,
+      id: `ar_${studentId}_${year}w${week}_${Date.now()}`, studentId, year, week,
       state: state as any, checkTime: new Date().toISOString(), method: "manual" as const,
     }));
     setRecords(prev => {
-      const updated = prev.filter(r => r.sessionId !== sessionId);
+      const updated = prev.filter(r => !(r.year === year && r.week === week));
       return [...updated, ...newRecords];
     });
     for (const r of newRecords) {
       await db.upsertAttendanceRecord(r);
-      if (state === "present" || state === "late") {
+      if (state === "present" || state === "late" || state === "online") {
         try { await db.processAttendanceReward(r.id, r.studentId); } catch {}
       }
     }
@@ -386,44 +361,49 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     return records.filter(r => {
       if (r.studentId !== studentId) return false;
       if (r.state !== "present" && r.state !== "late") return false;
-      const session = sessions.find(s => s.id === r.sessionId);
-      if (!session) return false;
       if (year && month) {
-        const d = new Date(session.date);
-        return d.getFullYear() === year && d.getMonth() + 1 === month;
+        // Sunday of this year+week to check if it falls in the given year+month
+        const sunday = new Date(r.year, 0, 1);
+        // Reconstruct from year/week: use getWeekNumber logic to match month
+        // Simple: if r.year matches and month check on any known date
+        // Use getWeekNumber to get approximate month by checking first day of year + week offset
+        if (r.year !== year) return false;
+        // Approximate: week W's dates fall between (W-1)*7 and W*7 from year start
+        const jan1 = new Date(r.year, 0, 1);
+        const approxDate = new Date(jan1);
+        approxDate.setDate(jan1.getDate() + r.week * 7 - 1);
+        return approxDate.getMonth() + 1 === month;
       }
       return true;
     }).length;
-  }, [records, sessions]);
+  }, [records]);
 
-  const markStudentAttendance = useCallback(async (studentId: string, sessionId: string, state: string) => {
-    const existing = records.find(r => r.studentId === studentId && r.sessionId === sessionId);
+  const markStudentAttendance = useCallback(async (studentId: string, year: number, week: number, state: string) => {
+    const existing = records.find(r => r.studentId === studentId && r.year === year && r.week === week);
     if (existing) {
       const prevState = existing.state;
       await updateAttendanceRecord(existing.id, { state: state as any });
       const wasAttended = prevState === "present" || prevState === "late" || prevState === "online";
       const isAttended = state === "present" || state === "late" || state === "online";
-      // 출석으로 바뀌면 20D 지급(1회), 결석으로 바뀌면 회수
       if (!wasAttended && isAttended) {
         try { await db.processAttendanceReward(existing.id, studentId); } catch {}
       } else if (wasAttended && !isAttended) {
         try { await db.reverseAttendanceReward(existing.id, studentId); } catch {}
       }
     } else {
-      const recordId = `ar_${studentId}_${sessionId}_${Date.now()}`;
+      const recordId = `ar_${studentId}_${year}w${week}_${Date.now()}`;
       await addAttendanceRecord({
-        id: recordId, studentId, sessionId,
+        id: recordId, studentId, year, week,
         state: state as any, checkTime: new Date().toISOString(), method: "manual",
       });
-      // Present/late 출석 시 20D 달란트 지급
       if (state === "present" || state === "late" || state === "online") {
         try { await db.processAttendanceReward(recordId, studentId); } catch {}
       }
     }
   }, [records, updateAttendanceRecord, addAttendanceRecord]);
 
-  const confirmAttendanceRewards = useCallback(async (sessionId: string) => {
-    const result = await db.processAttendanceRewardsForSession(sessionId);
+  const confirmAttendanceRewards = useCallback(async (year: number, week: number) => {
+    const result = await db.processAttendanceRewardsForWeek(year, week);
     if (result.awardedIds.length) {
       const ids = new Set(result.awardedIds);
       setStudents(prev => prev.map(s => ids.has(s.id) ? { ...s, mileage: (Number(s.mileage) || 0) + 20 } : s));
@@ -648,7 +628,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Reset ── */
   const resetToSeedData = useCallback(() => {
-    setStudents([]); setTeachers([]); setSessions([]); setRecords([]);
+    setStudents([]); setTeachers([]); setRecords([]);
     setQTContents([]); setMissionAdmins([]); setMissionCompletions([]);
     setPrayers([]); setAnnouncements([]); setAllTx([]);
     setRewards([]); setRedemptions([]); setBadges([]);
@@ -661,7 +641,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       currentUser, setCurrentUser,
       students, addStudent, updateStudent, deactivateStudent,
       teachers, addTeacher, updateTeacher, removeTeacher,
-      attendanceSessions: sessions, addAttendanceSession, closeAttendanceSession,
       attendanceRecords: records, addAttendanceRecord, updateAttendanceRecord, bulkMarkAttendance, getStudentAttendanceCount, markStudentAttendance, confirmAttendanceRewards,
       qtContents, addQTContent, updateQTContent,
       missions: missionAdmins, addMission, updateMission,
