@@ -351,9 +351,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     });
     for (const r of newRecords) {
       await db.upsertAttendanceRecord(r);
-      if (state === "present" || state === "late" || state === "online") {
-        try { await db.processAttendanceReward(r.id, r.studentId); } catch {}
-      }
     }
   }, []);
 
@@ -381,24 +378,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const markStudentAttendance = useCallback(async (studentId: string, year: number, week: number, state: string) => {
     const existing = records.find(r => r.studentId === studentId && r.year === year && r.week === week);
     if (existing) {
-      const prevState = existing.state;
       await updateAttendanceRecord(existing.id, { state: state as any });
-      const wasAttended = prevState === "present" || prevState === "late" || prevState === "online";
-      const isAttended = state === "present" || state === "late" || state === "online";
-      if (!wasAttended && isAttended) {
-        try { await db.processAttendanceReward(existing.id, studentId); } catch {}
-      } else if (wasAttended && !isAttended) {
-        try { await db.reverseAttendanceReward(existing.id, studentId); } catch {}
-      }
     } else {
       const recordId = `ar_${studentId}_${year}w${week}_${Date.now()}`;
       await addAttendanceRecord({
         id: recordId, studentId, year, week,
         state: state as any, checkTime: new Date().toISOString(), method: "manual",
       });
-      if (state === "present" || state === "late" || state === "online") {
-        try { await db.processAttendanceReward(recordId, studentId); } catch {}
-      }
     }
   }, [records, updateAttendanceRecord, addAttendanceRecord]);
 

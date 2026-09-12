@@ -22,11 +22,11 @@ BEGIN
   WHERE COALESCE(talents, 0) <> 0;
 
   -- 학생 달란트 0으로
-  UPDATE students SET talents = 0;
+  UPDATE students SET talents = 0 WHERE true;
   GET DIAGNOSTICS n = ROW_COUNT;
 
   -- 반(클래스) 총합 동기화
-  UPDATE classes SET xp = 0, weekly_xp = 0;
+  UPDATE classes SET xp = 0, weekly_xp = 0 WHERE true;
 
   -- 감사 기록
   INSERT INTO audit_logs (id, actor_id, actor_role, action, target_type, target_id, description, created_at)
