@@ -8,3 +8,4 @@ dist/
 # Next.js build artifacts
 next-env.d.ts
 tsconfig.tsbuildinfo
+supabase/.temp/
