@@ -61,10 +61,6 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
 
   /* ── 개인별 달란트 랭킹 (최대 10위) ── */
   const personalRows: RankRow[] = (students || [])
-    .filter((s: any) => {
-      if (myGrade === 0) return false; // Unassigned students don't show in ranking
-      return (s.grade || 0) === myGrade;
-    })
     .map((s: any) => ({
       key: s.id,
       name: s.name || "이름없음",

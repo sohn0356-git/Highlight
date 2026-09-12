@@ -59,6 +59,8 @@ function stripTags(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/g, " ")
     .replace(/<style[\s\S]*?<\/style>/g, " ")
+    // Remove <p class="title"> section headers (e.g. "방황하는 종을 찾으소서 119:176")
+    .replace(/<p[^>]*class="[^"]*title[^"]*"[^>]*>[\s\S]*?<\/p>/g, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -80,6 +82,16 @@ function normalizeBibleText(text) {
     if (/^\d{1,3}\s/.test(line.trim())) return true;
     if (/\d+\s*:\s*\d+/.test(line) && !/^\d{1,3}\s/.test(line.trim())) return false;
     return true;
+  }).join("\n");
+
+  // Remove section-header text embedded at end of a verse line
+  // Example: "...나를 돕게 하소서 방황하는 종을 찾으소서 119:176" -> "...나를 돕게 하소서"
+  result = result.split("\n").map(line => {
+    const m = line.match(/[가-힣]+\s*\d+\s*:\s*\d+(?:~\d+)?\s*$/);
+    if (!m || !m.index) return line;
+    const before = line.substring(0, m.index).trimEnd();
+    if (!before || /^\d{1,3}\s/.test(before.trim())) return line;
+    return before;
   }).join("\n");
 
   // Remove embedded section headers at end of verse lines
