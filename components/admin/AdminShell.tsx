@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ClipboardCheck, Users, FileText, Settings,
   Menu, X, ChevronLeft, Bell, GraduationCap,
   CalendarCheck, BookOpen, Target, Megaphone, HandHeart,
-  Award, Gift, Sun, ShieldCheck, BarChart3, ScrollText,
+  Award, Gift, Sun, ShieldCheck, BarChart3, ScrollText, Database as DatabaseIcon,
 } from "lucide-react";
 import type { AdminPageId } from "@/lib/admin-types";
 import { useAdmin } from "@/lib/admin-context";
@@ -35,6 +35,7 @@ const navGroups: NavGroup[] = [
       { id: "students", label: "학생 관리", icon: Users },
       { id: "content", label: "콘텐츠 관리", icon: FileText },
       { id: "management", label: "시스템 관리", icon: Settings },
+      { id: "database", label: "DB 관리", icon: DatabaseIcon },
     ],
   },
 ];

@@ -6,6 +6,7 @@ import AdminAttendance from "./AdminAttendance";
 import AdminStudents from "./AdminStudents";
 import AdminContent from "./AdminContent";
 import AdminManagement from "./AdminManagement";
+import AdminDatabase from "./AdminDatabase";
 import { AdminProvider } from "@/lib/admin-context";
 import type { AdminPageId } from "@/lib/admin-types";
 
@@ -20,6 +21,7 @@ export default function AdminApp({ onExit }: { onExit: () => void }) {
         {activePage === "students" && <AdminStudents />}
         {activePage === "content" && <AdminContent />}
         {activePage === "management" && <AdminManagement onNavigate={setActivePage} />}
+        {activePage === "database" && <AdminDatabase />}
       </AdminShell>
     </AdminProvider>
   );
