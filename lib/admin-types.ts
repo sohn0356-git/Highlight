@@ -17,6 +17,7 @@ export interface AdminStudent extends User {
   role: "student" | "teacher" | "admin";
   classId: string;
   mileage: number;
+  grade?: number;
   phone?: string;
   guardianPhone?: string;
   memo?: string;
