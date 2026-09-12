@@ -18,20 +18,6 @@ export interface Student {
   enrollmentStatus?: string;
 }
 
-export interface ClassRoom {
-  id: string;
-  name: string;
-  level: number;
-  xp: number;
-  weeklyXp: number;
-  attendance: { attended: number; total: number };
-  qtCount: number;
-  missionCount: number;
-  prayerCount: number;
-  classMessage: string;
-  grade?: number;
-}
-
 export interface SchoolClass {
   id: string;
   name: string;
@@ -69,13 +55,6 @@ export interface Mission {
   xpReward?: number;
   approvalRequired?: boolean;
   target?: string;
-}
-
-export interface CompletedMission {
-  missionId: string;
-  studentId: string;
-  completedAt: string;
-  reward: number;
 }
 
 export interface DailyQuest {
@@ -183,10 +162,3 @@ export interface TodayQT {
   content: string;
 }
 
-export interface SharedGoalRow {
-  id?: string;
-  label: string;
-  current_xp: number;
-  target_xp: number;
-  reward: string;
-}

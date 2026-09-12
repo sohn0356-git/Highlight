@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import type { Student, MileageTransaction, QTRecord, PrayerRequest, SharedQTPost, QTComment, Teacher, ClassRoom } from "./types";
+import type { Student, MileageTransaction, QTRecord, PrayerRequest, SharedQTPost, QTComment, Teacher } from "./types";
 import { koreaDate } from "./korea-date";
 import * as db from "./db";
 import { isSupabaseReady } from "./config";
