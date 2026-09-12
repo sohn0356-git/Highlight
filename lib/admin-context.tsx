@@ -521,6 +521,19 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   const updateReward = useCallback(async (id: string, patch: Partial<Reward>) => {
     setRewards(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
+    const fieldMap: Record<string, string> = {
+      name: "name",
+      description: "description",
+      mileageCost: "mileage_cost",
+      inventory: "inventory",
+      active: "active",
+      category: "category",
+    };
+    for (const [key, dbField] of Object.entries(fieldMap)) {
+      if (key in patch && (patch as any)[key] !== undefined) {
+        await db.updateRewardField(id, dbField, (patch as any)[key]);
+      }
+    }
   }, []);
 
   const updateRedemption = useCallback(async (id: string, status: string) => {
@@ -549,6 +562,22 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   const updateBadge = useCallback(async (id: string, patch: Partial<BadgeAdmin>) => {
     setBadges(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b));
+    const fieldMap: Record<string, string> = {
+      name: "name",
+      description: "description",
+      icon: "icon",
+      requirementType: "requirement_type",
+      requirementValue: "requirement_value",
+      active: "active",
+      mileageReward: "mileage_reward",
+      displayOrder: "display_order",
+    };
+    for (const [key, dbField] of Object.entries(fieldMap)) {
+      if (key in patch && (patch as any)[key] !== undefined) {
+        const sb2 = (await import("./supabase")).getSupabase();
+        if (sb2) await sb2.from("badges").update({ [dbField]: (patch as any)[key] }).eq("id", id);
+      }
+    }
   }, []);
 
   const earnBadge = useCallback((studentId: string, badgeId: string) => {

@@ -36,6 +36,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
 
   // Reward form state
   const [showRewardForm, setShowRewardForm] = useState(false);
+  const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
   const [rewardForm, setRewardForm] = useState({
     name: "", description: "", mileageCost: 500, inventory: 10, category: "교환권",
   });
@@ -64,9 +65,26 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   }
   function submitReward() {
     if (!rewardForm.name) return;
-    addReward({ id: "r_" + Date.now(), ...rewardForm, active: true, redemptionLimit: 2, image: "" });
+    if (editingRewardId) {
+      updateReward(editingRewardId, { ...rewardForm });
+    } else {
+      addReward({ id: "r_" + Date.now(), ...rewardForm, active: true, redemptionLimit: 2, image: "" });
+    }
     setShowRewardForm(false);
+    setEditingRewardId(null);
     setRewardForm({ name: "", description: "", mileageCost: 500, inventory: 10, category: "교환권" });
+  }
+
+  function openRewardForm(r?: any) {
+    if (r) {
+      setEditingRewardId(r.id);
+      setRewardForm({ name: r.name, description: r.description || "", mileageCost: r.mileageCost || 0, inventory: r.inventory || 0, category: r.category || "" });
+      setShowRewardForm(true);
+    } else {
+      setEditingRewardId(null);
+      setRewardForm({ name: "", description: "", mileageCost: 500, inventory: 10, category: "교환권" });
+      setShowRewardForm(true);
+    }
   }
 
   // Badge management removed
@@ -170,15 +188,15 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       {/* Rewards tab */}
       {tab === "rewards" && (
         <>
-          <button onClick={() => setShowRewardForm(true)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
+          <button onClick={() => openRewardForm()} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
             <Plus size={16} /> 보상 추가
           </button>
 
           {showRewardForm && (
             <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold">새 보상 추가</h3>
-                <button onClick={() => setShowRewardForm(false)}><X size={18} className="text-neutral-400" /></button>
+                <h3 className="text-sm font-bold">{editingRewardId ? "보상 수정" : "새 보상 추가"}</h3>
+                <button onClick={() => { setShowRewardForm(false); setEditingRewardId(null); }}><X size={18} className="text-neutral-400" /></button>
               </div>
               <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="보상 이름" value={rewardForm.name} onChange={e => setRewardForm({ ...rewardForm, name: e.target.value })} />
               <textarea className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="설명" value={rewardForm.description} onChange={e => setRewardForm({ ...rewardForm, description: e.target.value })} rows={2} />
@@ -196,7 +214,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                   <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={rewardForm.category} onChange={e => setRewardForm({ ...rewardForm, category: e.target.value })} />
                 </div>
               </div>
-              <button onClick={submitReward} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">추가하기</button>
+              <button onClick={submitReward} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editingRewardId ? "수정 완료" : "추가하기"}</button>
             </div>
           )}
 
@@ -212,7 +230,8 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
                     {r.active ? "활성" : "비활성"}
                   </span>
-                  <button onClick={() => updateReward(r.id, { active: !r.active })} className="text-[11px] font-bold text-indigo-600">토글</button>
+                  <button onClick={() => openRewardForm(r)} className="text-[11px] font-bold text-indigo-600">수정</button>
+                  <button onClick={() => { if (confirm(`"${r.name}" 상품을 삭제하시겠습니까?`)) updateReward(r.id, { active: false }); }} className="text-[11px] font-bold text-rose-500">삭제</button>
                 </div>
               </div>
             ))}

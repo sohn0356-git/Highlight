@@ -779,6 +779,14 @@ export async function insertReward(r: any) {
   } catch {}
 }
 
+export async function updateRewardField(rewardId: string, field: string, value: any) {
+  const s = sb();
+  if (!s) return;
+  try {
+    await s.from("store_products").update({ [field]: value }).eq("id", rewardId);
+  } catch (e) { console.error("Failed to update reward:", e); }
+}
+
 export async function fetchRedemptions() {
   const s = sb();
   if (!s) return [];
