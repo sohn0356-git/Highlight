@@ -42,7 +42,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   const [showRewardForm, setShowRewardForm] = useState(false);
   const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
   const [rewardForm, setRewardForm] = useState({
-    name: "", description: "", mileageCost: 500, inventory: 10, category: "교환권",
+    name: "", description: "", mileageCost: 500, inventory: 0, category: "교환권",
   });
   const [qrModalReward, setQrModalReward] = useState<{ id: string; name: string; price: number } | null>(null);
 
@@ -237,15 +237,13 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
               <div key={r.id} className="flex items-center justify-between px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-neutral-800">{r.name}</p>
-                  <p className="text-[11px] text-neutral-400">{r.description}</p>
-                  <p className="text-xs text-indigo-600 font-bold mt-0.5">{r.mileageCost}D · 재고 {r.inventory}</p>
+                  <p className="text-xs text-indigo-600 font-bold mt-0.5">{r.mileageCost}D</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
-                    {r.active ? "활성" : "비활성"}
-                  </span>
-                  <button onClick={() => openRewardForm(r)} className="text-[11px] font-bold text-indigo-600">수정</button>
-                  <button onClick={() => setQrModalReward({ id: r.id, name: r.name, price: r.mileageCost })} className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 transition"><QrCode size={16} /></button>
+                  <button onClick={() => setQrModalReward({ id: r.id, name: r.name, price: r.mileageCost })} className="flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 transition active:scale-95">
+                    <QrCode size={14} /> QR 보기
+                  </button>
+                  <button onClick={() => openRewardForm(r)} className="text-[11px] font-bold text-neutral-400">수정</button>
                   <button onClick={() => { if (confirm(`"${r.name}" 상품을 삭제하시겠습니까?`)) updateReward(r.id, { active: false }); }} className="text-[11px] font-bold text-rose-500">삭제</button>
                 </div>
               </div>

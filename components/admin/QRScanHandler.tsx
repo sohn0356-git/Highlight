@@ -47,14 +47,6 @@ export default function QRScanHandler() {
         const redId = "req_" + Date.now();
         await db.insertRedemption({ id: redId, studentId: student.id, studentName: student.name, rewardId: reward.id, rewardName: reward.name, mileageCost: price });
         await db.updateRedemption(redId, "approved");
-        // Decrement inventory if > 0
-        if ((reward.inventory ?? 0) > 0) {
-          const fresh = await db.fetchAllRewards();
-          const r = fresh.find((x: any) => x.id === reward.id);
-          if (r && r.inventory > 0) {
-            await db.updateRewardField(reward.id, "inventory", r.inventory - 1);
-          }
-        }
         // Refresh local state
         await refreshStudents();
         setResult({ ok: true, title: "구매 완료", msg: `${reward.name} · -${price}D` });
