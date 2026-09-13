@@ -93,7 +93,19 @@ export function useAdmin() {
 }
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<AdminState["currentUser"]>(null);
+  const [currentUser, setCurrentUser] = useState<AdminState["currentUser"]>(() => {
+    // 로그인 세션(localStorage mileage_session)에서 현재 사용자 정보를 가져옴
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("mileage_session");
+        if (raw) {
+          const sess = JSON.parse(raw);
+          return { id: sess.id, name: sess.name, role: sess.role || "teacher", assignedClassIds: sess.assignedClassIds || [] };
+        }
+      }
+    } catch {}
+    return null;
+  });
   const [students, setStudents] = useState<AdminStudent[]>([]);
   const [teachers, setTeachers] = useState<AdminTeacher[]>([]);
   const [records, setRecords] = useState<AttendanceRecordAdmin[]>([]);
