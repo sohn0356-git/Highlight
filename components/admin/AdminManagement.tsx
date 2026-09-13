@@ -235,14 +235,11 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50">
             {rewards.map(r => (
               <div key={r.id} className="flex items-center justify-between px-4 py-3">
-                <div>
+                <button onClick={() => setQrModalReward({ id: r.id, name: r.name, price: r.mileageCost })} className="flex-1 min-w-0 text-left px-1 py-2 -mx-1 rounded-lg hover:bg-indigo-50/50 transition">
                   <p className="text-sm font-semibold text-neutral-800">{r.name}</p>
-                  <p className="text-xs text-indigo-600 font-bold mt-0.5">{r.mileageCost}D</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setQrModalReward({ id: r.id, name: r.name, price: r.mileageCost })} className="flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 transition active:scale-95">
-                    <QrCode size={14} /> QR 보기
-                  </button>
+                  <p className="text-xs text-indigo-600 font-bold mt-0.5">{r.mileageCost}D · QR 클릭</p>
+                </button>
+                <div className="flex shrink-0 items-center gap-2">
                   <button onClick={() => openRewardForm(r)} className="text-[11px] font-bold text-neutral-400">수정</button>
                   <button onClick={() => { if (confirm(`"${r.name}" 상품을 삭제하시겠습니까?`)) updateReward(r.id, { active: false }); }} className="text-[11px] font-bold text-rose-500">삭제</button>
                 </div>
