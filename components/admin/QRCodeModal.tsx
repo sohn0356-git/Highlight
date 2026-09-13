@@ -1,5 +1,7 @@
 "use client";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import QRCode from "qrcode";
 
 interface QRCodeModalProps {
   productId: string;
@@ -9,8 +11,16 @@ interface QRCodeModalProps {
 }
 
 export default function QRCodeModal({ productId, productName, productPrice, onClose }: QRCodeModalProps) {
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const payload = JSON.stringify({ t: "store", id: productId, name: productName, p: productPrice });
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(payload)}&format=png`;
+
+  useEffect(() => {
+    QRCode.toDataURL(payload, {
+      width: 480,
+      margin: 2,
+      color: { dark: "#1f2937", light: "#ffffff" },
+    }).then(setQrDataUrl).catch(() => {});
+  }, [payload]);
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
@@ -22,7 +32,13 @@ export default function QRCodeModal({ productId, productName, productPrice, onCl
           </button>
         </div>
         <div className="flex flex-col items-center p-6">
-          <img src={qrUrl} alt={`${productName} QR`} className="w-48 h-48 rounded-xl border border-neutral-100" />
+          {qrDataUrl ? (
+            <img src={qrDataUrl} alt={`${productName} QR`} className="w-52 h-52 rounded-xl border border-neutral-100" />
+          ) : (
+            <div className="grid h-52 w-52 animate-pulse place-items-center rounded-xl bg-neutral-50 border border-neutral-100">
+              <span className="text-xs text-neutral-400">QR 생성 중...</span>
+            </div>
+          )}
           <p className="mt-4 text-sm font-bold text-neutral-800">{productName}</p>
           <p className="mt-1 text-lg font-black text-indigo-600">{productPrice}D</p>
         </div>
