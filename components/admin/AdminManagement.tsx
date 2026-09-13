@@ -209,31 +209,23 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       {tab === "rewards" && (
         <>
           <button onClick={() => openRewardForm()} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
-            <Plus size={16} /> 보상 추가
+            <Plus size={16} /> 아이템 추가
           </button>
 
           {showRewardForm && (
             <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50">
             <div className="mx-4 w-full max-w-md rounded-2xl bg-white shadow-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold">{editingRewardId ? "보상 수정" : "새 보상 추가"}</h3>
+                <h3 className="text-sm font-bold">{editingRewardId ? "아이템 수정" : "아이템 추가"}</h3>
                 <button onClick={() => { setShowRewardForm(false); setEditingRewardId(null); }}><X size={18} className="text-neutral-400" /></button>
               </div>
-              <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="보상 이름" value={rewardForm.name} onChange={e => setRewardForm({ ...rewardForm, name: e.target.value })} />
-              <textarea className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="설명" value={rewardForm.description} onChange={e => setRewardForm({ ...rewardForm, description: e.target.value })} rows={2} />
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="text-[11px] text-neutral-500">달란트</label>
-                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={rewardForm.mileageCost} onChange={e => setRewardForm({ ...rewardForm, mileageCost: +e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-[11px] text-neutral-500">재고</label>
-                  <input type="number" className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={rewardForm.inventory} onChange={e => setRewardForm({ ...rewardForm, inventory: +e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-[11px] text-neutral-500">카테고리</label>
-                  <input className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={rewardForm.category} onChange={e => setRewardForm({ ...rewardForm, category: e.target.value })} />
-                </div>
+              <div>
+                <label className="text-[11px] text-neutral-500">아이템 이름</label>
+                <input className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="아이템 이름" value={rewardForm.name} onChange={e => setRewardForm({ ...rewardForm, name: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-[11px] text-neutral-500">달란트</label>
+                <input type="number" className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm" placeholder="달란트" value={rewardForm.mileageCost} onChange={e => setRewardForm({ ...rewardForm, mileageCost: +e.target.value })} />
               </div>
               <button onClick={submitReward} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editingRewardId ? "수정 완료" : "추가하기"}</button>
             </div>
