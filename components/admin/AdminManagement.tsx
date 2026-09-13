@@ -507,6 +507,9 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
           </div>
         </div>
       )}
+      {qrModalReward && (
+        <QRCodeModal productId={qrModalReward.id} productName={qrModalReward.name} productPrice={qrModalReward.price} onClose={() => setQrModalReward(null)} />
+      )}
     </div>
   );
 }
