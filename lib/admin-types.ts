@@ -150,6 +150,7 @@ export interface Reward {
   active: boolean;
   redemptionLimit: number;
   category: string;
+  type: "buy" | "sell";
 }
 
 export type RedemptionStatus = "requested" | "approved" | "completed" | "cancelled";

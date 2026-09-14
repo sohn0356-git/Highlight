@@ -760,7 +760,7 @@ export async function insertReward(r: any) {
       id: r.id, name: r.name, description: r.description || "",
       mileage_cost: r.mileageCost || 0, inventory: r.inventory || 0,
       active: true, redemption_limit: r.redemptionLimit || 1,
-      category: r.category || "",
+      category: r.category || "", type: r.type || "buy",
     }]);
   } catch {}
 }
@@ -795,6 +795,27 @@ export async function insertRedemption(r: any) {
     if (error || !data) return null;
     return data;
   } catch { return null; }
+}
+
+export async function storeTransaction(studentId: string, amount: number, reason: string, sourceType: string = "store", sourceId: string = "") {
+  const s = sb();
+  if (!s) return false;
+  try {
+    // Record in mileage_transactions
+    await s.from("mileage_transactions").insert([{
+      id: "tx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      student_id: studentId, amount, type: amount >= 0 ? "store_sale" : "store_purchase",
+      reason, source_type: sourceType, source_id: sourceId, status: "completed",
+      date: new Date().toISOString(),
+    }]);
+    // Update student talents
+    const { data: student } = await s.from("students").select("talents").eq("id", studentId).single();
+    if (student) {
+      const newTalents = Math.max(0, (student.talents || 0) + amount);
+      await s.from("students").update({ talents: newTalents }).eq("id", studentId);
+    }
+    return true;
+  } catch { return false; }
 }
 
 export async function updateRedemption(id: string, status: string) {

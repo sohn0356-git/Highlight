@@ -213,7 +213,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
             id: r.id, name: r.name, description: r.description || "",
             mileageCost: r.mileage_cost || 0, inventory: r.inventory || 0,
             active: r.active !== false, redemptionLimit: r.redemption_limit || 1,
-            category: r.category || "",
+            category: r.category || "", type: r.type || "buy",
           })));
         } catch {}
 
@@ -556,6 +556,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       inventory: "inventory",
       active: "active",
       category: "category",
+      type: "type",
     };
     for (const [key, dbField] of Object.entries(fieldMap)) {
       if (key in patch && (patch as any)[key] !== undefined) {
