@@ -35,7 +35,7 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
           mileage_cost: r.mileage_cost || 0, inventory: r.inventory || 999,
           category: r.category || "", active: r.active !== false,
           redemption_limit: r.redemption_limit || 1,
-          type: r.type === "sell" ? "sell" : "buy",
+          type: r.type === "buy" ? "buy" : "sell",
         })));
         setLoading(false);
       }).catch(() => setLoading(false));
@@ -44,7 +44,7 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
 
   if (!open || !student) return null;
 
-  const filtered = rewards.filter(r => r.type === tab);
+  const filtered = rewards.filter(r => (tab === "buy" ? r.type === "sell" : r.type === "buy"));
 
   const handleBuy = async (reward: Reward) => {
     if (purchasingId) return;

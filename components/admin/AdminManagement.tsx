@@ -44,7 +44,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   const [rewardForm, setRewardForm] = useState({
     name: "", description: "", mileageCost: 500, inventory: 0, category: "교환권", type: "buy" as "buy" | "sell",
   });
-  const [qrModalReward, setQrModalReward] = useState<{ id: string; name: string; price: number } | null>(null);
+  const [qrModalReward, setQrModalReward] = useState<{ id: string; name: string; price: number; type?: string } | null>(null);
 
   // Badge form state
   const [showBadgeForm, setShowBadgeForm] = useState(false);
@@ -81,7 +81,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     } else {
       const newId = "r_" + Date.now();
       addReward({ id: newId, ...rewardForm, active: true, redemptionLimit: 2, image: "" });
-      setQrModalReward({ id: newId, name: rewardForm.name, price: rewardForm.mileageCost });
+      setQrModalReward({ id: newId, name: rewardForm.name, price: rewardForm.mileageCost, type: rewardForm.type });
     }
     setShowRewardForm(false);
     setEditingRewardId(null);
@@ -230,8 +230,8 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
               <div>
                 <label className="text-[11px] text-neutral-500">유형</label>
                 <div className="mt-1 flex gap-2">
-                  <button type="button" onClick={() => setRewardForm({ ...rewardForm, type: "buy" })} className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${rewardForm.type === "buy" ? "border-indigo-500 bg-indigo-50 text-indigo-600" : "border-neutral-200 text-neutral-500"}`}>🛒 사기 (달란트 차감)</button>
-                  <button type="button" onClick={() => setRewardForm({ ...rewardForm, type: "sell" })} className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${rewardForm.type === "sell" ? "border-green-500 bg-green-50 text-green-600" : "border-neutral-200 text-neutral-500"}`}>💰 팔기 (달란트 획득)</button>
+                  <button type="button" onClick={() => setRewardForm({ ...rewardForm, type: "sell" })} className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${rewardForm.type === "sell" ? "border-indigo-500 bg-indigo-50 text-indigo-600" : "border-neutral-200 text-neutral-500"}`}>🏪 파는 상품 (달란트 차감)</button>
+                  <button type="button" onClick={() => setRewardForm({ ...rewardForm, type: "buy" })} className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${rewardForm.type === "buy" ? "border-green-500 bg-green-50 text-green-600" : "border-neutral-200 text-neutral-500"}`}>💰 사는 상품 (달란트 획득)</button>
                 </div>
               </div>
               <button onClick={submitReward} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editingRewardId ? "수정 완료" : "추가하기"}</button>
@@ -245,7 +245,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                 <button onClick={() => setQrModalReward({ id: r.id, name: r.name, price: r.mileageCost })} className="flex-1 min-w-0 text-left px-1 py-2 -mx-1 rounded-lg hover:bg-indigo-50/50 transition">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-neutral-800">{r.name}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.type === "sell" ? "bg-green-100 text-green-600" : "bg-indigo-100 text-indigo-600"}`}>{r.type === "sell" ? "팔기" : "사기"}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.type === "sell" ? "bg-indigo-100 text-indigo-600" : "bg-green-100 text-green-600"}`}>{r.type === "sell" ? "파는 상품" : "사는 상품"}</span>
                   </div>
                   <p className="text-xs text-indigo-600 font-bold mt-0.5">{r.mileageCost}D · QR 클릭</p>
                 </button>
@@ -518,7 +518,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
         </div>
       )}
       {qrModalReward && (
-        <QRCodeModal productId={qrModalReward.id} productName={qrModalReward.name} productPrice={qrModalReward.price} onClose={() => setQrModalReward(null)} />
+        <QRCodeModal productId={qrModalReward.id} productName={qrModalReward.name} productPrice={qrModalReward.price} productType={qrModalReward.type} onClose={() => setQrModalReward(null)} />
       )}
     </div>
   );

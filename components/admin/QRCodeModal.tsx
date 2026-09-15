@@ -7,12 +7,13 @@ interface QRCodeModalProps {
   productId: string;
   productName: string;
   productPrice: number;
+  productType?: string;
   onClose: () => void;
 }
 
-export default function QRCodeModal({ productId, productName, productPrice, onClose }: QRCodeModalProps) {
+export default function QRCodeModal({ productId, productName, productPrice, productType, onClose }: QRCodeModalProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  const payload = JSON.stringify({ t: "store", id: productId, name: productName, p: productPrice });
+  const payload = JSON.stringify({ t: "store", id: productId, name: productName, p: productPrice, tp: productType || "sell" });
 
   useEffect(() => {
     QRCode.toDataURL(payload, {
@@ -40,7 +41,8 @@ export default function QRCodeModal({ productId, productName, productPrice, onCl
             </div>
           )}
           <p className="mt-4 text-sm font-bold text-neutral-800">{productName}</p>
-          <p className="mt-1 text-lg font-black text-indigo-600">{productPrice}D</p>
+          <p className="mt-0.5 text-[11px] text-neutral-400">{productType === "buy" ? "💰 사는 상품 (달란트 획득)" : "🏪 파는 상품 (달란트 차감)"}</p>
+          <p className="mt-1 text-lg font-black text-indigo-600">{productType === "buy" ? "+" : "-"}{productPrice}D</p>
         </div>
       </div>
     </div>

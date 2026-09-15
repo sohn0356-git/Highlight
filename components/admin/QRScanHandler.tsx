@@ -30,26 +30,40 @@ export default function QRScanHandler() {
           setResult({ ok: false, title: "실패", msg: `"${currentUser.name}" 계정을 찾을 수 없습니다.` });
           return;
         }
-        const balance = Number(student.mileage) || 0;
         const price = Number(payload.p) || reward.mileageCost || 0;
-        if (balance < price) {
-          setResult({ ok: false, title: "잔액 부족", msg: `보유: ${balance}D / 필요: ${price}D` });
-          return;
-        }
-        if (!confirm(`${student.name}님의 달란트 ${price}D를 차감하여 "${reward.name}"을(를) 구매하시겠습니까?`)) return;
+        const productType = reward.type || "sell"; // sell = 파는 상품(deduct), buy = 사는 상품(earn)
+        const isShopSells = productType === "sell"; // 상점이 학생에게 판매 → 달란트 차감
 
-        // DB transactions (parallel where possible)
-        await Promise.all([
-          db.updateStudentField(student.id, "talents", balance - price),
-          db.addTransaction({ studentId: student.id, type: "상점구매", description: reward.name, amount: -price, date: koreaDate() }),
-        ]);
-        // Create redemption request and auto-approve
-        const redId = "req_" + Date.now();
-        await db.insertRedemption({ id: redId, studentId: student.id, studentName: student.name, rewardId: reward.id, rewardName: reward.name, mileageCost: price });
-        await db.updateRedemption(redId, "approved");
-        // Refresh local state
-        await refreshStudents();
-        setResult({ ok: true, title: "구매 완료", msg: `${reward.name} · -${price}D` });
+        if (isShopSells) {
+          // 파는 상품: 달란트 차감
+          const balance = Number(student.mileage) || 0;
+          if (balance < price) {
+            setResult({ ok: false, title: "잔액 부족", msg: `보유: ${balance}D / 필요: ${price}D` });
+            return;
+          }
+          if (!confirm(`${student.name}님의 달란트 ${price}D를 차감하여 "${reward.name}"을(를) 구매하시겠습니까?`)) return;
+          await Promise.all([
+            db.updateStudentField(student.id, "talents", balance - price),
+            db.addTransaction({ studentId: student.id, type: "상점구매", description: reward.name, amount: -price, date: koreaDate() }),
+          ]);
+          const redId = "req_" + Date.now();
+          await db.insertRedemption({ id: redId, studentId: student.id, studentName: student.name, rewardId: reward.id, rewardName: reward.name, mileageCost: price });
+          await db.updateRedemption(redId, "approved");
+          await refreshStudents();
+          setResult({ ok: true, title: "구매 완료", msg: `${reward.name} · -${price}D` });
+        } else {
+          // 사는 상품: 달란트 획득
+          if (!confirm(`${student.name}님의 "${reward.name}"을(를) ${price}D에 매입하시겠습니까?`)) return;
+          await Promise.all([
+            db.updateStudentField(student.id, "talents", (Number(student.mileage) || 0) + price),
+            db.addTransaction({ studentId: student.id, type: "상점판매", description: reward.name, amount: price, date: koreaDate() }),
+          ]);
+          const redId = "req_" + Date.now();
+          await db.insertRedemption({ id: redId, studentId: student.id, studentName: student.name, rewardId: reward.id, rewardName: reward.name, mileageCost: -price });
+          await db.updateRedemption(redId, "approved");
+          await refreshStudents();
+          setResult({ ok: true, title: "판매 완료", msg: `${reward.name} · +${price}D` });
+        }
       } catch (err: any) {
         setResult({ ok: false, title: "오류", msg: err?.message || "처리 중 오류가 발생했습니다." });
       } finally {
