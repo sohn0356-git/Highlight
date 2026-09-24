@@ -439,6 +439,43 @@ export async function fetchPrayerParticipants(prayerId: string) {
 }
 
 
+/* ── Notifications (in-app prayer alerts, etc.) ── */
+export async function fetchNotifications(userId: string) {
+  const s = sb();
+  if (!s) return [];
+  const { data } = await s.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
+  if (!data) return [];
+  return data.map((r: any) => ({
+    id: r.id, type: r.type || 'prayer', title: r.title || '',
+    body: r.body || '', relatedId: r.related_id || '',
+    isRead: r.is_read === true, createdAt: r.created_at || '',
+  }));
+}
+
+export async function insertNotification(n: { userId: string; type?: string; title?: string; body?: string; relatedId?: string }) {
+  const s = sb();
+  if (!s) return null;
+  const { data } = await s.from('notifications').insert([{
+    id: 'nt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    user_id: n.userId, type: n.type || 'prayer',
+    title: n.title || '', body: n.body || '', related_id: n.relatedId || '',
+    is_read: false,
+  }]).select().single();
+  return data || null;
+}
+
+export async function markNotificationRead(id: string) {
+  const s = sb();
+  if (!s) return;
+  await s.from('notifications').update({ is_read: true }).eq('id', id);
+}
+
+export async function markAllNotificationsRead(userId: string) {
+  const s = sb();
+  if (!s) return;
+  await s.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
+}
+
 /* ── Batch Prayer Data (3 queries total regardless of prayer count) ── */
 export async function fetchAllPrayerData(prayerIds: string[], studentId: string, today: string): Promise<{
   commentsMap: Record<string, any[]>;

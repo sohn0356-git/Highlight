@@ -54,6 +54,10 @@ interface AppState {
   teachers: Teacher[];
   refreshAll: () => Promise<void>;
   badgeRefreshKey: number;
+  notifications: any[];
+  unreadCount: number;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
 }
 
 type AppViewMode = "student" | "admin";
@@ -118,6 +122,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [todayPrayerCount, setTodayPrayerCount] = useState(0);
   const [badgeRefreshKey, setBadgeRefreshKey] = useState(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [qtComments, setQtComments] = useState<Record<string, QTComment[]>>({});
   const sharingRef = useRef(false);
 
@@ -158,6 +163,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setActivities([...annActivities, ...(a || [])].slice(0, 20));
       setPrayers(pr as PrayerRequest[]);
       setQtRecords(qr as QTRecord[]);
+      try {
+        const nts = await db.fetchNotifications(student.id);
+        setNotifications(nts as any[]);
+      } catch {}
 
       // Daily quests for today
       const dq = await db.fetchDailyQuests(student.id, today);
@@ -253,6 +262,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .on("postgres_changes", { event: "*", schema: "public", table: "prayer_requests" }, () => { refreshAll(); })
           .on("postgres_changes", { event: "*", schema: "public", table: "shared_qt_posts" }, () => { refreshAll(); })
           .on("postgres_changes", { event: "*", schema: "public", table: "missions" }, () => { refreshAll(); })
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${student.id}` }, (payload: any) => {
+            const r = payload.new;
+            if (!r) return;
+            const n = { id: r.id, type: r.type || "prayer", title: r.title || "", body: r.body || "", relatedId: r.related_id || "", isRead: false, createdAt: r.created_at || "" };
+            setNotifications(prev => prev.some(x => x.id === n.id) ? prev : [n, ...prev].slice(0, 50));
+            showPointToast(n.body || n.title || "새 알림이 있어요");
+          })
           .subscribe();
       } catch {}
     })();
@@ -575,6 +591,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!student || isAdminUser(student)) return false;
     const ok = await db.recordPrayerParticipation(student.id, prayerId);
     if (!ok) return false; // 이미 오늘 이 기도제목에 기도함
+    // 남의 기도제목에 기도하면 작성자에게 알림 기록 (자기 글 제외)
+    if (prayerStudentId && prayerStudentId !== student.id) {
+      try {
+        const pr: any = prayers.find((p: any) => p.id === prayerId);
+        const snippet = ((pr?.content || "") as string).slice(0, 30);
+        await db.insertNotification({
+          userId: prayerStudentId, type: "prayer",
+          title: "기도 알림",
+          body: `🙏 ${student.name}님이 기도해줬어요` + (snippet ? ` · “${snippet}”` : ""),
+          relatedId: prayerId,
+        });
+      } catch {}
+    }
     // 자기 기도제목에는 마일리지不予给
     if (prayerStudentId && prayerStudentId === student.id) {
       refreshAll();
@@ -591,7 +620,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setBadgeRefreshKey(k => k + 1);
     refreshAll();
     return true;
-  }, [student, today]);
+  }, [student, today, prayers]);
 
   const addPrayerRequest = useCallback(async (content: string, anonymous: boolean) => {
     if (!student || isAdminUser(student)) return;
@@ -620,6 +649,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setActivities(a);
   }, []);
 
+  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+
+  const markNotificationRead = useCallback(async (id: string) => {
+    setNotifications(prev => prev.map((n: any) => n.id === id ? { ...n, isRead: true } : n));
+    await db.markNotificationRead(id);
+  }, []);
+
+  const markAllNotificationsRead = useCallback(async () => {
+    if (!student) return;
+    setNotifications(prev => prev.map((n: any) => ({ ...n, isRead: true })));
+    await db.markAllNotificationsRead(student.id);
+  }, [student]);
+
   return (
     <ViewModeCtx.Provider value={{ mode, setMode: (m) => { if (typeof window !== "undefined") localStorage.setItem("app_view_mode", m); setMode(m); } }}>
     <Ctx.Provider value={{
@@ -638,6 +680,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       todayPrayerCount, transactions: txns,
       badges, season, classes, allStudents, activities,
       refreshActivities, sharedGoal, teachers, refreshAll, badgeRefreshKey,
+      notifications, unreadCount, markNotificationRead, markAllNotificationsRead,
     }}>
       {children}
     </Ctx.Provider>

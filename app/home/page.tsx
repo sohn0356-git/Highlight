@@ -10,8 +10,9 @@ import { useApp } from "@/lib/store-context";
 import { getStudentLevel, getNextLevelXp } from "@/lib/db";
 
 export default function HomeContent() {
-  const { student, isLoggedIn, classes, activities, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements } = useApp();
+  const { student, isLoggedIn, classes, activities, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements, notifications, unreadCount, markNotificationRead, markAllNotificationsRead } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
+  const [feedTab, setFeedTab] = useState<"noti" | "news">("noti");
   const [selectedAnn, setSelectedAnn] = useState<any>(null);
 
   useEffect(() => { refreshActivities(); }, [refreshActivities]);
@@ -37,9 +38,9 @@ export default function HomeContent() {
               aria-label="고등부 소식"
             >
               <Bell size={20} />
-              {activities.length > 0 && (
-                <span className="absolute right-2 top-2 grid h-2.5 w-2.5 place-items-center rounded-full bg-rose-500">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
             </button>
@@ -143,9 +144,24 @@ export default function HomeContent() {
           >
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-neutral-300" />
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-base">💬</span>
-                <h2 className="text-lg font-bold text-neutral-900">고등부 소식</h2>
+              <div className="flex items-center gap-1 rounded-full bg-neutral-200 p-1">
+                <button
+                  onClick={() => setFeedTab("noti")}
+                  className={`relative rounded-full px-4 py-1.5 text-sm font-bold transition ${feedTab === "noti" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"}`}
+                >
+                  🔔 알림
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setFeedTab("news")}
+                  className={`rounded-full px-4 py-1.5 text-sm font-bold transition ${feedTab === "news" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"}`}
+                >
+                  💬 소식
+                </button>
               </div>
               <button
                 onClick={() => setFeedOpen(false)}
@@ -155,9 +171,36 @@ export default function HomeContent() {
                 <X size={18} />
               </button>
             </div>
-            <div className="mt-4 flex flex-col gap-2.5">
-              {activities.map(a => <ActivityCard key={a.id} activity={a} />)}
-            </div>
+            {feedTab === "noti" ? (
+              <div className="mt-4 flex flex-col gap-2.5">
+                {unreadCount > 0 && (
+                  <button onClick={() => markAllNotificationsRead()} className="self-end text-[11px] font-bold text-indigo-500">
+                    모두 읽음으로 표시
+                  </button>
+                )}
+                {notifications.length === 0 && (
+                  <p className="py-8 text-center text-sm text-neutral-400">아직 알림이 없어요.</p>
+                )}
+                {notifications.map((n: any) => (
+                  <button
+                    key={n.id}
+                    onClick={() => { if (!n.isRead) markNotificationRead(n.id); }}
+                    className={`w-full rounded-xl border p-3.5 text-left transition active:scale-[0.98] ${n.isRead ? "border-neutral-100 bg-white" : "border-rose-200 bg-rose-50"}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {!n.isRead && <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />}
+                      <p className="text-sm font-bold text-neutral-800">{n.title || "알림"}</p>
+                      <p className="ml-auto shrink-0 text-[10px] text-neutral-400">{(n.createdAt || "").slice(5, 16).replace("T", " ")}</p>
+                    </div>
+                    <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">{n.body}</p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 flex flex-col gap-2.5">
+                {activities.map(a => <ActivityCard key={a.id} activity={a} />)}
+              </div>
+            )}
           </div>
         </div>
       )}
