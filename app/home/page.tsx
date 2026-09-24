@@ -10,7 +10,12 @@ import { useApp } from "@/lib/store-context";
 import { getStudentLevel, getNextLevelXp } from "@/lib/db";
 
 export default function HomeContent() {
-  const { student, isLoggedIn, classes, activities, season, dailyQuestIds, completeDailyQuest, allStudents, refreshActivities, announcements, notifications, unreadCount, markNotificationRead, markAllNotificationsRead } = useApp();
+  const {
+    student, isLoggedIn, classes, activities, season, dailyQuestIds, completeDailyQuest,
+    allStudents, refreshActivities, announcements, notifications, unreadCount,
+    pushSupported, pushPermission, pushEnabled, enablePushNotifications, disablePushNotifications,
+    markNotificationRead, markAllNotificationsRead,
+  } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
   const [feedTab, setFeedTab] = useState<"noti" | "news">("noti");
   const [selectedAnn, setSelectedAnn] = useState<any>(null);
@@ -173,6 +178,25 @@ export default function HomeContent() {
             </div>
             {feedTab === "noti" ? (
               <div className="mt-4 flex flex-col gap-2.5">
+                {pushSupported && (
+                  <div className="rounded-2xl border border-neutral-100 bg-white p-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-neutral-800">기도 푸시 알림</p>
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-neutral-500">
+                          {pushEnabled ? "누가 내 기도제목에 기도하면 휴대폰 알림을 받아요." : pushPermission === "denied" ? "브라우저 설정에서 알림 권한을 허용해야 해요." : "허용하면 앱을 닫아도 기도 알림을 받을 수 있어요."}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => pushEnabled ? disablePushNotifications() : enablePushNotifications()}
+                        disabled={pushPermission === "denied"}
+                        className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-bold transition active:scale-95 disabled:opacity-50 ${pushEnabled ? "bg-neutral-100 text-neutral-700" : "bg-neutral-900 text-white"}`}
+                      >
+                        {pushEnabled ? "끄기" : "켜기"}
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {unreadCount > 0 && (
                   <button onClick={() => markAllNotificationsRead()} className="self-end text-[11px] font-bold text-indigo-500">
                     모두 읽음으로 표시

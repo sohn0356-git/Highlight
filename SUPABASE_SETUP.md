@@ -18,12 +18,24 @@
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://[your-project-ref].supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=[your-vapid-public-key]
 ```
 
 ### URL과 Key 위치:
 - 대시보드 → Settings → API
 - `Project URL`: `NEXT_PUBLIC_SUPABASE_URL`
 - `anon public key`: `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+### 푸시 알림 환경변수
+- VAPID 키 생성 후 공개키는 앱 빌드 환경에 `NEXT_PUBLIC_VAPID_PUBLIC_KEY`로 설정하세요.
+- Supabase Edge Function `send-prayer-push`에는 `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`를 설정하세요.
+- `VAPID_SUBJECT`는 `mailto:admin@example.com` 형식의 연락 가능한 메일을 권장합니다.
+
+```bash
+npx web-push generate-vapid-keys
+supabase secrets set VAPID_PUBLIC_KEY="[public-key]" VAPID_PRIVATE_KEY="[private-key]" VAPID_SUBJECT="mailto:admin@example.com"
+supabase functions deploy send-prayer-push
+```
 
 ## 4단계: 데모 데이터 삽입
 테이블을 만든 후, 다음 SQL을 실행해서 데모 데이터를 넣으세요:

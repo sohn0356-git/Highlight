@@ -56,6 +56,11 @@ interface AppState {
   badgeRefreshKey: number;
   notifications: any[];
   unreadCount: number;
+  pushSupported: boolean;
+  pushPermission: NotificationPermission | "unsupported";
+  pushEnabled: boolean;
+  enablePushNotifications: () => Promise<boolean>;
+  disablePushNotifications: () => Promise<void>;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
 }
@@ -123,6 +128,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [todayPrayerCount, setTodayPrayerCount] = useState(0);
   const [badgeRefreshKey, setBadgeRefreshKey] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | "unsupported">("unsupported");
+  const [pushEnabled, setPushEnabled] = useState(false);
   const [qtComments, setQtComments] = useState<Record<string, QTComment[]>>({});
   const sharingRef = useRef(false);
 
@@ -296,6 +304,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, 60000);
     return () => clearInterval(interval);
   }, [today, student]);
+
+  useEffect(() => {
+    const supported = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+    setPushSupported(supported);
+    setPushPermission(supported ? Notification.permission : "unsupported");
+  }, []);
+
+  useEffect(() => {
+    if (!student || !pushSupported) {
+      setPushEnabled(false);
+      return;
+    }
+    (async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        setPushEnabled(!!subscription && Notification.permission === "granted");
+        if (subscription && Notification.permission === "granted") {
+          await db.upsertPushSubscription(student.id, subscription.toJSON());
+        } else {
+          const saved = await db.fetchPushSubscription(student.id);
+          setPushEnabled(!!saved && Notification.permission === "granted");
+        }
+      } catch {
+        setPushEnabled(false);
+      }
+    })();
+  }, [student?.id, pushSupported]);
 
   /* ── Login ── */
   const login = useCallback(async (name: string, birthDate: string): Promise<boolean> => {
@@ -596,12 +632,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const pr: any = prayers.find((p: any) => p.id === prayerId);
         const snippet = ((pr?.content || "") as string).slice(0, 30);
-        await db.insertNotification({
+        const notification = await db.insertNotification({
           userId: prayerStudentId, type: "prayer",
           title: "기도 알림",
           body: `🙏 ${student.name}님이 기도해줬어요` + (snippet ? ` · “${snippet}”` : ""),
           relatedId: prayerId,
         });
+        if (notification?.id) await db.sendPushForNotification(notification.id);
       } catch {}
     }
     // 자기 기도제목에는 마일리지不予给
@@ -651,6 +688,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const unreadCount = notifications.filter((n: any) => !n.isRead).length;
 
+  const enablePushNotifications = useCallback(async () => {
+    if (!student || !pushSupported) return false;
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) {
+      showPointToast("푸시 설정이 아직 준비되지 않았어요");
+      return false;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      setPushPermission(permission);
+      if (permission !== "granted") return false;
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      const subscription = existing || await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      });
+      const ok = await db.upsertPushSubscription(student.id, subscription.toJSON());
+      setPushEnabled(ok);
+      if (ok) showPointToast("기도 알림 푸시를 켰어요");
+      return ok;
+    } catch {
+      setPushEnabled(false);
+      return false;
+    }
+  }, [student, pushSupported]);
+
+  const disablePushNotifications = useCallback(async () => {
+    if (!student || !pushSupported) return;
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      await db.disablePushSubscription(student.id, subscription?.endpoint);
+      await subscription?.unsubscribe();
+      setPushEnabled(false);
+      showPointToast("기도 알림 푸시를 껐어요");
+    } catch {
+      setPushEnabled(false);
+    }
+  }, [student, pushSupported]);
+
   const markNotificationRead = useCallback(async (id: string) => {
     setNotifications(prev => prev.map((n: any) => n.id === id ? { ...n, isRead: true } : n));
     await db.markNotificationRead(id);
@@ -680,7 +758,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       todayPrayerCount, transactions: txns,
       badges, season, classes, allStudents, activities,
       refreshActivities, sharedGoal, teachers, refreshAll, badgeRefreshKey,
-      notifications, unreadCount, markNotificationRead, markAllNotificationsRead,
+      notifications, unreadCount, pushSupported, pushPermission, pushEnabled,
+      enablePushNotifications, disablePushNotifications,
+      markNotificationRead, markAllNotificationsRead,
     }}>
       {children}
     </Ctx.Provider>
@@ -694,4 +774,13 @@ async function updateBadgeProgress(studentId: string) {
   try {
     await db.recalculateBadgeProgress(studentId);
   } catch {}
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i += 1) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
 }

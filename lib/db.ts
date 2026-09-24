@@ -464,6 +464,14 @@ export async function insertNotification(n: { userId: string; type?: string; tit
   return data || null;
 }
 
+export async function sendPushForNotification(notificationId: string) {
+  const s = sb();
+  if (!s) return;
+  try {
+    await s.functions.invoke("send-prayer-push", { body: { notificationId } });
+  } catch {}
+}
+
 export async function markNotificationRead(id: string) {
   const s = sb();
   if (!s) return;
@@ -474,6 +482,40 @@ export async function markAllNotificationsRead(userId: string) {
   const s = sb();
   if (!s) return;
   await s.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
+}
+
+export async function fetchPushSubscription(userId: string) {
+  const s = sb();
+  if (!s) return null;
+  const { data } = await s.from("push_subscriptions")
+    .select("endpoint, enabled")
+    .eq("user_id", userId)
+    .eq("enabled", true)
+    .limit(1);
+  return data?.[0] || null;
+}
+
+export async function upsertPushSubscription(userId: string, subscription: PushSubscriptionJSON) {
+  const s = sb();
+  const endpoint = subscription.endpoint || "";
+  if (!s || !endpoint) return false;
+  const { error } = await s.from("push_subscriptions").upsert({
+    id: "ps_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+    user_id: userId,
+    endpoint,
+    subscription,
+    enabled: true,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "endpoint" });
+  return !error;
+}
+
+export async function disablePushSubscription(userId: string, endpoint?: string) {
+  const s = sb();
+  if (!s) return;
+  let query = s.from("push_subscriptions").update({ enabled: false, updated_at: new Date().toISOString() }).eq("user_id", userId);
+  if (endpoint) query = query.eq("endpoint", endpoint);
+  await query;
 }
 
 /* ── Batch Prayer Data (3 queries total regardless of prayer count) ── */

@@ -38,3 +38,35 @@ self.addEventListener("fetch", function (event) {
       })
   );
 });
+
+self.addEventListener("push", function (event) {
+  var payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    payload = { body: event.data ? event.data.text() : "" };
+  }
+  var title = payload.title || "Highlight 알림";
+  var options = {
+    body: payload.body || "새 알림이 있어요",
+    icon: BASE + "/icons/icon-192.png",
+    badge: BASE + "/icons/icon-192.png",
+    tag: payload.tag || "highlight-notification",
+    data: { url: payload.url || BASE + "/home/" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  var targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : BASE + "/home/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i += 1) {
+        var client = clientList[i];
+        if ("focus" in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
+  );
+});
