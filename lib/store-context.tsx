@@ -434,7 +434,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return;
     }
-    const reward = 20;
+    const reward = 10;
     const rec = await db.completeQT(student.id, today, remembered, application, reward);
     if (!rec) return;
     setQtRecords(prev => [rec as QTRecord, ...prev]);
