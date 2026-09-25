@@ -576,15 +576,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
         if (notification?.id) await db.sendPushForNotification(notification.id);
       } catch {}
-      await db.completeDailyQuest(student.id, "d6", today, 5, 5);
-      setDailyQuestIds(prev => [...prev, "d6"]);
-      showPointToast("+5D");
-      const newTotal = (student.mileage || 0) + 5;
-      await db.updateStudentField(student.id, "talents", newTotal);
-      updateBadgeProgress(student.id);
-      setBadgeRefreshKey(k => k + 1);
+      if (!dailyQuestIds.includes("d6")) {
+        const completed = await db.completeDailyQuest(student.id, "d6", today, 5, 5);
+        if (completed) {
+          setDailyQuestIds(prev => [...prev, "d6"]);
+          showPointToast("+5D");
+          const newTotal = (student.mileage || 0) + 5;
+          await db.updateStudentField(student.id, "talents", newTotal);
+          updateBadgeProgress(student.id);
+          setBadgeRefreshKey(k => k + 1);
+        }
+      }
     }
-  }, [student, sharedPosts, today, loadComments]);
+  }, [student, sharedPosts, dailyQuestIds, today, loadComments]);
 
   const updateComment = useCallback(async (commentId: string, postId: string, content: string) => {
     await db.updateComment(commentId, content);
