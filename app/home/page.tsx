@@ -8,6 +8,7 @@ import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
 import { getStudentLevel, getNextLevelXp } from "@/lib/db";
+import { koreaDate } from "@/lib/korea-date";
 
 export default function HomeContent() {
   const {
@@ -22,8 +23,12 @@ export default function HomeContent() {
 
   useEffect(() => { refreshActivities(); }, [refreshActivities]);
   useEffect(() => {
-    if (!isLoading && isLoggedIn && !dailyQuestIds.includes("d8")) completeDailyQuest("d8");
-  }, [isLoading, isLoggedIn, dailyQuestIds, completeDailyQuest]);
+    if (!student || isLoading || !isLoggedIn || dailyQuestIds.includes("d8")) return;
+    const key = `daily_quest_attempt:${student.id}:d8:${koreaDate()}`;
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, "1");
+    completeDailyQuest("d8");
+  }, [student, isLoading, isLoggedIn, dailyQuestIds, completeDailyQuest]);
 
   if (!student || !isLoggedIn) return null;
   const myClass = classes.find(c => c.id === student.classId);

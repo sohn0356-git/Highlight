@@ -612,18 +612,11 @@ export async function fetchDailyQuests(studentId: string, date: string) {
 export async function completeDailyQuest(studentId: string, questId: string, date: string, mileage: number = 5, xp: number = 5) {
   const s = sb();
   if (!s) return false;
-  const { data: existing } = await s.from("daily_quests")
-    .select("id")
-    .eq("student_id", studentId)
-    .eq("quest_id", questId)
-    .eq("completion_date", date)
-    .limit(1);
-  if (existing?.length) return false;
-  const { error } = await s.from("daily_quests").upsert({
+  const { error } = await s.from("daily_quests").insert({
     id: `dq_${studentId}_${questId}_${date}`,
     student_id: studentId, quest_id: questId, completion_date: date,
     mileage_awarded: mileage, xp_awarded: xp,
-  }, { onConflict: "student_id,quest_id,completion_date" });
+  });
   return !error;
 }
 
