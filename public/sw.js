@@ -1,4 +1,4 @@
-const CACHE = "mileage-app-v3";
+const CACHE = "mileage-app-v4";
 const BASE = "/Highlight";
 const ASSETS = [
   BASE + "/",
@@ -62,18 +62,23 @@ self.addEventListener("push", function (event) {
     icon: BASE + "/icons/notification-icon.svg",
     badge: BASE + "/icons/notification-badge.svg",
     tag: payload.tag || "highlight-notification",
-    data: { url: payload.url || BASE + "/home/" },
+    data: { url: BASE + "/" },
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-  var targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : BASE + "/home/";
+  var targetUrl = event.notification.data && event.notification.data.url ? event.notification.data.url : BASE + "/";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
       for (var i = 0; i < clientList.length; i += 1) {
         var client = clientList[i];
+        if ("navigate" in client && "focus" in client) {
+          return client.navigate(targetUrl).then(function (navigatedClient) {
+            return navigatedClient ? navigatedClient.focus() : client.focus();
+          });
+        }
         if ("focus" in client) return client.focus();
       }
       if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
