@@ -1,6 +1,16 @@
-const CACHE = "mileage-app-v2";
+const CACHE = "mileage-app-v3";
 const BASE = "/Highlight";
-const ASSETS = [BASE + "/", BASE + "/login/", BASE + "/home/", BASE + "/qt/", BASE + "/missions/", BASE + "/urinae/", BASE + "/my/"];
+const ASSETS = [
+  BASE + "/",
+  BASE + "/login/",
+  BASE + "/home/",
+  BASE + "/qt/",
+  BASE + "/missions/",
+  BASE + "/urinae/",
+  BASE + "/my/",
+  BASE + "/icons/notification-icon.svg",
+  BASE + "/icons/notification-badge.svg",
+];
 
 self.addEventListener("install", function (event) {
   event.waitUntil(
@@ -49,8 +59,8 @@ self.addEventListener("push", function (event) {
   var title = payload.title || "Highlight 알림";
   var options = {
     body: payload.body || "새 알림이 있어요",
-    icon: BASE + "/icons/icon-192.png",
-    badge: BASE + "/icons/icon-192.png",
+    icon: BASE + "/icons/notification-icon.svg",
+    badge: BASE + "/icons/notification-badge.svg",
     tag: payload.tag || "highlight-notification",
     data: { url: payload.url || BASE + "/home/" },
   };
