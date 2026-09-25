@@ -33,7 +33,7 @@ interface AppState {
   missions: any[];
   dailyQuests: any[];
   dailyQuestIds: string[];
-  completeDailyQuest: (questId: string) => void;
+  completeDailyQuest: (questId: string) => Promise<boolean | void>;
   completedMissionIds: string[];
   completeMission: (missionId: string) => void;
   prayers: PrayerRequest[];
@@ -606,7 +606,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!student || dailyQuestIds.includes(questId) || isAdminUser(student)) return;
     const quest = DAILY_QUEST_DEFS.find(q => q.id === questId);
     if (!quest) return;
-    await db.completeDailyQuest(student.id, questId, today, quest.reward, quest.reward);
+    const completed = await db.completeDailyQuest(student.id, questId, today, quest.reward, quest.reward);
+    if (!completed) return false;
     setDailyQuestIds(prev => [...prev, questId]);
     showPointToast(`+${quest.reward}D`);
     const newTotal = (student.mileage || 0) + quest.reward;
@@ -615,6 +616,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateBadgeProgress(student.id);
     setBadgeRefreshKey(k => k + 1);
     refreshAll();
+    return true;
   }, [student, dailyQuestIds, today]);
 
   /* ── Mission Complete ── */

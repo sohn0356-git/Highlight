@@ -11,7 +11,7 @@ import { getStudentLevel, getNextLevelXp } from "@/lib/db";
 
 export default function HomeContent() {
   const {
-    student, isLoggedIn, classes, activities, season, dailyQuestIds, completeDailyQuest,
+    student, isLoggedIn, isLoading, classes, activities, season, dailyQuestIds, completeDailyQuest,
     allStudents, refreshActivities, announcements, notifications, unreadCount,
     pushSupported, pushPermission, pushEnabled, enablePushNotifications, disablePushNotifications,
     markNotificationRead, markAllNotificationsRead,
@@ -22,8 +22,8 @@ export default function HomeContent() {
 
   useEffect(() => { refreshActivities(); }, [refreshActivities]);
   useEffect(() => {
-    if (isLoggedIn && !dailyQuestIds.includes("d8")) completeDailyQuest("d8");
-  }, [isLoggedIn, dailyQuestIds, completeDailyQuest]);
+    if (!isLoading && isLoggedIn && !dailyQuestIds.includes("d8")) completeDailyQuest("d8");
+  }, [isLoading, isLoggedIn, dailyQuestIds, completeDailyQuest]);
 
   if (!student || !isLoggedIn) return null;
   const myClass = classes.find(c => c.id === student.classId);
