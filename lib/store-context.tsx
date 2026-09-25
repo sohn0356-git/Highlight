@@ -562,8 +562,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Update post comment count locally
     setSharedPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p));
     // Award quest if commenting on others' post
-    const postOwner = sharedPosts.find(p => p.id === postId)?.studentId;
-    if (postOwner !== student.id) {
+    const post = sharedPosts.find(p => p.id === postId);
+    const postOwner = post?.studentId;
+    if (postOwner && postOwner !== student.id) {
+      try {
+        const snippet = content.trim().slice(0, 30);
+        const notification = await db.insertNotification({
+          userId: postOwner,
+          type: "qt_comment",
+          title: "QT 댓글 알림",
+          body: `${student.name}님이 내 QT에 댓글을 남겼어요` + (snippet ? ` · “${snippet}”` : ""),
+          relatedId: postId,
+        });
+        if (notification?.id) await db.sendPushForNotification(notification.id);
+      } catch {}
       await db.completeDailyQuest(student.id, "d6", today, 5, 5);
       setDailyQuestIds(prev => [...prev, "d6"]);
       showPointToast("+5D");

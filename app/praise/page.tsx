@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import { useApp } from "@/lib/store-context";
 import { koreaDate } from "@/lib/korea-date";
-import { recalculateBadgeProgress } from "@/lib/db";
+import { insertNotification, recalculateBadgeProgress, sendPushForNotification } from "@/lib/db";
 
 interface PraiseRecord {
   id: string;
@@ -74,10 +74,11 @@ export default function PraiseContent() {
 
     setSubmitting(true);
     const today = koreaDate();
+    const praiseId = `praise_${Date.now()}`;
     try {
       // Insert praise record (date 컬럼으로 하루 1회 DB 제한)
       const { error: insertError } = await sb.from("praises").insert([{
-        id: `praise_${Date.now()}`,
+        id: praiseId,
         praiser_id: student.id,
         praiser_name: student.name,
         praised_id: praisedId,
@@ -117,6 +118,19 @@ export default function PraiseContent() {
         { id: `tx_${Date.now()}_p`, student_id: praisedId, type: "칭찬", description: `${student.name}에게 칭찬받음`, amount: 10, date: today },
         { id: `tx_${Date.now()}_s`, student_id: student.id, type: "칭찬", description: `${praised.name}을 칭찬함`, amount: 5, date: today },
       ]);
+
+      try {
+        const snippet = reason.trim().slice(0, 30);
+        const sender = anonymous ? "익명" : student.name;
+        const notification = await insertNotification({
+          userId: praisedId,
+          type: "praise",
+          title: "칭찬 알림",
+          body: `${sender}님이 나를 칭찬했어요` + (snippet ? ` · “${snippet}”` : ""),
+          relatedId: praiseId,
+        });
+        if (notification?.id) await sendPushForNotification(notification.id);
+      } catch {}
 
       // 칭찬 일일퀘스트 (d9) 완료
       if (!dailyQuestIds.includes("d9")) {
