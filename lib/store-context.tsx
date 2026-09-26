@@ -320,12 +320,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
+        const preferenceKey = pushPreferenceKey(student.id);
+        const wantsPush = localStorage.getItem(preferenceKey) === "1";
         setPushEnabled(!!subscription && Notification.permission === "granted");
         if (subscription && Notification.permission === "granted") {
           await db.upsertPushSubscription(student.id, subscription.toJSON());
+          localStorage.setItem(preferenceKey, "1");
         } else {
           const saved = await db.fetchPushSubscription(student.id);
-          setPushEnabled(!!saved && Notification.permission === "granted");
+          const shouldRestore = Notification.permission === "granted" && (!!saved || wantsPush);
+          if (shouldRestore) {
+            const restored = await subscribeBrowserPush(registration);
+            const ok = !!restored && await db.upsertPushSubscription(student.id, restored.toJSON());
+            setPushEnabled(ok);
+            if (ok) localStorage.setItem(preferenceKey, "1");
+          } else {
+            setPushEnabled(false);
+          }
         }
       } catch {
         setPushEnabled(false);
@@ -718,14 +729,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setPushPermission(permission);
       if (permission !== "granted") return false;
       const registration = await navigator.serviceWorker.ready;
-      const existing = await registration.pushManager.getSubscription();
-      const subscription = existing || await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      });
+      const subscription = await subscribeBrowserPush(registration);
+      if (!subscription) return false;
       const ok = await db.upsertPushSubscription(student.id, subscription.toJSON());
       setPushEnabled(ok);
-      if (ok) showPointToast("기도 알림 푸시를 켰어요");
+      if (ok) {
+        localStorage.setItem(pushPreferenceKey(student.id), "1");
+        showPointToast("기도 알림 푸시를 켰어요");
+      }
       return ok;
     } catch {
       setPushEnabled(false);
@@ -740,6 +751,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const subscription = await registration.pushManager.getSubscription();
       await db.disablePushSubscription(student.id, subscription?.endpoint);
       await subscription?.unsubscribe();
+      localStorage.removeItem(pushPreferenceKey(student.id));
       setPushEnabled(false);
       showPointToast("기도 알림 푸시를 껐어요");
     } catch {
@@ -801,4 +813,19 @@ function urlBase64ToUint8Array(base64String: string) {
   const outputArray = new Uint8Array(rawData.length);
   for (let i = 0; i < rawData.length; i += 1) outputArray[i] = rawData.charCodeAt(i);
   return outputArray;
+}
+
+function pushPreferenceKey(studentId: string) {
+  return `push_notifications:${studentId}`;
+}
+
+async function subscribeBrowserPush(registration: ServiceWorkerRegistration) {
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) return existing;
+  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!vapidKey) return null;
+  return registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidKey),
+  });
 }
