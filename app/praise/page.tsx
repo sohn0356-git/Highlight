@@ -39,7 +39,7 @@ export default function PraiseContent() {
     const { getSupabase } = await import("@/lib/supabase");
     const sb = getSupabase();
     if (!sb) return;
-    const { data } = await sb.from("praises").select("*").order("created_at", { ascending: false }).limit(50);
+    const { data } = await sb.from("praises").select("*").order("created_at", { ascending: false }).limit(500);
     if (data) setPraises(data as PraiseRecord[]);
     // Load teachers as praise targets too
     const { data: teachers } = await sb.from("teachers").select("*").eq("active", true);
