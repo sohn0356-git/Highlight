@@ -476,6 +476,14 @@ export async function sendPushForNotification(notificationId: string) {
   const s = sb();
   if (!s) return;
   try {
+    const { data: notification } = await s.from("notifications")
+      .select("user_id, type")
+      .eq("id", notificationId)
+      .limit(1)
+      .single();
+    if (!notification) return;
+    const prefs = await fetchPushPreferences(notification.user_id);
+    if (!allowsPushType(prefs, notification.type || "")) return;
     await s.functions.invoke("send-prayer-push", { body: { notificationId } });
   } catch {}
 }
@@ -513,6 +521,14 @@ function mapPushPreferences(row: any): PushCategoryPreferences {
     praise: row?.praise_enabled !== false,
     qt: row?.qt_enabled !== false,
   };
+}
+
+function allowsPushType(prefs: PushCategoryPreferences, type: string) {
+  if (type === "announcement" || type === "notice") return prefs.announcement;
+  if (type === "prayer") return prefs.prayer;
+  if (type === "praise") return prefs.praise;
+  if (type === "qt" || type === "qt_comment" || type === "qt_share") return prefs.qt;
+  return true;
 }
 
 export async function fetchPushPreferences(userId: string): Promise<PushCategoryPreferences> {

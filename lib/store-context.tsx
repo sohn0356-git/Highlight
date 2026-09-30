@@ -327,13 +327,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const subscription = await registration.pushManager.getSubscription();
         const preferenceKey = pushPreferenceKey(student.id);
         const wantsPush = localStorage.getItem(preferenceKey) === "1";
-        setPushEnabled(!!subscription && Notification.permission === "granted");
+        const saved = await db.fetchPushSubscription(student.id);
+        setPushEnabled(Notification.permission === "granted" && (!!subscription || !!saved));
         if (subscription && Notification.permission === "granted") {
           await db.upsertPushSubscription(student.id, subscription.toJSON());
           setPushPreferences(await db.fetchPushPreferences(student.id));
           localStorage.setItem(preferenceKey, "1");
         } else {
-          const saved = await db.fetchPushSubscription(student.id);
           const shouldRestore = Notification.permission === "granted" && (!!saved || wantsPush);
           if (shouldRestore) {
             const restored = await subscribeBrowserPush(registration);
