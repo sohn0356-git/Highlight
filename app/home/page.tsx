@@ -326,7 +326,7 @@ function SpecialMissionCard({
   onUpdateComment: (commentId: string, content: string) => void;
   onDeleteComment: (commentId: string) => void;
 }) {
-  const [showComments, setShowComments] = useState(true);
+  const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState("");
