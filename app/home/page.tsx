@@ -30,8 +30,8 @@ export default function HomeContent() {
   const [feedTab, setFeedTab] = useState<"noti" | "news">("noti");
   const [selectedAnn, setSelectedAnn] = useState<any>(null);
   const [missionCommentsMap, setMissionCommentsMap] = useState<Record<string, MissionComment[]>>({});
-  const specialMissions = missions.filter((m: any) => m.category === "special");
-  const specialMissionIdsKey = specialMissions.map((m: any) => m.id).join("|");
+  const adminMissions = missions;
+  const adminMissionIdsKey = adminMissions.map((m: any) => m.id).join("|");
 
   useEffect(() => { refreshActivities(); }, [refreshActivities]);
   useEffect(() => {
@@ -43,13 +43,13 @@ export default function HomeContent() {
   }, [student, isLoading, isLoggedIn, dailyQuestIds, completeDailyQuest]);
 
   useEffect(() => {
-    const missionIds = specialMissions.map((m: any) => m.id);
+    const missionIds = adminMissions.map((m: any) => m.id);
     if (!student || !isLoggedIn || !missionIds.length) {
       setMissionCommentsMap({});
       return;
     }
     fetchMissionComments(missionIds).then(setMissionCommentsMap);
-  }, [student?.id, isLoggedIn, specialMissionIdsKey]);
+  }, [student?.id, isLoggedIn, adminMissionIdsKey]);
 
   const handleAddMissionComment = async (missionId: string, content: string) => {
     if (!student) return;
@@ -150,20 +150,20 @@ export default function HomeContent() {
         </Card>
       </section>
 
-      {/* ── Special missions ── */}
-      {specialMissions.length > 0 && (
+      {/* ── Admin missions ── */}
+      {adminMissions.length > 0 && (
         <section className="mt-3 px-5">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-bold text-neutral-900">
               <span className="text-amber-500">⭐</span>
-              <span>SPECIAL QUEST</span>
+              <span>스페셜 미션</span>
             </h2>
             <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600">
-              {specialMissions.length}개
+              {adminMissions.length}개
             </span>
           </div>
           <div className="flex flex-col gap-3">
-            {specialMissions.map((mission: any) => (
+            {adminMissions.map((mission: any) => (
               <SpecialMissionCard
                 key={mission.id}
                 mission={mission}
