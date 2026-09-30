@@ -222,7 +222,7 @@ export default function QTContent() {
               </div>
             )}
             {(() => {
-              const paged = qtRecords.slice().reverse();
+              const paged = qtRecords.slice();
               const pageItems = paged.slice(recordsPage * PAGE_SIZE, (recordsPage + 1) * PAGE_SIZE);
               return (
                 <>

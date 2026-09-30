@@ -228,16 +228,17 @@ export default function MyContent() {
                     {pushPermission === "denied" ? "브라우저 설정에서 알림 권한을 허용해야 해요." : pushSupported ? "앱을 닫아도 알림을 받을 수 있어요." : "이 기기에서는 푸시 알림을 지원하지 않아요."}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => pushEnabled ? disablePushNotifications() : enablePushNotifications()}
-                  disabled={!canTogglePush}
-                  className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-bold transition active:scale-95 disabled:opacity-50 ${
-                    pushEnabled ? "bg-neutral-100 text-neutral-700" : "bg-neutral-900 text-white"
-                  }`}
-                >
-                  {!pushSupported ? "미지원" : pushPermission === "denied" ? "차단됨" : pushEnabled ? "끄기" : "켜기"}
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className={`text-[11px] font-bold ${pushEnabled ? "text-indigo-500" : "text-neutral-400"}`}>
+                    {!pushSupported ? "미지원" : pushPermission === "denied" ? "차단됨" : pushEnabled ? "ON" : "OFF"}
+                  </span>
+                  <Switch
+                    checked={pushEnabled}
+                    disabled={!canTogglePush}
+                    onChange={() => pushEnabled ? disablePushNotifications() : enablePushNotifications()}
+                    label="푸시 알림"
+                  />
+                </div>
               </div>
 
               <div className="mt-4 space-y-2.5 border-t border-neutral-100 pt-3">
