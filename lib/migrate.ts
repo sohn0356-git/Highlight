@@ -8,7 +8,7 @@ import { getSupabase } from "./supabase";
 import { isSupabaseReady } from "./config";
 
 const MIGRATION_KEY = "highlight_migration_version";
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 const MIGRATION_SQL = `
 -- Badge levels
@@ -57,6 +57,21 @@ CREATE INDEX IF NOT EXISTS idx_daily_quests_student_date ON daily_quests(student
 CREATE INDEX IF NOT EXISTS idx_students_active ON students(active);
 CREATE INDEX IF NOT EXISTS idx_students_class ON students(class_id);
 CREATE INDEX IF NOT EXISTS idx_teachers_active ON teachers(active);
+
+-- Mission comments
+CREATE TABLE IF NOT EXISTS mission_comments (
+  id TEXT PRIMARY KEY,
+  mission_id TEXT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+  student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  student_name TEXT DEFAULT '',
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE mission_comments ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN DROP POLICY IF EXISTS "mission_comments_all" ON mission_comments; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE POLICY "mission_comments_all" ON mission_comments FOR ALL USING (true) WITH CHECK (true);
+CREATE INDEX IF NOT EXISTS idx_mission_comments_mission ON mission_comments(mission_id);
+CREATE INDEX IF NOT EXISTS idx_mission_comments_student ON mission_comments(student_id);
 
 -- Son Gyeongju admin
 INSERT INTO students (id, name, birth_date, class_id, role, is_teacher, active, talents)

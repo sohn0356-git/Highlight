@@ -1,25 +1,37 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Bell, Flame, X } from "lucide-react";
+import { Bell, MessageCircle, Pencil, Trash2, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
-import ProgressBar from "@/components/ProgressBar";
 import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
-import { getStudentLevel, getNextLevelXp } from "@/lib/db";
+import { addMissionComment, deleteMissionComment, fetchMissionComments, updateMissionComment } from "@/lib/db";
 import { koreaDate } from "@/lib/korea-date";
+
+interface MissionComment {
+  id: string;
+  missionId: string;
+  studentId: string;
+  studentName: string;
+  content: string;
+  createdAt: string;
+}
 
 export default function HomeContent() {
   const {
     student, isLoggedIn, isLoading, classes, activities, season, dailyQuestIds, completeDailyQuest,
     allStudents, refreshActivities, announcements, notifications, unreadCount,
+    missions,
     pushSupported, pushPermission, pushEnabled, enablePushNotifications, disablePushNotifications,
     markNotificationRead, markAllNotificationsRead,
   } = useApp();
   const [feedOpen, setFeedOpen] = useState(false);
   const [feedTab, setFeedTab] = useState<"noti" | "news">("noti");
   const [selectedAnn, setSelectedAnn] = useState<any>(null);
+  const [missionCommentsMap, setMissionCommentsMap] = useState<Record<string, MissionComment[]>>({});
+  const specialMissions = missions.filter((m: any) => m.category === "special");
+  const specialMissionIdsKey = specialMissions.map((m: any) => m.id).join("|");
 
   useEffect(() => { refreshActivities(); }, [refreshActivities]);
   useEffect(() => {
@@ -30,10 +42,62 @@ export default function HomeContent() {
     completeDailyQuest("d8");
   }, [student, isLoading, isLoggedIn, dailyQuestIds, completeDailyQuest]);
 
+  useEffect(() => {
+    const missionIds = specialMissions.map((m: any) => m.id);
+    if (!student || !isLoggedIn || !missionIds.length) {
+      setMissionCommentsMap({});
+      return;
+    }
+    fetchMissionComments(missionIds).then(setMissionCommentsMap);
+  }, [student?.id, isLoggedIn, specialMissionIdsKey]);
+
+  const handleAddMissionComment = async (missionId: string, content: string) => {
+    if (!student) return;
+    const tempComment: MissionComment = {
+      id: `temp_${Date.now()}`,
+      missionId,
+      studentId: student.id,
+      studentName: student.name,
+      content,
+      createdAt: new Date().toISOString(),
+    };
+    setMissionCommentsMap(prev => ({ ...prev, [missionId]: [...(prev[missionId] || []), tempComment] }));
+    const saved = await addMissionComment({ missionId, studentId: student.id, studentName: student.name, content });
+    if (saved?.id) {
+      setMissionCommentsMap(prev => ({
+        ...prev,
+        [missionId]: (prev[missionId] || []).map(c => c.id === tempComment.id ? {
+          id: saved.id,
+          missionId: saved.mission_id,
+          studentId: saved.student_id,
+          studentName: saved.student_name || student.name,
+          content: saved.content || content,
+          createdAt: saved.created_at || tempComment.createdAt,
+        } : c),
+      }));
+    }
+  };
+
+  const handleUpdateMissionComment = async (missionId: string, commentId: string, content: string) => {
+    if (!student) return;
+    setMissionCommentsMap(prev => ({
+      ...prev,
+      [missionId]: (prev[missionId] || []).map(c => c.id === commentId ? { ...c, content } : c),
+    }));
+    await updateMissionComment(commentId, content);
+  };
+
+  const handleDeleteMissionComment = async (missionId: string, commentId: string) => {
+    if (!student) return;
+    if (!confirm("댓글을 정말 삭제하시겠습니까?")) return;
+    setMissionCommentsMap(prev => ({
+      ...prev,
+      [missionId]: (prev[missionId] || []).filter(c => c.id !== commentId),
+    }));
+    await deleteMissionComment(commentId);
+  };
+
   if (!student || !isLoggedIn) return null;
-  const myClass = classes.find(c => c.id === student.classId);
-  const studentLevel = getStudentLevel(student.xp || 0);
-  const nextXp = getNextLevelXp(studentLevel.level, false);
 
   return (
     <div>
@@ -86,33 +150,33 @@ export default function HomeContent() {
         </Card>
       </section>
 
-      {/* ── Hero Card: 이름 + 레벨 ── */}
-      <section className="mt-3 px-5">
-        <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 border-0 text-white shadow-lg shadow-indigo-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-extrabold">{student.name}</p>
-              <p className="mt-1 text-xs font-bold tracking-widest text-indigo-200">{myClass?.name || "반 미배정"}</p>
-              <div className="mt-2 flex items-baseline gap-2">
-                <p className="text-2xl font-extrabold">{(student.mileage || 0).toLocaleString()}</p>
-                <span className="text-sm font-bold text-indigo-200">D</span>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/20 ml-auto">
-                <Flame className="text-amber-300" size={28} />
-              </div>
-              <p className="mt-1.5 text-sm font-bold text-amber-200">LV.{studentLevel.level}</p>
-            </div>
+      {/* ── Special missions ── */}
+      {specialMissions.length > 0 && (
+        <section className="mt-3 px-5">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-base font-bold text-neutral-900">
+              <span className="text-amber-500">⭐</span>
+              <span>SPECIAL QUEST</span>
+            </h2>
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600">
+              {specialMissions.length}개
+            </span>
           </div>
-          {nextXp < Infinity && (
-            <div className="mt-3">
-              <ProgressBar value={student.xp || 0} max={nextXp} className="bg-white/20" barClassName="bg-white" />
-              <p className="mt-1 text-[10px] text-indigo-200 text-right">다음 레벨까지 {nextXp - (student.xp || 0)} D</p>
-            </div>
-          )}
-        </Card>
-      </section>
+          <div className="flex flex-col gap-3">
+            {specialMissions.map((mission: any) => (
+              <SpecialMissionCard
+                key={mission.id}
+                mission={mission}
+                studentId={student.id}
+                comments={missionCommentsMap[mission.id] || []}
+                onAddComment={(content) => handleAddMissionComment(mission.id, content)}
+                onUpdateComment={(commentId, content) => handleUpdateMissionComment(mission.id, commentId, content)}
+                onDeleteComment={(commentId) => handleDeleteMissionComment(mission.id, commentId)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── 랭킹 ── */}
       <section className="mt-5 px-5">
@@ -233,6 +297,143 @@ export default function HomeContent() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SpecialMissionCard({
+  mission,
+  studentId,
+  comments,
+  onAddComment,
+  onUpdateComment,
+  onDeleteComment,
+}: {
+  mission: any;
+  studentId: string;
+  comments: MissionComment[];
+  onAddComment: (content: string) => void;
+  onUpdateComment: (commentId: string, content: string) => void;
+  onDeleteComment: (commentId: string) => void;
+}) {
+  const [showComments, setShowComments] = useState(true);
+  const [commentText, setCommentText] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
+
+  const submitComment = () => {
+    const text = commentText.trim();
+    if (!text) return;
+    onAddComment(text);
+    setCommentText("");
+  };
+
+  return (
+    <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-xl">{mission.icon || "⭐"}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-neutral-900">{mission.title}</h3>
+            <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-600">+{mission.reward || 0}D</span>
+          </div>
+          {mission.description && (
+            <p className="mt-1 text-xs leading-relaxed text-neutral-500">{mission.description}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <button
+          onClick={() => setShowComments(v => !v)}
+          className="flex items-center gap-1 text-xs font-semibold text-neutral-400 transition hover:text-neutral-600"
+        >
+          <MessageCircle size={13} />
+          댓글 {comments.length > 0 ? comments.length : ""} {showComments ? "▾" : "▸"}
+        </button>
+        <div className="grid transition-[grid-template-rows] duration-200 ease-in-out" style={{ gridTemplateRows: showComments ? "1fr" : "0fr" }}>
+          <div className="overflow-hidden">
+            <div className="mt-2 rounded-xl border border-neutral-100 bg-neutral-50 p-3">
+              {comments.length > 0 && (
+                <div className="mb-2 space-y-2">
+                  {comments.map(comment => {
+                    const isMine = comment.studentId === studentId;
+                    const isEditingThis = editingCommentId === comment.id;
+                    return (
+                      <div key={comment.id} className="flex items-start gap-2">
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[9px] font-bold text-indigo-600">
+                          {(comment.studentName || "?").slice(0, 1)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-[11px] font-semibold text-neutral-700">{comment.studentName}</p>
+                            {comment.createdAt && (
+                              <p className="text-[9px] text-neutral-400">
+                                {new Date(comment.createdAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            )}
+                            {isMine && !isEditingThis && (
+                              <span className="ml-auto flex items-center gap-0.5">
+                                <button onClick={() => { setEditingCommentId(comment.id); setEditCommentText(comment.content); }} className="rounded p-1 text-neutral-400 transition hover:text-indigo-500" aria-label="댓글 수정"><Pencil size={10} /></button>
+                                <button onClick={() => onDeleteComment(comment.id)} className="rounded p-1 text-neutral-400 transition hover:text-red-500" aria-label="댓글 삭제"><Trash2 size={10} /></button>
+                              </span>
+                            )}
+                          </div>
+                          {isEditingThis ? (
+                            <div className="mt-1">
+                              <textarea
+                                value={editCommentText}
+                                onChange={e => setEditCommentText(e.target.value)}
+                                rows={2}
+                                className="w-full resize-none rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400"
+                              />
+                              <div className="mt-1 flex justify-end gap-1.5">
+                                <button onClick={() => { setEditingCommentId(null); setEditCommentText(""); }} className="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-bold text-neutral-500 transition active:scale-95">취소</button>
+                                <button
+                                  onClick={() => {
+                                    const text = editCommentText.trim();
+                                    if (!text) return;
+                                    onUpdateComment(comment.id, text);
+                                    setEditingCommentId(null);
+                                    setEditCommentText("");
+                                  }}
+                                  disabled={!editCommentText.trim()}
+                                  className="rounded-full bg-indigo-500 px-2.5 py-1 text-[10px] font-bold text-white transition active:scale-95 disabled:opacity-40"
+                                >
+                                  저장
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-neutral-600">{comment.content}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") submitComment(); }}
+                  placeholder="댓글을 입력하세요..."
+                  className="flex-1 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400"
+                />
+                <button
+                  onClick={submitComment}
+                  disabled={!commentText.trim()}
+                  className="rounded-lg bg-indigo-500 px-2.5 py-1.5 text-xs font-bold text-white transition active:scale-95 disabled:opacity-40"
+                >
+                  등록
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

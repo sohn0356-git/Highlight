@@ -691,6 +691,65 @@ export async function deletePrayerComment(id: string) {
   } catch {}
 }
 
+/* ── Mission Comments ── */
+export async function fetchMissionComments(missionIds: string[]) {
+  const s = sb();
+  const commentsMap: Record<string, any[]> = {};
+  missionIds.forEach(id => { commentsMap[id] = []; });
+  if (!s || !missionIds.length) return commentsMap;
+  try {
+    const { data, error } = await s.from("mission_comments")
+      .select("mission_id, id, student_id, student_name, content, created_at")
+      .in("mission_id", missionIds)
+      .order("created_at", { ascending: true });
+    if (error || !data) return commentsMap;
+    data.forEach((r: any) => {
+      const missionId = r.mission_id;
+      if (!commentsMap[missionId]) commentsMap[missionId] = [];
+      commentsMap[missionId].push({
+        id: r.id, missionId, studentId: r.student_id,
+        studentName: r.student_name || "", content: r.content || "",
+        createdAt: r.created_at || "",
+      });
+    });
+    return commentsMap;
+  } catch {
+    return commentsMap;
+  }
+}
+
+export async function addMissionComment(comment: any) {
+  const s = sb();
+  if (!s) return null;
+  try {
+    const { data } = await s.from("mission_comments").insert([{
+      id: "mc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      mission_id: comment.missionId, student_id: comment.studentId,
+      student_name: comment.studentName || "", content: comment.content,
+      created_at: new Date().toISOString(),
+    }]).select().single();
+    return data || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateMissionComment(id: string, content: string) {
+  const s = sb();
+  if (!s) return;
+  try {
+    await s.from("mission_comments").update({ content }).eq("id", id);
+  } catch {}
+}
+
+export async function deleteMissionComment(id: string) {
+  const s = sb();
+  if (!s) return;
+  try {
+    await s.from("mission_comments").delete().eq("id", id);
+  } catch {}
+}
+
 /* ── QT Records ── */
 export async function fetchQTRecords(studentId: string) {
   const s = sb();
