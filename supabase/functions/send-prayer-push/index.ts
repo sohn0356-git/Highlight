@@ -10,6 +10,10 @@ type PushSubscriptionRow = {
   id: string;
   endpoint: string;
   subscription: any;
+  announcement_enabled?: boolean;
+  prayer_enabled?: boolean;
+  praise_enabled?: boolean;
+  qt_enabled?: boolean;
 };
 
 const corsHeaders = {
@@ -47,11 +51,12 @@ serve(async (req: Request) => {
 
     const { data: subscriptions } = await supabase
       .from("push_subscriptions")
-      .select("id, endpoint, subscription")
+      .select("id, endpoint, subscription, announcement_enabled, prayer_enabled, praise_enabled, qt_enabled")
       .eq("user_id", notification.user_id)
       .eq("enabled", true) as { data: PushSubscriptionRow[] | null };
 
-    if (!subscriptions?.length) return json({ sent: 0 });
+    const eligibleSubscriptions = (subscriptions || []).filter((row) => allowsNotificationType(row, notification.type || ""));
+    if (!eligibleSubscriptions.length) return json({ sent: 0 });
 
     webPush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
     const payload = JSON.stringify({
@@ -62,11 +67,11 @@ serve(async (req: Request) => {
     });
 
     const results = await Promise.allSettled(
-      subscriptions.map((row) => webPush.sendNotification(row.subscription, payload))
+      eligibleSubscriptions.map((row) => webPush.sendNotification(row.subscription, payload))
     );
 
     const staleIds = results
-      .map((result, index) => ({ result, id: subscriptions[index].id }))
+      .map((result, index) => ({ result, id: eligibleSubscriptions[index].id }))
       .filter(({ result }) => {
         if (result.status !== "rejected") return false;
         const statusCode = result.reason?.statusCode;
@@ -86,6 +91,14 @@ serve(async (req: Request) => {
     return json({ error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }
 });
+
+function allowsNotificationType(row: PushSubscriptionRow, type: string) {
+  if (type === "announcement" || type === "notice") return row.announcement_enabled !== false;
+  if (type === "prayer") return row.prayer_enabled !== false;
+  if (type === "praise") return row.praise_enabled !== false;
+  if (type === "qt" || type === "qt_comment" || type === "qt_share") return row.qt_enabled !== false;
+  return true;
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

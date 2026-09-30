@@ -8,7 +8,7 @@ import { getSupabase } from "./supabase";
 import { isSupabaseReady } from "./config";
 
 const MIGRATION_KEY = "highlight_migration_version";
-const CURRENT_VERSION = 4;
+const CURRENT_VERSION = 5;
 
 const MIGRATION_SQL = `
 -- Badge levels
@@ -72,6 +72,19 @@ DO $$ BEGIN DROP POLICY IF EXISTS "mission_comments_all" ON mission_comments; EX
 CREATE POLICY "mission_comments_all" ON mission_comments FOR ALL USING (true) WITH CHECK (true);
 CREATE INDEX IF NOT EXISTS idx_mission_comments_mission ON mission_comments(mission_id);
 CREATE INDEX IF NOT EXISTS idx_mission_comments_student ON mission_comments(student_id);
+
+-- Push category preferences
+ALTER TABLE push_subscriptions
+  ADD COLUMN IF NOT EXISTS announcement_enabled BOOLEAN DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS prayer_enabled BOOLEAN DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS praise_enabled BOOLEAN DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS qt_enabled BOOLEAN DEFAULT TRUE;
+UPDATE push_subscriptions
+SET
+  announcement_enabled = COALESCE(announcement_enabled, TRUE),
+  prayer_enabled = COALESCE(prayer_enabled, TRUE),
+  praise_enabled = COALESCE(praise_enabled, TRUE),
+  qt_enabled = COALESCE(qt_enabled, TRUE);
 
 -- Son Gyeongju admin
 INSERT INTO students (id, name, birth_date, class_id, role, is_teacher, active, talents)

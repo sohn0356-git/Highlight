@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ChevronRight, ShieldCheck, Users, LogOut, Award, Target, CheckCircle2 } from "lucide-react";
+import { Bell, BellOff, CheckCircle2, ChevronRight, LogOut, Settings, ShieldCheck, Target, Users, X, Award } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
@@ -9,10 +9,16 @@ import { useApp, useViewMode } from "@/lib/store-context";
 import { getStudentLevel, getNextLevelXp, fetchStudentBadgesWithProgress } from "@/lib/db";
 
 export default function MyContent() {
-  const { student, isLoggedIn, classes, logout, missions, completedMissionIds, completeMission, dailyQuests, dailyQuestIds, completeDailyQuest, badgeRefreshKey, teachers } = useApp();
+  const {
+    student, isLoggedIn, classes, logout, missions, completedMissionIds, completeMission,
+    dailyQuests, dailyQuestIds, completeDailyQuest, badgeRefreshKey, teachers,
+    pushSupported, pushPermission, pushEnabled, pushPreferences,
+    enablePushNotifications, disablePushNotifications, updatePushCategoryPreference,
+  } = useApp();
   const { setMode } = useViewMode();
   const [badges, setBadges] = useState<any[]>([]);
   const [badgesLoading, setBadgesLoading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (student?.id) {
@@ -46,7 +52,20 @@ export default function MyContent() {
   return (
     <div>
       <div className="px-5 pt-7">
-        <PageHeader title="프로필" showBack subtitle={student.name} right={<Users size={18} className="text-indigo-400" />} />
+        <PageHeader
+          title="프로필"
+          showBack
+          subtitle={student.name}
+          right={
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="grid h-10 w-10 place-items-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-sm transition active:scale-95 active:bg-neutral-50"
+              aria-label="설정"
+            >
+              <Settings size={19} />
+            </button>
+          }
+        />
       </div>
 
       {/* Student XP & Level Card */}
@@ -175,6 +194,131 @@ export default function MyContent() {
           로그아웃
         </button>
       </section>
+
+      {settingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setSettingsOpen(false)}>
+          <div
+            className="w-full max-w-md rounded-t-3xl bg-neutral-50 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-neutral-300" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Settings size={18} className="text-indigo-500" />
+                <h2 className="text-base font-bold text-neutral-900">설정</h2>
+              </div>
+              <button
+                onClick={() => setSettingsOpen(false)}
+                className="grid h-9 w-9 place-items-center rounded-full bg-neutral-200 text-neutral-600 active:bg-neutral-300"
+                aria-label="닫기"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${pushEnabled ? "bg-indigo-50 text-indigo-500" : "bg-neutral-100 text-neutral-400"}`}>
+                  {pushEnabled ? <Bell size={20} /> : <BellOff size={20} />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-neutral-900">푸시 알림</p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-neutral-500">
+                    {pushPermission === "denied" ? "브라우저 설정에서 알림 권한을 허용해야 해요." : pushSupported ? "앱을 닫아도 알림을 받을 수 있어요." : "이 기기에서는 푸시 알림을 지원하지 않아요."}
+                  </p>
+                </div>
+                <Switch
+                  checked={pushEnabled}
+                  disabled={!pushSupported || pushPermission === "denied"}
+                  onChange={() => pushEnabled ? disablePushNotifications() : enablePushNotifications()}
+                  label="푸시 알림"
+                />
+              </div>
+
+              <div className="mt-4 space-y-2.5 border-t border-neutral-100 pt-3">
+                <NotificationToggle
+                  label="공지"
+                  description="새 공지가 등록될 때"
+                  checked={pushPreferences.announcement}
+                  disabled={!pushEnabled}
+                  onChange={(checked) => updatePushCategoryPreference("announcement", checked)}
+                />
+                <NotificationToggle
+                  label="기도"
+                  description="누가 내 기도제목에 기도했을 때"
+                  checked={pushPreferences.prayer}
+                  disabled={!pushEnabled}
+                  onChange={(checked) => updatePushCategoryPreference("prayer", checked)}
+                />
+                <NotificationToggle
+                  label="칭찬"
+                  description="누가 나를 칭찬했을 때"
+                  checked={pushPreferences.praise}
+                  disabled={!pushEnabled}
+                  onChange={(checked) => updatePushCategoryPreference("praise", checked)}
+                />
+                <NotificationToggle
+                  label="QT"
+                  description="내 QT 공유글에 댓글이 달릴 때"
+                  checked={pushPreferences.qt}
+                  disabled={!pushEnabled}
+                  onChange={(checked) => updatePushCategoryPreference("qt", checked)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function NotificationToggle({
+  label,
+  description,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${disabled ? "bg-neutral-50 opacity-60" : "bg-neutral-50"}`}>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-bold text-neutral-800">{label}</p>
+        <p className="mt-0.5 text-[11px] text-neutral-400">{description}</p>
+      </div>
+      <Switch checked={checked} disabled={disabled} onChange={() => onChange(!checked)} label={`${label} 알림`} />
+    </div>
+  );
+}
+
+function Switch({
+  checked,
+  disabled,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onChange}
+      className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${checked ? "bg-indigo-500" : "bg-neutral-300"}`}
+    >
+      <span className={`absolute top-1 grid h-5 w-5 place-items-center rounded-full bg-white shadow-sm transition ${checked ? "left-6" : "left-1"}`} />
+    </button>
   );
 }

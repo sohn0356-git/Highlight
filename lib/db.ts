@@ -257,14 +257,22 @@ export async function fetchAnnouncements() {
 export async function insertAnnouncement(a: any) {
   const s = sb();
   if (!s) return;
-  await s.from("announcements").insert([{
+  const { data } = await s.from("announcements").insert([{
     id: a.id, title: a.title, content: a.content || "",
     target: a.target || "all", important: !!a.important,
     status: a.status || "published",
     start_date: a.startDate || koreaDate(),
     end_date: a.endDate || "",
     created_at: new Date().toISOString(),
-  }]);
+  }]).select().single();
+  if (data?.status === "published") {
+    await createAnnouncementNotifications({
+      id: data.id,
+      title: data.title,
+      content: data.content || "",
+      important: !!data.important,
+    });
+  }
 }
 
 export async function updateAnnouncement(id: string, patch: any) {
@@ -484,6 +492,60 @@ export async function markAllNotificationsRead(userId: string) {
   await s.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
 }
 
+export type PushCategoryPreferences = {
+  announcement: boolean;
+  prayer: boolean;
+  praise: boolean;
+  qt: boolean;
+};
+
+const DEFAULT_PUSH_PREFERENCES: PushCategoryPreferences = {
+  announcement: true,
+  prayer: true,
+  praise: true,
+  qt: true,
+};
+
+function mapPushPreferences(row: any): PushCategoryPreferences {
+  return {
+    announcement: row?.announcement_enabled !== false,
+    prayer: row?.prayer_enabled !== false,
+    praise: row?.praise_enabled !== false,
+    qt: row?.qt_enabled !== false,
+  };
+}
+
+export async function fetchPushPreferences(userId: string): Promise<PushCategoryPreferences> {
+  const s = sb();
+  if (!s) return DEFAULT_PUSH_PREFERENCES;
+  try {
+    const { data } = await s.from("push_subscriptions")
+      .select("announcement_enabled, prayer_enabled, praise_enabled, qt_enabled, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    return data?.[0] ? mapPushPreferences(data[0]) : DEFAULT_PUSH_PREFERENCES;
+  } catch {
+    return DEFAULT_PUSH_PREFERENCES;
+  }
+}
+
+export async function updatePushPreferences(userId: string, patch: Partial<PushCategoryPreferences>) {
+  const s = sb();
+  if (!s) return false;
+  const update: any = { updated_at: new Date().toISOString() };
+  if (patch.announcement !== undefined) update.announcement_enabled = patch.announcement;
+  if (patch.prayer !== undefined) update.prayer_enabled = patch.prayer;
+  if (patch.praise !== undefined) update.praise_enabled = patch.praise;
+  if (patch.qt !== undefined) update.qt_enabled = patch.qt;
+  try {
+    const { error } = await s.from("push_subscriptions").update(update).eq("user_id", userId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchPushSubscription(userId: string) {
   const s = sb();
   if (!s) return null;
@@ -516,6 +578,26 @@ export async function disablePushSubscription(userId: string, endpoint?: string)
   let query = s.from("push_subscriptions").update({ enabled: false, updated_at: new Date().toISOString() }).eq("user_id", userId);
   if (endpoint) query = query.eq("endpoint", endpoint);
   await query;
+}
+
+export async function createAnnouncementNotifications(a: { id: string; title: string; content?: string; important?: boolean }) {
+  const s = sb();
+  if (!s) return;
+  try {
+    const students = await fetchActiveStudents();
+    const rows = students.map((student: any) => ({
+      id: "nt_" + Date.now() + "_" + student.id + "_" + Math.random().toString(36).slice(2, 5),
+      user_id: student.id,
+      type: "announcement",
+      title: a.important ? "중요 공지" : "공지 알림",
+      body: a.title + (a.content ? ` · ${String(a.content).slice(0, 30)}` : ""),
+      related_id: a.id,
+      is_read: false,
+    }));
+    if (!rows.length) return;
+    const { data } = await s.from("notifications").insert(rows).select("id");
+    await Promise.all((data || []).map((n: any) => sendPushForNotification(n.id)));
+  } catch {}
 }
 
 /* ── Batch Prayer Data (3 queries total regardless of prayer count) ── */

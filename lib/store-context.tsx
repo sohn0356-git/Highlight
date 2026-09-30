@@ -59,8 +59,10 @@ interface AppState {
   pushSupported: boolean;
   pushPermission: NotificationPermission | "unsupported";
   pushEnabled: boolean;
+  pushPreferences: db.PushCategoryPreferences;
   enablePushNotifications: () => Promise<boolean>;
   disablePushNotifications: () => Promise<void>;
+  updatePushCategoryPreference: (category: keyof db.PushCategoryPreferences, enabled: boolean) => Promise<void>;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
 }
@@ -131,6 +133,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pushSupported, setPushSupported] = useState(false);
   const [pushPermission, setPushPermission] = useState<NotificationPermission | "unsupported">("unsupported");
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushPreferences, setPushPreferences] = useState<db.PushCategoryPreferences>({ announcement: true, prayer: true, praise: true, qt: true });
   const [qtComments, setQtComments] = useState<Record<string, QTComment[]>>({});
   const sharingRef = useRef(false);
 
@@ -174,6 +177,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const nts = await db.fetchNotifications(student.id);
         setNotifications(nts as any[]);
+        const prefs = await db.fetchPushPreferences(student.id);
+        setPushPreferences(prefs);
       } catch {}
 
       // Daily quests for today
@@ -325,6 +330,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setPushEnabled(!!subscription && Notification.permission === "granted");
         if (subscription && Notification.permission === "granted") {
           await db.upsertPushSubscription(student.id, subscription.toJSON());
+          setPushPreferences(await db.fetchPushPreferences(student.id));
           localStorage.setItem(preferenceKey, "1");
         } else {
           const saved = await db.fetchPushSubscription(student.id);
@@ -333,7 +339,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const restored = await subscribeBrowserPush(registration);
             const ok = !!restored && await db.upsertPushSubscription(student.id, restored.toJSON());
             setPushEnabled(ok);
-            if (ok) localStorage.setItem(preferenceKey, "1");
+            if (ok) {
+              setPushPreferences(await db.fetchPushPreferences(student.id));
+              localStorage.setItem(preferenceKey, "1");
+            }
           } else {
             setPushEnabled(false);
           }
@@ -734,8 +743,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const ok = await db.upsertPushSubscription(student.id, subscription.toJSON());
       setPushEnabled(ok);
       if (ok) {
+        setPushPreferences(await db.fetchPushPreferences(student.id));
         localStorage.setItem(pushPreferenceKey(student.id), "1");
-        showPointToast("기도 알림 푸시를 켰어요");
+        showPointToast("푸시 알림을 켰어요");
       }
       return ok;
     } catch {
@@ -753,11 +763,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await subscription?.unsubscribe();
       localStorage.removeItem(pushPreferenceKey(student.id));
       setPushEnabled(false);
-      showPointToast("기도 알림 푸시를 껐어요");
+      showPointToast("푸시 알림을 껐어요");
     } catch {
       setPushEnabled(false);
     }
   }, [student, pushSupported]);
+
+  const updatePushCategoryPreference = useCallback(async (category: keyof db.PushCategoryPreferences, enabled: boolean) => {
+    if (!student) return;
+    setPushPreferences(prev => ({ ...prev, [category]: enabled }));
+    const ok = await db.updatePushPreferences(student.id, { [category]: enabled });
+    if (!ok) {
+      const prefs = await db.fetchPushPreferences(student.id);
+      setPushPreferences(prefs);
+    }
+  }, [student]);
 
   const markNotificationRead = useCallback(async (id: string) => {
     setNotifications(prev => prev.map((n: any) => n.id === id ? { ...n, isRead: true } : n));
@@ -789,7 +809,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       badges, season, classes, allStudents, activities,
       refreshActivities, sharedGoal, teachers, refreshAll, badgeRefreshKey,
       notifications, unreadCount, pushSupported, pushPermission, pushEnabled,
-      enablePushNotifications, disablePushNotifications,
+      pushPreferences, enablePushNotifications, disablePushNotifications, updatePushCategoryPreference,
       markNotificationRead, markAllNotificationsRead,
     }}>
       {children}
