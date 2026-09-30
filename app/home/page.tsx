@@ -151,19 +151,29 @@ export default function HomeContent() {
       </section>
 
       {/* ── Admin missions ── */}
-      {adminMissions.length > 0 && (
-        <section className="mt-3 px-5">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-base font-bold text-neutral-900">
-              <span className="text-amber-500">⭐</span>
-              <span>스페셜 미션</span>
-            </h2>
-            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600">
-              {adminMissions.length}개
-            </span>
-          </div>
-          <div className="flex flex-col gap-3">
-            {adminMissions.map((mission: any) => (
+      <section className="mt-3 px-5">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-base font-bold text-neutral-900">
+            <span className="text-amber-500">⭐</span>
+            <span>스페셜 미션</span>
+          </h2>
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600">
+            {adminMissions.length}개
+          </span>
+        </div>
+        <div className="flex flex-col gap-3">
+          {adminMissions.length === 0 ? (
+            <Card>
+              <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-xl">⭐</span>
+                <div>
+                  <p className="text-sm font-bold text-neutral-800">미션이 생성되는 중입니다</p>
+                  <p className="mt-1 text-xs leading-relaxed text-neutral-500">새로운 스페셜 미션이 등록되면 이곳에서 확인할 수 있어요.</p>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            adminMissions.map((mission: any) => (
               <SpecialMissionCard
                 key={mission.id}
                 mission={mission}
@@ -173,10 +183,10 @@ export default function HomeContent() {
                 onUpdateComment={(commentId, content) => handleUpdateMissionComment(mission.id, commentId, content)}
                 onDeleteComment={(commentId) => handleDeleteMissionComment(mission.id, commentId)}
               />
-            ))}
-          </div>
-        </section>
-      )}
+            ))
+          )}
+        </div>
+      </section>
 
       {/* ── 랭킹 ── */}
       <section className="mt-5 px-5">
