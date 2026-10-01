@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Award, Gift, Mailbox, MessageCirclePlus, X } from "lucide-react";
+import { Gift, Mailbox, MessageCirclePlus, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import { useApp } from "@/lib/store-context";
@@ -161,16 +161,13 @@ export default function PraiseContent() {
           showBack
           subtitle="서로를 칭찬해요"
           right={
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setGiftInfoOpen(true)}
-                className="grid h-9 w-9 place-items-center rounded-full border border-amber-100 bg-white text-amber-500 shadow-sm transition active:scale-95 active:bg-amber-50"
-                aria-label="선물 우편함"
-              >
-                <Mailbox size={18} />
-              </button>
-              <Award size={18} className="text-amber-400" />
-            </div>
+            <button
+              onClick={() => setGiftInfoOpen(true)}
+              className="grid h-9 w-9 place-items-center rounded-full border border-amber-100 bg-white text-amber-500 shadow-sm transition active:scale-95 active:bg-amber-50"
+              aria-label="선물 우편함"
+            >
+              <Mailbox size={18} />
+            </button>
           }
         />
       </div>

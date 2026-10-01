@@ -423,32 +423,32 @@ function SpecialMissionCard({
                 </div>
               )}
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={commentText}
-                    onChange={e => setCommentText(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") submitComment(); }}
-                    placeholder="댓글을 입력하세요..."
-                    className="flex-1 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400"
-                  />
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") submitComment(); }}
+                  placeholder="댓글을 입력하세요..."
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-indigo-400"
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-neutral-500">
+                    <input
+                      type="checkbox"
+                      checked={privateComment}
+                      onChange={e => setPrivateComment(e.target.checked)}
+                      className="h-3.5 w-3.5 rounded border-neutral-300 text-indigo-500"
+                    />
+                    비밀글
+                  </label>
                   <button
                     onClick={submitComment}
                     disabled={!commentText.trim()}
-                    className="rounded-lg bg-indigo-500 px-2.5 py-1.5 text-xs font-bold text-white transition active:scale-95 disabled:opacity-40"
+                    className="min-w-[92px] rounded-lg bg-indigo-500 px-3 py-2 text-xs font-bold text-white transition active:scale-95 disabled:opacity-40"
                   >
-                    등록
+                    댓글 등록
                   </button>
                 </div>
-                <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-neutral-500">
-                  <input
-                    type="checkbox"
-                    checked={privateComment}
-                    onChange={e => setPrivateComment(e.target.checked)}
-                    className="h-3.5 w-3.5 rounded border-neutral-300 text-indigo-500"
-                  />
-                  비밀글
-                </label>
               </div>
             </div>
           </div>
