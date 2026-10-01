@@ -48,14 +48,7 @@ export default function HomeContent() {
       setMissionCommentsMap({});
       return;
     }
-    fetchMissionComments(missionIds).then(map => {
-      const isAdmin = student.role === "admin";
-      const visibleMap = Object.fromEntries(Object.entries(map).map(([missionId, comments]) => [
-        missionId,
-        comments.filter((comment: MissionComment) => !comment.private || isAdmin || comment.studentId === student.id),
-      ]));
-      setMissionCommentsMap(visibleMap);
-    });
+    fetchMissionComments(missionIds).then(setMissionCommentsMap);
   }, [student?.id, student?.role, isLoggedIn, adminMissionIdsKey]);
 
   const handleAddMissionComment = async (missionId: string, content: string, isPrivate: boolean) => {
@@ -188,6 +181,7 @@ export default function HomeContent() {
                   key={mission.id}
                   mission={mission}
                   studentId={student.id}
+                  isAdmin={student.role === "admin"}
                   comments={missionCommentsMap[mission.id] || []}
                   onAddComment={(content, isPrivate) => handleAddMissionComment(mission.id, content, isPrivate)}
                   onUpdateComment={(commentId, content) => handleUpdateMissionComment(mission.id, commentId, content)}
@@ -306,6 +300,7 @@ export default function HomeContent() {
 function SpecialMissionCard({
   mission,
   studentId,
+  isAdmin,
   comments,
   onAddComment,
   onUpdateComment,
@@ -313,6 +308,7 @@ function SpecialMissionCard({
 }: {
   mission: any;
   studentId: string;
+  isAdmin: boolean;
   comments: MissionComment[];
   onAddComment: (content: string, isPrivate: boolean) => void;
   onUpdateComment: (commentId: string, content: string) => void;
@@ -362,6 +358,7 @@ function SpecialMissionCard({
                 <div className="mb-2 space-y-2">
                   {comments.map(comment => {
                     const isMine = comment.studentId === studentId;
+                    const canReadPrivate = !comment.private || isMine || isAdmin;
                     const isEditingThis = editingCommentId === comment.id;
                     return (
                       <div key={comment.id} className="flex items-start gap-2">
@@ -381,14 +378,14 @@ function SpecialMissionCard({
                                 {new Date(comment.createdAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
                               </p>
                             )}
-                            {isMine && !isEditingThis && (
+                            {isMine && canReadPrivate && !isEditingThis && (
                               <span className="ml-auto flex items-center gap-0.5">
                                 <button onClick={() => { setEditingCommentId(comment.id); setEditCommentText(comment.content); }} className="rounded p-1 text-neutral-400 transition hover:text-indigo-500" aria-label="댓글 수정"><Pencil size={10} /></button>
                                 <button onClick={() => onDeleteComment(comment.id)} className="rounded p-1 text-neutral-400 transition hover:text-red-500" aria-label="댓글 삭제"><Trash2 size={10} /></button>
                               </span>
                             )}
                           </div>
-                          {isEditingThis ? (
+                          {isEditingThis && canReadPrivate ? (
                             <div className="mt-1">
                               <textarea
                                 value={editCommentText}
@@ -414,7 +411,9 @@ function SpecialMissionCard({
                               </div>
                             </div>
                           ) : (
-                            <p className="text-xs text-neutral-600">{comment.content}</p>
+                            <p className={`text-xs ${canReadPrivate ? "text-neutral-600" : "text-neutral-400"}`}>
+                              {canReadPrivate ? comment.content : "비밀글입니다."}
+                            </p>
                           )}
                         </div>
                       </div>
