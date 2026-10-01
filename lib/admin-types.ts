@@ -125,7 +125,7 @@ export interface Announcement {
 }
 
 /* ── Mileage Management ── */
-export type MileageActionType = "attendance" | "qt" | "mission" | "prayer" | "manual_bonus" | "manual_deduction" | "reward_purchase" | "event" | "badge";
+export type MileageActionType = "attendance" | "qt" | "mission" | "prayer" | "manual_bonus" | "manual_deduction" | "reward_purchase" | "event" | "badge" | "gift_draw";
 
 export interface MileageTransactionAdmin {
   id: string;

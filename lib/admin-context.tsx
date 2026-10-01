@@ -59,6 +59,7 @@ interface AdminState {
   updateAnnouncement: (id: string, patch: Partial<Announcement>) => void;
 
   awardsMileage: (target: string, targetId: string, amount: number, reason: string) => void;
+  awardGiftDraw: () => Promise<{ amount: number; before: number; after: number } | null>;
   resetAllTalents: () => Promise<boolean>;
   allTransactions: any[];
 
@@ -522,6 +523,66 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     }
   }, [students]);
 
+  const getGiftDrawAmount = useCallback((currentMileage: number) => {
+    const table = [
+      { min: 0, max: 1999, chances: [3, 7, 15, 30, 45] },
+      { min: 2000, max: 3999, chances: [5, 10, 25, 35, 25] },
+      { min: 4000, max: 5999, chances: [10, 20, 35, 25, 10] },
+      { min: 6000, max: 7999, chances: [20, 30, 30, 15, 5] },
+      { min: 8000, max: 9999, chances: [35, 35, 20, 8, 2] },
+      { min: 10000, max: 11999, chances: [50, 30, 15, 4, 1] },
+      { min: 12000, max: 13999, chances: [65, 25, 8, 1, 1] },
+      { min: 14000, max: Infinity, chances: [80, 15, 4, 0, 1] },
+    ];
+    const rewards = [100, 300, 500, 700, 1000];
+    const row = table.find(r => currentMileage >= r.min && currentMileage <= r.max) || table[table.length - 1];
+    const roll = Math.random() * 100;
+    let cursor = 0;
+    for (let i = 0; i < row.chances.length; i += 1) {
+      cursor += row.chances[i];
+      if (roll < cursor) return rewards[i];
+    }
+    return rewards[0];
+  }, []);
+
+  const awardGiftDraw = useCallback(async () => {
+    if (!currentUser?.id) return null;
+    const localStudent = students.find(s => s.id === currentUser.id);
+    const dbStudent = localStudent ? null : await db.fetchStudentById(currentUser.id);
+    const target = localStudent || (dbStudent ? toAdminStudent(dbStudent) : null);
+    if (!target) return null;
+
+    const before = Number(target.mileage) || 0;
+    const amount = getGiftDrawAmount(before);
+    const after = before + amount;
+    const date = koreaDate();
+    await db.updateStudentField(target.id, "talents", after);
+    const tx = {
+      id: `gift_${Date.now()}_${target.id}`,
+      studentId: target.id,
+      studentName: target.name,
+      className: target.classId,
+      type: "gift_draw" as MileageActionType,
+      description: "친구 선물 뽑기",
+      amount,
+      date,
+      actorName: target.name,
+    };
+    await db.addTransaction(tx);
+    setStudents(prev => prev.map(s => s.id === target.id ? { ...s, mileage: after } : s));
+    setAllTx(prev => [tx, ...prev]);
+    try {
+      const raw = localStorage.getItem("mileage_session");
+      if (raw) {
+        const session = JSON.parse(raw);
+        if (session?.id === target.id) {
+          localStorage.setItem("mileage_session", JSON.stringify({ ...session, mileage: after, xp: after }));
+        }
+      }
+    } catch {}
+    return { amount, before, after };
+  }, [currentUser?.id, getGiftDrawAmount, students]);
+
   const refreshStudents = useCallback(async () => {
     try {
       const sData = await db.fetchStudents();
@@ -657,7 +718,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       missionCompletions, approveMissionCompletion, rejectMissionCompletion,
       prayers, updatePrayerStatus,
       announcements, addAnnouncement, updateAnnouncement,
-      awardsMileage, resetAllTalents, allTransactions: allTx,
+      awardsMileage, awardGiftDraw, resetAllTalents, allTransactions: allTx,
       rewards, addReward, updateReward, redemptions, updateRedemption,
       season, updateSeason,
       badges, addBadge, updateBadge, studentBadges, earnBadge,

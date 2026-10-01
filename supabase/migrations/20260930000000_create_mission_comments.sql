@@ -5,8 +5,12 @@ CREATE TABLE IF NOT EXISTS mission_comments (
   student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
   student_name TEXT DEFAULT '',
   content TEXT NOT NULL,
+  private BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE mission_comments
+  ADD COLUMN IF NOT EXISTS private BOOLEAN DEFAULT FALSE;
 
 ALTER TABLE mission_comments ENABLE ROW LEVEL SECURITY;
 

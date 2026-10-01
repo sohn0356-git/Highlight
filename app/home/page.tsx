@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Bell, MessageCircle, Pencil, Trash2, X } from "lucide-react";
+import { Bell, Lock, MessageCircle, Pencil, Trash2, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
 import { addMissionComment, deleteMissionComment, fetchMissionComments, updateMissionComment } from "@/lib/db";
-import { koreaDate } from "@/lib/korea-date";
+import { formatKoreaDateTime, koreaDate } from "@/lib/korea-date";
 
 interface MissionComment {
   id: string;
@@ -15,6 +15,7 @@ interface MissionComment {
   studentId: string;
   studentName: string;
   content: string;
+  private?: boolean;
   createdAt: string;
 }
 
@@ -47,10 +48,17 @@ export default function HomeContent() {
       setMissionCommentsMap({});
       return;
     }
-    fetchMissionComments(missionIds).then(setMissionCommentsMap);
-  }, [student?.id, isLoggedIn, adminMissionIdsKey]);
+    fetchMissionComments(missionIds).then(map => {
+      const isAdmin = student.role === "admin";
+      const visibleMap = Object.fromEntries(Object.entries(map).map(([missionId, comments]) => [
+        missionId,
+        comments.filter((comment: MissionComment) => !comment.private || isAdmin || comment.studentId === student.id),
+      ]));
+      setMissionCommentsMap(visibleMap);
+    });
+  }, [student?.id, student?.role, isLoggedIn, adminMissionIdsKey]);
 
-  const handleAddMissionComment = async (missionId: string, content: string) => {
+  const handleAddMissionComment = async (missionId: string, content: string, isPrivate: boolean) => {
     if (!student) return;
     const tempComment: MissionComment = {
       id: `temp_${Date.now()}`,
@@ -58,10 +66,11 @@ export default function HomeContent() {
       studentId: student.id,
       studentName: student.name,
       content,
+      private: isPrivate,
       createdAt: new Date().toISOString(),
     };
     setMissionCommentsMap(prev => ({ ...prev, [missionId]: [...(prev[missionId] || []), tempComment] }));
-    const saved = await addMissionComment({ missionId, studentId: student.id, studentName: student.name, content });
+    const saved = await addMissionComment({ missionId, studentId: student.id, studentName: student.name, content, private: isPrivate });
     if (saved?.id) {
       setMissionCommentsMap(prev => ({
         ...prev,
@@ -71,6 +80,7 @@ export default function HomeContent() {
           studentId: saved.student_id,
           studentName: saved.student_name || student.name,
           content: saved.content || content,
+          private: saved.private === true || isPrivate,
           createdAt: saved.created_at || tempComment.createdAt,
         } : c),
       }));
@@ -179,7 +189,7 @@ export default function HomeContent() {
                   mission={mission}
                   studentId={student.id}
                   comments={missionCommentsMap[mission.id] || []}
-                  onAddComment={(content) => handleAddMissionComment(mission.id, content)}
+                  onAddComment={(content, isPrivate) => handleAddMissionComment(mission.id, content, isPrivate)}
                   onUpdateComment={(commentId, content) => handleUpdateMissionComment(mission.id, commentId, content)}
                   onDeleteComment={(commentId) => handleDeleteMissionComment(mission.id, commentId)}
                 />
@@ -275,7 +285,7 @@ export default function HomeContent() {
                     <div className="flex items-center gap-2">
                       {!n.isRead && <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />}
                       <p className="text-sm font-bold text-neutral-800">{n.title || "알림"}</p>
-                      <p className="ml-auto shrink-0 text-[10px] text-neutral-400">{(n.createdAt || "").slice(5, 16).replace("T", " ")}</p>
+                      <p className="ml-auto shrink-0 text-[10px] text-neutral-400">{formatKoreaDateTime(n.createdAt)}</p>
                     </div>
                     <p className="mt-1 text-[13px] leading-relaxed text-neutral-600">{n.body}</p>
                   </button>
@@ -304,20 +314,22 @@ function SpecialMissionCard({
   mission: any;
   studentId: string;
   comments: MissionComment[];
-  onAddComment: (content: string) => void;
+  onAddComment: (content: string, isPrivate: boolean) => void;
   onUpdateComment: (commentId: string, content: string) => void;
   onDeleteComment: (commentId: string) => void;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [privateComment, setPrivateComment] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState("");
 
   const submitComment = () => {
     const text = commentText.trim();
     if (!text) return;
-    onAddComment(text);
+    onAddComment(text, privateComment);
     setCommentText("");
+    setPrivateComment(false);
   };
 
   return (
@@ -359,6 +371,11 @@ function SpecialMissionCard({
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <p className="text-[11px] font-semibold text-neutral-700">{comment.studentName}</p>
+                            {comment.private && (
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-neutral-100 px-1.5 py-0.5 text-[9px] font-bold text-neutral-500">
+                                <Lock size={8} /> 비밀
+                              </span>
+                            )}
                             {comment.createdAt && (
                               <p className="text-[9px] text-neutral-400">
                                 {new Date(comment.createdAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
@@ -405,22 +422,33 @@ function SpecialMissionCard({
                   })}
                 </div>
               )}
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={e => setCommentText(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") submitComment(); }}
-                  placeholder="댓글을 입력하세요..."
-                  className="flex-1 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400"
-                />
-                <button
-                  onClick={submitComment}
-                  disabled={!commentText.trim()}
-                  className="rounded-lg bg-indigo-500 px-2.5 py-1.5 text-xs font-bold text-white transition active:scale-95 disabled:opacity-40"
-                >
-                  등록
-                </button>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") submitComment(); }}
+                    placeholder="댓글을 입력하세요..."
+                    className="flex-1 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400"
+                  />
+                  <button
+                    onClick={submitComment}
+                    disabled={!commentText.trim()}
+                    className="rounded-lg bg-indigo-500 px-2.5 py-1.5 text-xs font-bold text-white transition active:scale-95 disabled:opacity-40"
+                  >
+                    등록
+                  </button>
+                </div>
+                <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-neutral-500">
+                  <input
+                    type="checkbox"
+                    checked={privateComment}
+                    onChange={e => setPrivateComment(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-neutral-300 text-indigo-500"
+                  />
+                  비밀글
+                </label>
               </div>
             </div>
           </div>

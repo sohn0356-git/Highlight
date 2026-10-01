@@ -1,17 +1,30 @@
 "use client";
 import { useState } from "react";
-import { Target, Megaphone, Plus, X } from "lucide-react";
+import { Gift, Megaphone, Plus, Sparkles, Target, X } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { koreaDate, addDays } from "@/lib/korea-date";
 import type { MissionAdmin, Announcement } from "@/lib/admin-types";
 
-type ContentTab = "mission" | "announcement";
+type ContentTab = "mission" | "announcement" | "gift";
+
+const probabilityRows = [
+  { range: "0~1,999", chances: [3, 7, 15, 30, 45] },
+  { range: "2,000~3,999", chances: [5, 10, 25, 35, 25] },
+  { range: "4,000~5,999", chances: [10, 20, 35, 25, 10] },
+  { range: "6,000~7,999", chances: [20, 30, 30, 15, 5] },
+  { range: "8,000~9,999", chances: [35, 35, 20, 8, 2] },
+  { range: "10,000~11,999", chances: [50, 30, 15, 4, 1] },
+  { range: "12,000~13,999", chances: [65, 25, 8, 1, 1] },
+  { range: "14,000 이상", chances: [80, 15, 4, 0, 1] },
+];
 
 export default function AdminContent() {
-  const { missions, addMission, updateMission, announcements, addAnnouncement, updateAnnouncement } = useAdmin();
+  const { currentUser, students, missions, addMission, updateMission, announcements, addAnnouncement, updateAnnouncement, awardGiftDraw } = useAdmin();
   const [tab, setTab] = useState<ContentTab>("mission");
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [giftOpening, setGiftOpening] = useState(false);
+  const [giftResult, setGiftResult] = useState<{ amount: number; before: number; after: number } | null>(null);
 
   const [missionForm, setMissionForm] = useState({
     title: "",
@@ -34,7 +47,20 @@ export default function AdminContent() {
   const tabs: { id: ContentTab; label: string; icon: typeof Target }[] = [
     { id: "mission", label: "미션", icon: Target },
     { id: "announcement", label: "공지", icon: Megaphone },
+    { id: "gift", label: "뽑기", icon: Gift },
   ];
+
+  const currentMileage = students.find(s => s.id === currentUser?.id)?.mileage ?? 0;
+
+  async function openGift() {
+    if (giftOpening) return;
+    setGiftResult(null);
+    setGiftOpening(true);
+    await new Promise(resolve => setTimeout(resolve, 700));
+    const result = await awardGiftDraw();
+    setGiftResult(result);
+    setGiftOpening(false);
+  }
 
   function submitMission() {
     if (!missionForm.title) return;
@@ -210,6 +236,76 @@ export default function AdminContent() {
             ))}
           </div>
         </>
+      )}
+
+      {/* Gift draw tab */}
+      {tab === "gift" && (
+        <div className="space-y-4">
+          <section className="overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-indigo-50 shadow-sm">
+            <div className="relative px-5 py-6 text-center">
+              <div className={`mx-auto grid h-24 w-24 place-items-center rounded-3xl bg-amber-400 text-white shadow-lg shadow-amber-200 transition ${giftOpening ? "gift-shake" : ""}`}>
+                <Gift size={44} strokeWidth={2.3} />
+              </div>
+              {giftOpening && (
+                <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                  <div className="gift-sparkle grid h-32 w-32 place-items-center rounded-full bg-amber-300/20">
+                    <Sparkles size={52} className="text-amber-500" />
+                  </div>
+                </div>
+              )}
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-neutral-500">현재 달란트</p>
+                <p className="text-2xl font-black text-neutral-900">{(giftResult?.after ?? currentMileage).toLocaleString()}D</p>
+              </div>
+              <button
+                onClick={openGift}
+                disabled={giftOpening || !currentUser}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
+              >
+                <Gift size={17} />
+                {giftOpening ? "선물 여는 중..." : "친구 선물 열기"}
+              </button>
+              {giftResult && (
+                <div className="gift-pop mt-4 rounded-xl border border-amber-200 bg-white/90 px-4 py-3">
+                  <p className="text-xs font-semibold text-amber-600">선물 획득</p>
+                  <p className="mt-1 text-3xl font-black text-neutral-900">+{giftResult.amount.toLocaleString()}D</p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {giftResult.before.toLocaleString()}D → {giftResult.after.toLocaleString()}D
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-neutral-200 bg-white shadow-sm">
+            <div className="border-b border-neutral-100 px-4 py-3">
+              <h3 className="text-sm font-bold text-neutral-800">달란트 확률표</h3>
+              <p className="mt-0.5 text-[11px] text-neutral-400">선물을 열기 전 보유 달란트 기준으로 적용됩니다.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-left text-xs">
+                <thead className="bg-neutral-50 text-[11px] text-neutral-500">
+                  <tr>
+                    <th className="px-3 py-2 font-bold">현재 포인트</th>
+                    {["+100P", "+300P", "+500P", "+700P", "+1,000P"].map(label => (
+                      <th key={label} className="px-3 py-2 text-right font-bold">{label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {probabilityRows.map(row => (
+                    <tr key={row.range} className="text-neutral-700">
+                      <td className="whitespace-nowrap px-3 py-2 font-semibold">{row.range}</td>
+                      {row.chances.map((chance, index) => (
+                        <td key={`${row.range}-${index}`} className="px-3 py-2 text-right">{chance}%</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       )}
     </div>
   );

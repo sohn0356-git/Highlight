@@ -279,6 +279,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const r = payload.new;
             if (!r) return;
             const n = { id: r.id, type: r.type || "prayer", title: r.title || "", body: r.body || "", relatedId: r.related_id || "", isRead: false, createdAt: r.created_at || "" };
+            if (!db.allowsNotificationType(pushPreferences, n.type)) return;
             setNotifications(prev => prev.some(x => x.id === n.id) ? prev : [n, ...prev].slice(0, 50));
             showPointToast(n.body || n.title || "새 알림이 있어요");
           })
@@ -286,7 +287,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     })();
     return () => { if (channel) channel.unsubscribe?.(); };
-  }, [student?.id]);
+  }, [student?.id, pushPreferences]);
 
   /* ── Refresh on tab focus ── */
   useEffect(() => {

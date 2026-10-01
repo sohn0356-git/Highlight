@@ -167,7 +167,10 @@ export default function AdminShell({ children, activePage, onNavigate, onExit }:
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-neutral-200 bg-white/90 backdrop-blur-md px-4 py-3 md:px-6">
+        <header
+          className="sticky top-0 z-30 flex items-center justify-between border-b border-neutral-200 bg-white/90 backdrop-blur-md px-4 py-3 md:px-6"
+          style={isMobile ? { paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" } : undefined}
+        >
           <div className="flex items-center gap-3">
             {isMobile && (
               <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 rounded-lg hover:bg-neutral-100">
@@ -190,7 +193,7 @@ export default function AdminShell({ children, activePage, onNavigate, onExit }:
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)] md:p-6">
           {children}
         </main>
       </div>

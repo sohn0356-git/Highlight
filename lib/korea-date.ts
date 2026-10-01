@@ -28,6 +28,21 @@ export function fmt(d: Date): string {
   return parts; // Already YYYY-MM-DD
 }
 
+/** Format an ISO/date string in Korea time for compact UI timestamps */
+export function formatKoreaDateTime(value?: string | Date | null): string {
+  if (!value) return "";
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: TZ,
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+}
+
 /** Start of day in Korea time (00:00:00.000) */
 export function startOfDay(dateStr?: string): Date {
   const d = parseDate(dateStr ?? koreaDate());

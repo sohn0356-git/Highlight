@@ -188,7 +188,13 @@ export async function insertMission(mission: any) {
     try { row.start_date = mission.startDate || ""; } catch {}
     try { row.end_date = mission.endDate || ""; } catch {}
     try { row.approval_required = !!mission.approvalRequired; } catch {}
-    await s.from("missions").insert([row]);
+    const { data, error } = await s.from("missions").insert([row]).select().single();
+    if (error) return;
+    await createMissionNotifications({
+      id: data?.id || mission.id,
+      title: data?.title || mission.title,
+      reward: Number(data?.mileage_reward ?? mission.reward) || 0,
+    });
   } catch {}
 }
 
@@ -453,19 +459,23 @@ export async function fetchNotifications(userId: string) {
   if (!s) return [];
   const { data } = await s.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
   if (!data) return [];
+  const prefs = await fetchPushPreferences(userId);
   return data.map((r: any) => ({
     id: r.id, type: r.type || 'prayer', title: r.title || '',
     body: r.body || '', relatedId: r.related_id || '',
     isRead: r.is_read === true, createdAt: r.created_at || '',
-  }));
+  })).filter((n: any) => allowsNotificationType(prefs, n.type || ""));
 }
 
 export async function insertNotification(n: { userId: string; type?: string; title?: string; body?: string; relatedId?: string }) {
   const s = sb();
   if (!s) return null;
+  const type = n.type || "prayer";
+  const prefs = await fetchPushPreferences(n.userId);
+  if (!allowsNotificationType(prefs, type)) return null;
   const { data } = await s.from('notifications').insert([{
     id: 'nt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-    user_id: n.userId, type: n.type || 'prayer',
+    user_id: n.userId, type,
     title: n.title || '', body: n.body || '', related_id: n.relatedId || '',
     is_read: false,
   }]).select().single();
@@ -483,7 +493,7 @@ export async function sendPushForNotification(notificationId: string) {
       .single();
     if (!notification) return;
     const prefs = await fetchPushPreferences(notification.user_id);
-    if (!allowsPushType(prefs, notification.type || "")) return;
+    if (!allowsNotificationType(prefs, notification.type || "")) return;
     await s.functions.invoke("send-prayer-push", { body: { notificationId } });
   } catch {}
 }
@@ -507,6 +517,19 @@ export type PushCategoryPreferences = {
   qt: boolean;
 };
 
+export function notificationTypeToPushCategory(type: string): keyof PushCategoryPreferences | null {
+  if (type === "announcement" || type === "notice") return "announcement";
+  if (type === "prayer") return "prayer";
+  if (type === "praise") return "praise";
+  if (type === "qt" || type === "qt_comment" || type === "qt_share") return "qt";
+  return null;
+}
+
+export function allowsNotificationType(prefs: PushCategoryPreferences, type: string) {
+  const category = notificationTypeToPushCategory(type);
+  return category ? prefs[category] !== false : true;
+}
+
 const DEFAULT_PUSH_PREFERENCES: PushCategoryPreferences = {
   announcement: true,
   prayer: true,
@@ -521,14 +544,6 @@ function mapPushPreferences(row: any): PushCategoryPreferences {
     praise: row?.praise_enabled !== false,
     qt: row?.qt_enabled !== false,
   };
-}
-
-function allowsPushType(prefs: PushCategoryPreferences, type: string) {
-  if (type === "announcement" || type === "notice") return prefs.announcement;
-  if (type === "prayer") return prefs.prayer;
-  if (type === "praise") return prefs.praise;
-  if (type === "qt" || type === "qt_comment" || type === "qt_share") return prefs.qt;
-  return true;
 }
 
 export async function fetchPushPreferences(userId: string): Promise<PushCategoryPreferences> {
@@ -601,15 +616,45 @@ export async function createAnnouncementNotifications(a: { id: string; title: st
   if (!s) return;
   try {
     const students = await fetchActiveStudents();
-    const rows = students.map((student: any) => ({
-      id: "nt_" + Date.now() + "_" + student.id + "_" + Math.random().toString(36).slice(2, 5),
-      user_id: student.id,
-      type: "announcement",
-      title: a.important ? "중요 공지" : "공지 알림",
-      body: a.title + (a.content ? ` · ${String(a.content).slice(0, 30)}` : ""),
-      related_id: a.id,
-      is_read: false,
-    }));
+    const rows = [];
+    for (const student of students) {
+      const prefs = await fetchPushPreferences(student.id);
+      if (!allowsNotificationType(prefs, "announcement")) continue;
+      rows.push({
+        id: "nt_" + Date.now() + "_" + student.id + "_" + Math.random().toString(36).slice(2, 5),
+        user_id: student.id,
+        type: "announcement",
+        title: a.important ? "중요 공지" : "공지 알림",
+        body: a.title + (a.content ? ` · ${String(a.content).slice(0, 30)}` : ""),
+        related_id: a.id,
+        is_read: false,
+      });
+    }
+    if (!rows.length) return;
+    const { data } = await s.from("notifications").insert(rows).select("id");
+    await Promise.all((data || []).map((n: any) => sendPushForNotification(n.id)));
+  } catch {}
+}
+
+export async function createMissionNotifications(m: { id: string; title: string; reward?: number }) {
+  const s = sb();
+  if (!s) return;
+  try {
+    const students = await fetchActiveStudents();
+    const rows = [];
+    for (const student of students) {
+      const prefs = await fetchPushPreferences(student.id);
+      if (!allowsNotificationType(prefs, "announcement")) continue;
+      rows.push({
+        id: "nt_" + Date.now() + "_" + student.id + "_" + Math.random().toString(36).slice(2, 5),
+        user_id: student.id,
+        type: "announcement",
+        title: "미션 알림",
+        body: `${m.title}${m.reward ? ` · +${m.reward}D` : ""}`,
+        related_id: m.id,
+        is_read: false,
+      });
+    }
     if (!rows.length) return;
     const { data } = await s.from("notifications").insert(rows).select("id");
     await Promise.all((data || []).map((n: any) => sendPushForNotification(n.id)));
@@ -796,8 +841,9 @@ export async function fetchMissionComments(missionIds: string[]) {
   missionIds.forEach(id => { commentsMap[id] = []; });
   if (!s || !missionIds.length) return commentsMap;
   try {
+    await ensureMissionCommentPrivateColumn();
     const { data, error } = await s.from("mission_comments")
-      .select("mission_id, id, student_id, student_name, content, created_at")
+      .select("mission_id, id, student_id, student_name, content, private, created_at")
       .in("mission_id", missionIds)
       .order("created_at", { ascending: true });
     if (error || !data) return commentsMap;
@@ -807,6 +853,7 @@ export async function fetchMissionComments(missionIds: string[]) {
       commentsMap[missionId].push({
         id: r.id, missionId, studentId: r.student_id,
         studentName: r.student_name || "", content: r.content || "",
+        private: r.private === true,
         createdAt: r.created_at || "",
       });
     });
@@ -820,16 +867,29 @@ export async function addMissionComment(comment: any) {
   const s = sb();
   if (!s) return null;
   try {
+    await ensureMissionCommentPrivateColumn();
     const { data } = await s.from("mission_comments").insert([{
       id: "mc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
       mission_id: comment.missionId, student_id: comment.studentId,
       student_name: comment.studentName || "", content: comment.content,
+      private: comment.private === true,
       created_at: new Date().toISOString(),
     }]).select().single();
     return data || null;
   } catch {
     return null;
   }
+}
+
+let missionCommentPrivateColumnReady = false;
+async function ensureMissionCommentPrivateColumn() {
+  if (missionCommentPrivateColumnReady) return;
+  const s = sb();
+  if (!s) return;
+  try {
+    await s.rpc("exec_sql", { sql: "ALTER TABLE mission_comments ADD COLUMN IF NOT EXISTS private BOOLEAN DEFAULT FALSE;" } as any);
+  } catch {}
+  missionCommentPrivateColumnReady = true;
 }
 
 export async function updateMissionComment(id: string, content: string) {
