@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Award, MessageCirclePlus, X } from "lucide-react";
+import { Award, Gift, Mailbox, MessageCirclePlus, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import { useApp } from "@/lib/store-context";
@@ -30,6 +30,7 @@ export default function PraiseContent() {
   const [search, setSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [page, setPage] = useState(0);
+  const [giftInfoOpen, setGiftInfoOpen] = useState(false);
   const PAGE_SIZE = 5;
 
   const [allTargets, setAllTargets] = useState<any[]>([]);
@@ -155,8 +156,55 @@ export default function PraiseContent() {
   return (
     <div>
       <div className="px-5 pt-7">
-        <PageHeader title="칭찬" showBack subtitle="서로를 칭찬해요" right={<Award size={18} className="text-amber-400" />} />
+        <PageHeader
+          title="칭찬"
+          showBack
+          subtitle="서로를 칭찬해요"
+          right={
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setGiftInfoOpen(true)}
+                className="grid h-9 w-9 place-items-center rounded-full border border-amber-100 bg-white text-amber-500 shadow-sm transition active:scale-95 active:bg-amber-50"
+                aria-label="선물 우편함"
+              >
+                <Mailbox size={18} />
+              </button>
+              <Award size={18} className="text-amber-400" />
+            </div>
+          }
+        />
       </div>
+
+      {giftInfoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5" onClick={() => setGiftInfoOpen(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-50 text-amber-500">
+                  <Gift size={22} />
+                </span>
+                <div>
+                  <p className="text-base font-extrabold text-neutral-900">선물하기</p>
+                  <p className="mt-0.5 text-xs text-neutral-500">100달란트로 누군가에게 선물할 수 있어요.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setGiftInfoOpen(false)}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:bg-neutral-200"
+                aria-label="닫기"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <button
+              onClick={() => setGiftInfoOpen(false)}
+              className="mt-5 w-full rounded-xl bg-amber-500 py-3 text-sm font-bold text-white transition active:scale-[0.98]"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
 
       <section className="mt-3 px-5">
         <Card className="bg-gradient-to-br from-amber-400 to-orange-400 border-0 text-white shadow-lg shadow-amber-200">
