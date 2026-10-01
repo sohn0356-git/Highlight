@@ -6,6 +6,7 @@ import * as db from "./db";
 import { isSupabaseReady } from "./config";
 import { showPointToast } from "@/components/PointToast";
 import { runMigrations } from "./migrate";
+import { BASE_PATH } from "./nav";
 
 /* ── Types ── */
 interface AppState {
@@ -324,7 +325,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     (async () => {
       try {
-        const registration = await navigator.serviceWorker.ready;
+        const registration = await getPushServiceWorkerRegistration();
         const subscription = await registration.pushManager.getSubscription();
         const preferenceKey = pushPreferenceKey(student.id);
         const wantsPush = localStorage.getItem(preferenceKey) === "1";
@@ -737,9 +738,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const permission = await Notification.requestPermission();
       setPushPermission(permission);
-      if (permission !== "granted") return false;
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await subscribeBrowserPush(registration);
+      if (permission !== "granted") {
+        showPointToast(permission === "denied" ? "브라우저 설정에서 알림 권한을 허용해야 해요" : "알림 권한이 필요해요");
+        return false;
+      }
+      const registration = await getPushServiceWorkerRegistration();
+      const subscription = await subscribeBrowserPush(registration, true);
       if (!subscription) return false;
       const ok = await db.upsertPushSubscription(student.id, subscription.toJSON());
       setPushEnabled(ok);
@@ -748,8 +752,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(pushPreferenceKey(student.id), "1");
         showPointToast("푸시 알림을 켰어요");
       }
+      if (!ok) showPointToast("푸시 구독 저장에 실패했어요");
       return ok;
-    } catch {
+    } catch (error) {
+      console.error("Failed to enable push notifications:", error);
+      showPointToast("푸시 알림 설정에 실패했어요");
       setPushEnabled(false);
       return false;
     }
@@ -758,7 +765,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const disablePushNotifications = useCallback(async () => {
     if (!student || !pushSupported) return;
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getPushServiceWorkerRegistration();
       const subscription = await registration.pushManager.getSubscription();
       await db.disablePushSubscription(student.id, subscription?.endpoint);
       await subscription?.unsubscribe();
@@ -840,9 +847,15 @@ function pushPreferenceKey(studentId: string) {
   return `push_notifications:${studentId}`;
 }
 
-async function subscribeBrowserPush(registration: ServiceWorkerRegistration) {
+async function getPushServiceWorkerRegistration() {
+  await navigator.serviceWorker.register(BASE_PATH + "/sw.js");
+  return navigator.serviceWorker.ready;
+}
+
+async function subscribeBrowserPush(registration: ServiceWorkerRegistration, refreshExisting = false) {
   const existing = await registration.pushManager.getSubscription();
-  if (existing) return existing;
+  if (existing && !refreshExisting) return existing;
+  if (existing && refreshExisting) await existing.unsubscribe();
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!vapidKey) return null;
   return registration.pushManager.subscribe({

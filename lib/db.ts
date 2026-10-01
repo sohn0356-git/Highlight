@@ -600,6 +600,7 @@ export async function upsertPushSubscription(userId: string, subscription: PushS
     enabled: true,
     updated_at: new Date().toISOString(),
   }, { onConflict: "endpoint" });
+  if (error) console.error("Failed to upsert push subscription:", error);
   return !error;
 }
 
