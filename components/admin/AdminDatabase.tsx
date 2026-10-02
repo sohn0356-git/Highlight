@@ -13,7 +13,7 @@ const DB_TABLES = [
   "praises", "missions", "completed_missions", "daily_quests",
   "community_activities", "announcements", "store_products", "store_requests",
   "badges", "badge_levels", "student_badge_progress",
-  "mileage_transactions", "audit_logs", "settings",
+  "mileage_transactions", "push_subscriptions", "audit_logs", "settings",
 ];
 
 type CellValue = string | number | boolean | null | undefined | Record<string, unknown> | unknown[];
