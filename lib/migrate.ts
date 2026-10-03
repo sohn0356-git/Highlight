@@ -135,39 +135,6 @@ INSERT INTO badge_levels (id, badge_id, level, threshold, reward_mileage, reward
   ('bl_b6_5','b6',5,5000,100,100,'XP 마스터','XP 5000 획득')
 ON CONFLICT (id) DO NOTHING;
 
--- Teachers seed
-INSERT INTO teachers (id, name, birth_date, role, assigned_class_ids, active) VALUES
-  ('t1','이예은','2004-01-03','teacher','{"c_g1_2"}',true),
-  ('t2','주응선','1984-01-16','teacher','{"c_g1_1"}',true),
-  ('t3','이명호','1987-01-24','teacher','{}',true),
-  ('t4','김동욱','1979-02-01','teacher','{}',true),
-  ('t5','박경원','1993-02-04','teacher','{}',true),
-  ('t6','이수아','2004-02-10','teacher','{"c_g3_1","c_g3_2","c_g3_3","c_g3_4"}',true),
-  ('t7','박주형','2000-02-25','teacher','{"c_g2_1","c_g2_2","c_g2_3","c_g2_4","c_g2_5"}',true),
-  ('t8','손경주','1994-02-28','admin','{}',true),
-  ('t9','이주형','2004-03-08','teacher','{"c_g3_1","c_g3_2","c_g3_3","c_g3_4"}',true),
-  ('t10','윤여은','2004-03-09','teacher','{}',true),
-  ('t11','김영익','1977-03-25','teacher','{}',true),
-  ('t12','김한나','1995-03-25','teacher','{}',true),
-  ('t13','이수연','2003-04-07','teacher','{"c_g2_1","c_g2_2","c_g2_3","c_g2_4","c_g2_5"}',true),
-  ('t14','김진','1967-04-20','teacher','{}',true),
-  ('t15','송현이','1999-04-22','teacher','{"c_g3_1","c_g3_2","c_g3_3","c_g3_4"}',true),
-  ('t16','김성완','1997-05-22','teacher','{"c_g3_1","c_g3_2","c_g3_3","c_g3_4"}',true),
-  ('t17','서재완','1981-05-22','teacher','{"c_g1_3"}',true),
-  ('t18','김온유','1994-06-18','teacher','{}',true),
-  ('t19','강구원','1981-07-18','teacher','{}',true),
-  ('t20','김성학','1992-08-11','teacher','{"c_g2_1","c_g2_2","c_g2_3","c_g2_4","c_g2_5"}',true),
-  ('t21','김기광','1991-08-25','teacher','{"c_g3_1","c_g3_2","c_g3_3","c_g3_4"}',true),
-  ('t22','강영주','1973-10-11','teacher','{}',true),
-  ('t23','박소영','1997-10-13','teacher','{"c_g1_3"}',true),
-  ('t24','김채림','1995-10-21','teacher','{"c_g2_1","c_g2_2","c_g2_3","c_g2_4","c_g2_5"}',true),
-  ('t25','최영우','2007-11-09','teacher','{}',true),
-  ('t26','박성현','1996-11-27','teacher','{"c_g1_2"}',true),
-  ('t27','서지민','1991-12-26','teacher','{"c_g1_2"}',true),
-  ('t28','장결자','1980-01-01','teacher','{"c_g1_4"}',true)
-ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, birth_date=EXCLUDED.birth_date, role=EXCLUDED.role, assigned_class_ids=EXCLUDED.assigned_class_ids, active=EXCLUDED.active;
-
-UPDATE teachers SET role='admin' WHERE id='t8';
 UPDATE students SET role='admin', is_teacher=true WHERE id='admin_son';
 `;
 
@@ -236,41 +203,6 @@ async function runFallbackMigrations(sb: any) {
       id: "admin_son", name: "손경주", birth_date: "1994-02-28",
       class_id: "", role: "admin", is_teacher: true, active: true, talents: 0,
     }, { onConflict: "id" });
-  } catch {}
-
-  // Seed teachers
-  try {
-    const teachers = [
-      { id: "t1", name: "이예은", birth_date: "2004-01-03", role: "teacher", assigned_class_ids: ["c_g1_2"], active: true },
-      { id: "t2", name: "주응선", birth_date: "1984-01-16", role: "teacher", assigned_class_ids: ["c_g1_1"], active: true },
-      { id: "t3", name: "이명호", birth_date: "1987-01-24", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t4", name: "김동욱", birth_date: "1979-02-01", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t5", name: "박경원", birth_date: "1993-02-04", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t6", name: "이수아", birth_date: "2004-02-10", role: "teacher", assigned_class_ids: ["c_g3_1","c_g3_2","c_g3_3","c_g3_4"], active: true },
-      { id: "t7", name: "박주형", birth_date: "2000-02-25", role: "teacher", assigned_class_ids: ["c_g2_1","c_g2_2","c_g2_3","c_g2_4","c_g2_5"], active: true },
-      { id: "t8", name: "손경주", birth_date: "1994-02-28", role: "admin", assigned_class_ids: [], active: true },
-      { id: "t9", name: "이주형", birth_date: "2004-03-08", role: "teacher", assigned_class_ids: ["c_g3_1","c_g3_2","c_g3_3","c_g3_4"], active: true },
-      { id: "t10", name: "윤여은", birth_date: "2004-03-09", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t11", name: "김영익", birth_date: "1977-03-25", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t12", name: "김한나", birth_date: "1995-03-25", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t13", name: "이수연", birth_date: "2003-04-07", role: "teacher", assigned_class_ids: ["c_g2_1","c_g2_2","c_g2_3","c_g2_4","c_g2_5"], active: true },
-      { id: "t14", name: "김진", birth_date: "1967-04-20", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t15", name: "송현이", birth_date: "1999-04-22", role: "teacher", assigned_class_ids: ["c_g3_1","c_g3_2","c_g3_3","c_g3_4"], active: true },
-      { id: "t16", name: "김성완", birth_date: "1997-05-22", role: "teacher", assigned_class_ids: ["c_g3_1","c_g3_2","c_g3_3","c_g3_4"], active: true },
-      { id: "t17", name: "서재완", birth_date: "1981-05-22", role: "teacher", assigned_class_ids: ["c_g1_3"], active: true },
-      { id: "t18", name: "김온유", birth_date: "1994-06-18", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t19", name: "강구원", birth_date: "1981-07-18", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t20", name: "김성학", birth_date: "1992-08-11", role: "teacher", assigned_class_ids: ["c_g2_1","c_g2_2","c_g2_3","c_g2_4","c_g2_5"], active: true },
-      { id: "t21", name: "김기광", birth_date: "1991-08-25", role: "teacher", assigned_class_ids: ["c_g3_1","c_g3_2","c_g3_3","c_g3_4"], active: true },
-      { id: "t22", name: "강영주", birth_date: "1973-10-11", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t23", name: "박소영", birth_date: "1997-10-13", role: "teacher", assigned_class_ids: ["c_g1_3"], active: true },
-      { id: "t24", name: "김채림", birth_date: "1995-10-21", role: "teacher", assigned_class_ids: ["c_g2_1","c_g2_2","c_g2_3","c_g2_4","c_g2_5"], active: true },
-      { id: "t25", name: "최영우", birth_date: "2007-11-09", role: "teacher", assigned_class_ids: [], active: true },
-      { id: "t26", name: "박성현", birth_date: "1996-11-27", role: "teacher", assigned_class_ids: ["c_g1_2"], active: true },
-      { id: "t27", name: "서지민", birth_date: "1991-12-26", role: "teacher", assigned_class_ids: ["c_g1_2"], active: true },
-      { id: "t28", name: "장결자", birth_date: "1980-01-01", role: "teacher", assigned_class_ids: ["c_g1_4"], active: true },
-    ];
-    await sb.from("teachers").upsert(teachers, { onConflict: "id" });
   } catch {}
 
   // Seed badge levels
