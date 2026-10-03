@@ -35,6 +35,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   // Mileage state
   const [mileageTarget, setMileageTarget] = useState("student");
   const [mileageTargetId, setMileageTargetId] = useState("");
+  const [selectedMileageStudentIds, setSelectedMileageStudentIds] = useState<string[]>([]);
   const [mileageAmount, setMileageAmount] = useState(50);
   const [mileageReason, setMileageReason] = useState("");
 
@@ -54,18 +55,34 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
 
   // Transaction history open state
   const [isTxOpen, setIsTxOpen] = useState(false);
+  const activeStudents = students.filter(s => s.active);
+  const selectedMileageStudents = activeStudents.filter(s => selectedMileageStudentIds.includes(s.id));
+
+  function toggleMileageStudent(studentId: string) {
+    setSelectedMileageStudentIds(prev => prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]);
+  }
+
+  function toggleAllMileageStudents() {
+    setSelectedMileageStudentIds(prev => prev.length === activeStudents.length ? [] : activeStudents.map(s => s.id));
+  }
 
   function handleAwardMileage() {
     if (!mileageReason) return;
-    const target = mileageTarget as "student" | "class" | "grade" | "all";
-    const targetLabel = target === "student" ? students.find(s => s.id === mileageTargetId)?.name || ""
+    const target = mileageTarget as "student" | "students" | "class" | "grade" | "all";
+    const isMultiStudentTarget = target === "student" && selectedMileageStudentIds.length > 0;
+    const awardTarget = isMultiStudentTarget ? "students" : target;
+    const awardTargetId = isMultiStudentTarget ? selectedMileageStudentIds.join(",") : mileageTargetId;
+    const targetLabel = isMultiStudentTarget ? `${selectedMileageStudents.length}명`
+      : target === "student" ? students.find(s => s.id === mileageTargetId)?.name || ""
       : target === "class" ? classes.find((c: any) => c.id === mileageTargetId)?.name || ""
       : target === "grade" ? `${mileageTargetId}학년`
       : "전체";
+    if (!targetLabel || (target !== "all" && !awardTargetId)) return;
     const direction = mileageAmount >= 0 ? "지급" : "차감";
     if (!window.confirm(`${targetLabel}에게 ${Math.abs(mileageAmount)}D를 ${direction}하시겠습니까?`)) return;
-    awardsMileage(target, mileageTargetId, mileageAmount, mileageReason);
+    awardsMileage(awardTarget, awardTargetId, mileageAmount, mileageReason);
     setMileageReason("");
+    if (isMultiStudentTarget) setSelectedMileageStudentIds([]);
   }
   function handleResetAllTalents() {
     if (!window.confirm("모든 학생의 달란트를 0으로 리셋하시겠습니까?\n\n기존 달란트 내역은 mileage_transactions 원장에 보존됩니다.\n반(클래스) 총합도 함께 0이 됩니다.\n이 작업은 되돌릴 수 없습니다.")) return;
@@ -122,16 +139,16 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
           <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
             <h3 className="text-sm font-bold text-neutral-800">달란트 지급/차감</h3>
             <div className="grid grid-cols-2 gap-2">
-              <select className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={mileageTarget} onChange={e => { setMileageTarget(e.target.value); setMileageTargetId(""); }}>
+              <select className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={mileageTarget} onChange={e => { setMileageTarget(e.target.value); setMileageTargetId(""); setSelectedMileageStudentIds([]); }}>
                 <option value="student">개별 학생</option>
                 <option value="class">반 전체</option>
                 <option value="grade">학년 전체</option>
                 <option value="all">전체 학생</option>
               </select>
               {mileageTarget === "student" && (
-                <select className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={mileageTargetId} onChange={e => setMileageTargetId(e.target.value)}>
+                <select className="rounded-lg border border-neutral-200 px-3 py-2 text-sm" value={mileageTargetId} onChange={e => { setMileageTargetId(e.target.value); setSelectedMileageStudentIds([]); }}>
                   <option value="">학생 선택</option>
-                  {students.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {activeStudents.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               )}
               {mileageTarget === "class" && (
@@ -149,6 +166,29 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                 </select>
               )}
             </div>
+            {mileageTarget === "student" && (
+              <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold text-neutral-500">여러 명 선택 ({selectedMileageStudentIds.length}명)</span>
+                  <button type="button" onClick={toggleAllMileageStudents} className="rounded-md bg-white px-2 py-1 text-[11px] font-bold text-indigo-600 shadow-sm">
+                    {selectedMileageStudentIds.length === activeStudents.length ? "전체 해제" : "전체 선택"}
+                  </button>
+                </div>
+                <div className="grid max-h-40 grid-cols-2 gap-1.5 overflow-y-auto">
+                  {activeStudents.map(s => (
+                    <label key={s.id} className={`flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition ${selectedMileageStudentIds.includes(s.id) ? "border-indigo-200 bg-indigo-50 text-indigo-700" : "border-neutral-200 bg-white text-neutral-600"}`}>
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 accent-indigo-500"
+                        checked={selectedMileageStudentIds.includes(s.id)}
+                        onChange={() => { toggleMileageStudent(s.id); setMileageTargetId(""); }}
+                      />
+                      <span className="min-w-0 truncate">{s.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[11px] text-neutral-500">금액 (D)</label>

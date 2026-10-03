@@ -58,7 +58,7 @@ interface AdminState {
   addAnnouncement: (a: Announcement) => void;
   updateAnnouncement: (id: string, patch: Partial<Announcement>) => void;
 
-  awardsMileage: (target: string, targetId: string, amount: number, reason: string) => void;
+  awardsMileage: (target: string, targetId: string, amount: number, reason: string) => Promise<void>;
   awardGiftDraw: () => Promise<{ amount: number; before: number; after: number } | null>;
   resetAllTalents: () => Promise<boolean>;
   allTransactions: any[];
@@ -501,6 +501,9 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     if (target === "student") {
       const stu = students.find(s => s.id === targetId);
       if (stu) targets = [stu];
+    } else if (target === "students") {
+      const ids = new Set(targetId.split(",").map(id => id.trim()).filter(Boolean));
+      targets = students.filter(s => ids.has(s.id));
     } else if (target === "class") {
       targets = students.filter(s => s.classId === targetId);
     } else if (target === "grade") {
