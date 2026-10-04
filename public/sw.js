@@ -62,7 +62,7 @@ self.addEventListener("push", function (event) {
     icon: BASE + "/icons/notification-icon.svg",
     badge: BASE + "/icons/notification-badge.svg",
     tag: payload.tag || "highlight-notification",
-    data: { url: BASE + "/" },
+    data: { url: payload.url || BASE + "/" },
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });

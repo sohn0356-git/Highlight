@@ -329,14 +329,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const subscription = await registration.pushManager.getSubscription();
         const preferenceKey = pushPreferenceKey(student.id);
         const wantsPush = localStorage.getItem(preferenceKey) === "1";
-        const saved = await db.fetchPushSubscription(student.id);
-        setPushEnabled(Notification.permission === "granted" && (!!subscription || !!saved));
         if (subscription && Notification.permission === "granted") {
-          await db.upsertPushSubscription(student.id, subscription.toJSON());
-          setPushPreferences(await db.fetchPushPreferences(student.id));
-          localStorage.setItem(preferenceKey, "1");
+          const savedEndpoint = await db.fetchPushSubscriptionByEndpoint(subscription.endpoint);
+          if (savedEndpoint?.enabled === false) {
+            await subscription.unsubscribe();
+            if (wantsPush) {
+              const refreshed = await subscribeBrowserPush(registration, true);
+              const ok = !!refreshed && await db.upsertPushSubscription(student.id, refreshed.toJSON());
+              setPushEnabled(ok);
+              if (ok) {
+                setPushPreferences(await db.fetchPushPreferences(student.id));
+                localStorage.setItem(preferenceKey, "1");
+              }
+            } else {
+              setPushEnabled(false);
+            }
+          } else {
+            const ok = await db.upsertPushSubscription(student.id, subscription.toJSON());
+            setPushEnabled(ok);
+            if (ok) {
+              setPushPreferences(await db.fetchPushPreferences(student.id));
+              localStorage.setItem(preferenceKey, "1");
+            }
+          }
         } else {
-          const shouldRestore = Notification.permission === "granted" && (!!saved || wantsPush);
+          const shouldRestore = Notification.permission === "granted" && wantsPush;
           if (shouldRestore) {
             const restored = await subscribeBrowserPush(registration);
             const ok = !!restored && await db.upsertPushSubscription(student.id, restored.toJSON());

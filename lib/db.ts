@@ -588,16 +588,32 @@ export async function fetchPushSubscription(userId: string) {
   return data?.[0] || null;
 }
 
+export async function fetchPushSubscriptionByEndpoint(endpoint: string) {
+  const s = sb();
+  if (!s || !endpoint) return null;
+  const { data } = await s.from("push_subscriptions")
+    .select("user_id, endpoint, enabled")
+    .eq("endpoint", endpoint)
+    .limit(1);
+  const row = data?.[0];
+  return row ? { userId: row.user_id as string, endpoint: row.endpoint as string, enabled: row.enabled === true } : null;
+}
+
 export async function upsertPushSubscription(userId: string, subscription: PushSubscriptionJSON) {
   const s = sb();
   const endpoint = subscription.endpoint || "";
   if (!s || !endpoint) return false;
+  const prefs = await fetchPushPreferences(userId);
   const { error } = await s.from("push_subscriptions").upsert({
     id: "ps_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
     user_id: userId,
     endpoint,
     subscription,
     enabled: true,
+    announcement_enabled: prefs.announcement,
+    prayer_enabled: prefs.prayer,
+    praise_enabled: prefs.praise,
+    qt_enabled: prefs.qt,
     updated_at: new Date().toISOString(),
   }, { onConflict: "endpoint" });
   if (error) console.error("Failed to upsert push subscription:", error);
