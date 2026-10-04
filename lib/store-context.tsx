@@ -756,12 +756,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const permission = await Notification.requestPermission();
       setPushPermission(permission);
       if (permission !== "granted") {
+        setPushEnabled(false);
         showPointToast(permission === "denied" ? "브라우저 설정에서 알림 권한을 허용해야 해요" : "알림 권한이 필요해요");
         return false;
       }
+      setPushEnabled(true);
       const registration = await getPushServiceWorkerRegistration();
       const subscription = await subscribeBrowserPush(registration, true);
-      if (!subscription) return false;
+      if (!subscription) {
+        setPushEnabled(false);
+        localStorage.removeItem(pushPreferenceKey(student.id));
+        return false;
+      }
       const ok = await db.upsertPushSubscription(student.id, subscription.toJSON());
       setPushEnabled(ok);
       if (ok) {
@@ -769,25 +775,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(pushPreferenceKey(student.id), "1");
         showPointToast("푸시 알림을 켰어요");
       }
-      if (!ok) showPointToast("푸시 구독 저장에 실패했어요");
+      if (!ok) {
+        localStorage.removeItem(pushPreferenceKey(student.id));
+        showPointToast("푸시 구독 저장에 실패했어요");
+      }
       return ok;
     } catch (error) {
       console.error("Failed to enable push notifications:", error);
       showPointToast("푸시 알림 설정에 실패했어요");
       setPushEnabled(false);
+      if (student) localStorage.removeItem(pushPreferenceKey(student.id));
       return false;
     }
   }, [student, pushSupported]);
 
   const disablePushNotifications = useCallback(async () => {
     if (!student || !pushSupported) return;
+    setPushEnabled(false);
+    localStorage.removeItem(pushPreferenceKey(student.id));
     try {
       const registration = await getPushServiceWorkerRegistration();
       const subscription = await registration.pushManager.getSubscription();
       await db.disablePushSubscription(student.id, subscription?.endpoint);
       await subscription?.unsubscribe();
-      localStorage.removeItem(pushPreferenceKey(student.id));
-      setPushEnabled(false);
       showPointToast("푸시 알림을 껐어요");
     } catch {
       setPushEnabled(false);
