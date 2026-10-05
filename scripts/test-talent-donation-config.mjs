@@ -3,7 +3,10 @@ import path from "node:path";
 
 const root = process.cwd();
 const configSource = fs.readFileSync(path.join(root, "lib/talent-donation-config.ts"), "utf8");
-const sqlSource = fs.readFileSync(path.join(root, "supabase/migrations/20261005000000_talent_donations.sql"), "utf8");
+const sqlSource = [
+  "supabase/migrations/20261005000000_talent_donations.sql",
+  "supabase/migrations/20261005010000_fix_talent_donation_rpc.sql",
+].map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -64,5 +67,7 @@ assert(sqlSource.includes("NO_RANDOM_RECIPIENT_AVAILABLE"), "Random recipient RP
 assert(sqlSource.includes("create_admin_talent_gift"), "Admin gift flow must use a dedicated no-sender RPC");
 assert(sqlSource.includes("ALTER COLUMN date TYPE TEXT"), "Mileage transaction date must be normalized to text");
 assert(sqlSource.includes("IF v_gift.sender_id IS NOT NULL THEN"), "Admin gifts must not create mileage transaction logs on open");
+assert(!sqlSource.includes("SELECT recipient_id\n         FROM talent_donations"), "Donation RPCs must qualify recipient_id references");
+assert(sqlSource.includes("array_agg(td.recipient_id ORDER BY td.created_at)"), "Donation status RPC must qualify recipient_id");
 
 console.log("Talent donation configuration and RPC invariants passed.");

@@ -1,182 +1,12 @@
--- Talent Donation & Random Gift
--- Sender spends talents when sending. Recipient receives the random gift once,
--- when they first open the gift in their mailbox.
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- Fix deployed talent donation RPCs:
+-- 1) qualify columns that collide with RETURNS TABLE output names
+-- 2) normalize mileage transaction date type used by existing app code
+-- 3) add no-sender/no-ledger admin test gifts
 
 ALTER TABLE mileage_transactions
   ALTER COLUMN date TYPE TEXT USING date::TEXT;
 
-CREATE TABLE IF NOT EXISTS talent_donations (
-  id TEXT PRIMARY KEY,
-  sender_id TEXT REFERENCES students(id) ON DELETE CASCADE,
-  recipient_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-  message TEXT NOT NULL DEFAULT '',
-  donation_amount INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'opened')),
-  recipient_balance_before INTEGER,
-  probability_tier TEXT,
-  selected_multiplier INTEGER,
-  gift_amount INTEGER NOT NULL DEFAULT 0,
-  sender_balance_before INTEGER NOT NULL,
-  sender_balance_after INTEGER NOT NULL,
-  recipient_balance_after INTEGER,
-  donation_date DATE NOT NULL,
-  opened_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE talent_donations ENABLE ROW LEVEL SECURITY;
-DO $$ BEGIN DROP POLICY IF EXISTS "talent_donations_all" ON talent_donations; EXCEPTION WHEN OTHERS THEN NULL; END $$;
-CREATE POLICY "talent_donations_all" ON talent_donations FOR ALL USING (true) WITH CHECK (true);
-
-CREATE INDEX IF NOT EXISTS idx_talent_donations_sender_date ON talent_donations(sender_id, donation_date);
-CREATE INDEX IF NOT EXISTS idx_talent_donations_recipient_status ON talent_donations(recipient_id, status, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_talent_donations_created_at ON talent_donations(created_at DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_talent_donations_sender_recipient_date
-  ON talent_donations(sender_id, recipient_id, donation_date);
 ALTER TABLE talent_donations ALTER COLUMN sender_id DROP NOT NULL;
-
-CREATE OR REPLACE FUNCTION create_talent_donation(
-  p_sender_id TEXT,
-  p_recipient_id TEXT,
-  p_donation_amount INTEGER,
-  p_message TEXT DEFAULT ''
-)
-RETURNS TABLE (
-  donation_id TEXT,
-  sender_id TEXT,
-  sender_name TEXT,
-  recipient_id TEXT,
-  recipient_name TEXT,
-  message TEXT,
-  donation_amount INTEGER,
-  sender_balance_before INTEGER,
-  sender_balance_after INTEGER,
-  remaining_gifts_today INTEGER,
-  status TEXT,
-  created_at TIMESTAMPTZ
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_today DATE := (now() AT TIME ZONE 'Asia/Seoul')::date;
-  v_sender RECORD;
-  v_recipient RECORD;
-  v_sender_count INTEGER;
-  v_sender_after INTEGER;
-  v_donation_id TEXT := 'td_' || replace(gen_random_uuid()::TEXT, '-', '');
-  v_message TEXT := left(coalesce(trim(p_message), ''), 160);
-BEGIN
-  IF p_sender_id IS NULL OR p_sender_id = '' THEN
-    RAISE EXCEPTION 'SENDER_REQUIRED';
-  END IF;
-
-  IF p_recipient_id IS NULL OR p_recipient_id = '' THEN
-    RAISE EXCEPTION 'RECIPIENT_REQUIRED';
-  END IF;
-
-  IF p_sender_id = p_recipient_id THEN
-    RAISE EXCEPTION 'CANNOT_DONATE_TO_SELF';
-  END IF;
-
-  IF p_donation_amount IS NULL OR p_donation_amount <> floor(p_donation_amount) THEN
-    RAISE EXCEPTION 'INVALID_DONATION_AMOUNT';
-  END IF;
-
-  IF p_donation_amount < 10 THEN
-    RAISE EXCEPTION 'DONATION_TOO_SMALL';
-  END IF;
-
-  IF p_donation_amount > 100 THEN
-    RAISE EXCEPTION 'DONATION_TOO_LARGE';
-  END IF;
-
-  SELECT id, name, COALESCE(talents, 0) AS talents
-    INTO v_sender
-    FROM students
-   WHERE id = p_sender_id
-   FOR UPDATE;
-
-  IF v_sender.id IS NULL THEN
-    RAISE EXCEPTION 'SENDER_NOT_FOUND';
-  END IF;
-
-  SELECT id, name
-    INTO v_recipient
-    FROM students
-   WHERE id = p_recipient_id;
-
-  IF v_recipient.id IS NULL THEN
-    RAISE EXCEPTION 'RECIPIENT_NOT_FOUND';
-  END IF;
-
-  SELECT COUNT(*)
-    INTO v_sender_count
-    FROM talent_donations td
-   WHERE td.sender_id = p_sender_id
-     AND td.donation_date = v_today;
-
-  IF v_sender_count >= 3 THEN
-    RAISE EXCEPTION 'DAILY_DONATION_LIMIT_REACHED';
-  END IF;
-
-  IF EXISTS (
-    SELECT 1
-      FROM talent_donations td
-     WHERE td.sender_id = p_sender_id
-       AND td.recipient_id = p_recipient_id
-       AND td.donation_date = v_today
-  ) THEN
-    RAISE EXCEPTION 'RECIPIENT_ALREADY_GIFTED_TODAY';
-  END IF;
-
-  IF v_sender.talents < p_donation_amount THEN
-    RAISE EXCEPTION 'INSUFFICIENT_TALENTS';
-  END IF;
-
-  v_sender_after := v_sender.talents - p_donation_amount;
-  UPDATE students SET talents = v_sender_after WHERE id = p_sender_id;
-
-  INSERT INTO talent_donations (
-    id, sender_id, recipient_id, message, donation_amount,
-    sender_balance_before, sender_balance_after, donation_date, created_at
-  )
-  VALUES (
-    v_donation_id, p_sender_id, p_recipient_id, v_message, p_donation_amount,
-    v_sender.talents, v_sender_after, v_today, now()
-  );
-
-  INSERT INTO mileage_transactions (id, student_id, type, description, amount, date, created_at)
-  VALUES (
-    'tx_' || replace(gen_random_uuid()::TEXT, '-', ''),
-    p_sender_id,
-    '선물하기',
-    v_recipient.name || '에게 선물 보냄',
-    -p_donation_amount,
-    v_today::TEXT,
-    now()
-  );
-
-  donation_id := v_donation_id;
-  sender_id := p_sender_id;
-  sender_name := v_sender.name;
-  recipient_id := p_recipient_id;
-  recipient_name := v_recipient.name;
-  message := v_message;
-  donation_amount := p_donation_amount;
-  sender_balance_before := v_sender.talents;
-  sender_balance_after := v_sender_after;
-  remaining_gifts_today := GREATEST(0, 3 - (v_sender_count + 1));
-  status := 'pending';
-  created_at := now();
-
-  RETURN NEXT;
-END;
-$$;
-
-GRANT EXECUTE ON FUNCTION create_talent_donation(TEXT, TEXT, INTEGER, TEXT) TO anon, authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION create_random_talent_donation(
   p_sender_id TEXT,
@@ -255,11 +85,11 @@ BEGIN
 
   SELECT COUNT(*)
     INTO v_candidate_count
-    FROM students
-   WHERE id <> p_sender_id
-     AND COALESCE(active, true) = true
-     AND COALESCE(is_teacher, false) = false
-     AND id NOT IN (
+    FROM students s
+   WHERE s.id <> p_sender_id
+     AND COALESCE(s.active, true) = true
+     AND COALESCE(s.is_teacher, false) = false
+     AND s.id NOT IN (
        SELECT td.recipient_id
          FROM talent_donations td
         WHERE td.sender_id = p_sender_id
@@ -278,19 +108,19 @@ BEGIN
     + get_byte(v_random_bytes, 3)::BIGINT;
   v_offset := (v_random_int % v_candidate_count)::INTEGER;
 
-  SELECT id, name
+  SELECT s.id, s.name
     INTO v_recipient
-    FROM students
-   WHERE id <> p_sender_id
-     AND COALESCE(active, true) = true
-     AND COALESCE(is_teacher, false) = false
-     AND id NOT IN (
+    FROM students s
+   WHERE s.id <> p_sender_id
+     AND COALESCE(s.active, true) = true
+     AND COALESCE(s.is_teacher, false) = false
+     AND s.id NOT IN (
        SELECT td.recipient_id
          FROM talent_donations td
         WHERE td.sender_id = p_sender_id
           AND td.donation_date = v_today
      )
-   ORDER BY id
+   ORDER BY s.id
    OFFSET v_offset
    LIMIT 1;
 
