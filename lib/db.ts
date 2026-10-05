@@ -5,7 +5,7 @@
  * All dates use Asia/Seoul timezone via korea-date.ts.
  */
 import { getSupabase } from "./supabase";
-import type { Student } from "./types";
+import type { Student, TalentDonationHistory, TalentDonationRanking, TalentDonationResult, TalentDonationStatus } from "./types";
 import { koreaDate, getWeekNumber, sundayFromWeek } from "./korea-date";
 
 /* ── Helpers ── */
@@ -805,6 +805,191 @@ export async function addTransaction(tx: any) {
     amount: tx.amount || 0, date: tx.date || koreaDate(),
     created_at: new Date().toISOString(),
   }]);
+}
+
+function mapTalentDonationResult(r: any): TalentDonationResult {
+  return {
+    donationId: r.donation_id || r.id || "",
+    senderId: r.sender_id || "",
+    senderName: r.sender_name || "",
+    recipientId: r.recipient_id || "",
+    recipientName: r.recipient_name || "",
+    message: r.message || "",
+    donationAmount: Number(r.donation_amount) || 0,
+    recipientBalanceBefore: r.recipient_balance_before == null ? undefined : Number(r.recipient_balance_before) || 0,
+    probabilityTier: r.probability_tier || undefined,
+    selectedMultiplier: r.selected_multiplier == null ? undefined : Number(r.selected_multiplier) || 0,
+    giftAmount: r.gift_amount == null ? undefined : Number(r.gift_amount) || 0,
+    senderBalanceBefore: Number(r.sender_balance_before) || 0,
+    senderBalanceAfter: Number(r.sender_balance_after) || 0,
+    recipientBalanceAfter: r.recipient_balance_after == null ? undefined : Number(r.recipient_balance_after) || 0,
+    remainingGiftsToday: r.remaining_gifts_today == null ? undefined : Number(r.remaining_gifts_today) || 0,
+    status: (r.status || "pending") as "pending" | "opened",
+    openedAt: r.opened_at || undefined,
+    createdAt: r.created_at || "",
+  };
+}
+
+function donationErrorMessage(message?: string) {
+  const raw = String(message || "");
+  if (raw.includes("CANNOT_DONATE_TO_SELF")) return "자기 자신에게는 선물할 수 없어요.";
+  if (raw.includes("DONATION_TOO_SMALL")) return "선물은 최소 10달란트부터 가능해요.";
+  if (raw.includes("DONATION_TOO_LARGE")) return "한 번에 최대 100달란트까지 선물할 수 있어요.";
+  if (raw.includes("DAILY_DONATION_LIMIT_REACHED")) return "오늘 가능한 선물 3회를 모두 사용했어요.";
+  if (raw.includes("RECIPIENT_ALREADY_GIFTED_TODAY")) return "같은 친구에게는 하루에 한 번만 선물할 수 있어요.";
+  if (raw.includes("INSUFFICIENT_TALENTS")) return "보유 달란트가 부족해요.";
+  if (raw.includes("RECIPIENT_NOT_FOUND")) return "선물 받을 친구를 찾을 수 없어요.";
+  if (raw.includes("SENDER_NOT_FOUND")) return "보내는 사용자를 찾을 수 없어요.";
+  if (raw.includes("NO_RANDOM_RECIPIENT_AVAILABLE")) return "오늘 랜덤으로 선물할 수 있는 친구가 없어요.";
+  if (raw.includes("GIFT_NOT_FOUND")) return "선물을 찾을 수 없어요.";
+  if (raw.includes("GIFT_RECIPIENT_MISMATCH")) return "내게 온 선물이 아니에요.";
+  if (raw.includes("GIFT_ALREADY_OPENED")) return "이미 열어본 선물이에요.";
+  return raw || "선물 보내기에 실패했어요.";
+}
+
+export async function fetchTalentDonationStatus(senderId: string): Promise<TalentDonationStatus> {
+  const s = sb();
+  if (!s || !senderId) return { donationCountToday: 0, remainingGiftsToday: 3, giftedRecipientIds: [] };
+  try {
+    const { data, error } = await s.rpc("get_talent_donation_status", { p_sender_id: senderId });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    return {
+      donationCountToday: Number(row?.donation_count_today) || 0,
+      remainingGiftsToday: Number(row?.remaining_gifts_today ?? 3) || 0,
+      giftedRecipientIds: row?.gifted_recipient_ids || [],
+    };
+  } catch {
+    return { donationCountToday: 0, remainingGiftsToday: 3, giftedRecipientIds: [] };
+  }
+}
+
+export async function createTalentDonation(senderId: string, recipientId: string, donationAmount: number, message: string): Promise<TalentDonationResult> {
+  const s = sb();
+  if (!s) throw new Error("Supabase가 설정되어 있지 않아요.");
+  const { data, error } = await s.rpc("create_talent_donation", {
+    p_sender_id: senderId,
+    p_recipient_id: recipientId,
+    p_donation_amount: donationAmount,
+    p_message: message,
+  });
+  if (error) throw new Error(donationErrorMessage(error.message));
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("선물 처리 결과를 확인할 수 없어요.");
+  return mapTalentDonationResult(row);
+}
+
+export async function createRandomTalentDonation(senderId: string, donationAmount: number, message: string): Promise<TalentDonationResult> {
+  const s = sb();
+  if (!s) throw new Error("Supabase가 설정되어 있지 않아요.");
+  const { data, error } = await s.rpc("create_random_talent_donation", {
+    p_sender_id: senderId,
+    p_donation_amount: donationAmount,
+    p_message: message,
+  });
+  if (error) throw new Error(donationErrorMessage(error.message));
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("선물 처리 결과를 확인할 수 없어요.");
+  return mapTalentDonationResult(row);
+}
+
+export async function openTalentDonation(recipientId: string, donationId: string): Promise<TalentDonationResult> {
+  const s = sb();
+  if (!s) throw new Error("Supabase가 설정되어 있지 않아요.");
+  const { data, error } = await s.rpc("open_talent_donation", {
+    p_recipient_id: recipientId,
+    p_donation_id: donationId,
+  });
+  if (error) throw new Error(donationErrorMessage(error.message));
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("선물 결과를 확인할 수 없어요.");
+  return mapTalentDonationResult(row);
+}
+
+export async function fetchReceivedTalentDonations(recipientId: string, limit = 50): Promise<TalentDonationHistory[]> {
+  const s = sb();
+  if (!s || !recipientId) return [];
+  try {
+    const { data, error } = await s.from("talent_donations")
+      .select("*")
+      .eq("recipient_id", recipientId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return mapTalentDonationRows(data);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchTalentDonationHistory(limit = 200): Promise<TalentDonationHistory[]> {
+  const s = sb();
+  if (!s) return [];
+  try {
+    const { data, error } = await s.from("talent_donations").select("*").order("created_at", { ascending: false }).limit(limit);
+    if (error || !data) return [];
+    return mapTalentDonationRows(data);
+  } catch {
+    return [];
+  }
+}
+
+async function mapTalentDonationRows(data: any[]): Promise<TalentDonationHistory[]> {
+  const s = sb();
+  if (!s) return [];
+    const ids = [...new Set(data.flatMap((r: any) => [r.sender_id, r.recipient_id]).filter(Boolean))];
+    const nameMap: Record<string, string> = {};
+    if (ids.length) {
+      const { data: studs } = await s.from("students").select("id, name").in("id", ids);
+      (studs || []).forEach((st: any) => { nameMap[st.id] = st.name; });
+    }
+    return data.map((r: any) => ({
+      id: r.id,
+      senderId: r.sender_id,
+      senderName: nameMap[r.sender_id] || "(알수없음)",
+      recipientId: r.recipient_id,
+      recipientName: nameMap[r.recipient_id] || "(알수없음)",
+      message: r.message || "",
+      donationAmount: Number(r.donation_amount) || 0,
+      status: (r.status || "pending") as "pending" | "opened",
+      recipientBalanceBefore: r.recipient_balance_before == null ? undefined : Number(r.recipient_balance_before) || 0,
+      probabilityTier: r.probability_tier || undefined,
+      selectedMultiplier: r.selected_multiplier == null ? undefined : Number(r.selected_multiplier) || 0,
+      giftAmount: Number(r.gift_amount) || 0,
+      senderBalanceBefore: Number(r.sender_balance_before) || 0,
+      senderBalanceAfter: Number(r.sender_balance_after) || 0,
+      recipientBalanceAfter: r.recipient_balance_after == null ? undefined : Number(r.recipient_balance_after) || 0,
+      donationDate: r.donation_date || "",
+      openedAt: r.opened_at || undefined,
+      createdAt: r.created_at || "",
+    }));
+}
+
+export async function fetchTalentDonationRankings(limit = 10): Promise<TalentDonationRanking[]> {
+  const s = sb();
+  if (!s) return [];
+  try {
+    const { data, error } = await s.from("talent_donations").select("sender_id, donation_amount");
+    if (error || !data) return [];
+    const totals: Record<string, number> = {};
+    data.forEach((r: any) => {
+      if (!r.sender_id) return;
+      totals[r.sender_id] = (totals[r.sender_id] || 0) + (Number(r.donation_amount) || 0);
+    });
+    const ids = Object.keys(totals);
+    if (!ids.length) return [];
+    const { data: studs } = await s.from("students").select("id, name, class_id").in("id", ids);
+    const rows = (studs || []).map((st: any) => ({
+      studentId: st.id,
+      studentName: st.name || "이름없음",
+      classId: st.class_id || "",
+      grade: gradeFromClassId(st.class_id || ""),
+      donatedAmount: totals[st.id] || 0,
+    }));
+    return rows.sort((a, b) => b.donatedAmount - a.donatedAmount || a.studentName.localeCompare(b.studentName, "ko")).slice(0, limit);
+  } catch {
+    return [];
+  }
 }
 
 /* ── Prayer Comments ── */

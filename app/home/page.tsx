@@ -6,8 +6,9 @@ import Card from "@/components/Card";
 import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
 import { useApp } from "@/lib/store-context";
-import { addMissionComment, deleteMissionComment, fetchMissionComments, updateMissionComment } from "@/lib/db";
+import { addMissionComment, deleteMissionComment, fetchMissionComments, fetchTalentDonationRankings, updateMissionComment } from "@/lib/db";
 import { formatKoreaDateTime, koreaDate } from "@/lib/korea-date";
+import type { TalentDonationRanking } from "@/lib/types";
 
 interface MissionComment {
   id: string;
@@ -30,10 +31,12 @@ export default function HomeContent() {
   const [feedTab, setFeedTab] = useState<"noti" | "news">("noti");
   const [selectedAnn, setSelectedAnn] = useState<any>(null);
   const [missionCommentsMap, setMissionCommentsMap] = useState<Record<string, MissionComment[]>>({});
+  const [donationRankings, setDonationRankings] = useState<TalentDonationRanking[]>([]);
   const adminMissions = missions;
   const adminMissionIdsKey = adminMissions.map((m: any) => m.id).join("|");
 
   useEffect(() => { refreshActivities(); }, [refreshActivities]);
+  useEffect(() => { fetchTalentDonationRankings(10).then(setDonationRankings); }, []);
   useEffect(() => {
     if (!student || isLoading || !isLoggedIn || dailyQuestIds.includes("d8")) return;
     const key = `daily_quest_attempt:${student.id}:d8:${koreaDate()}`;
@@ -200,6 +203,7 @@ export default function HomeContent() {
           myClassId={student.classId}
           students={allStudents as any}
           myStudentId={student.id}
+          donationRankings={donationRankings}
         />
       </section>
 

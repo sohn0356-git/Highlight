@@ -102,6 +102,62 @@ export interface MileageTransaction {
   actorName?: string;
 }
 
+export interface TalentDonationResult {
+  donationId: string;
+  senderId: string;
+  senderName: string;
+  recipientId: string;
+  recipientName: string;
+  message: string;
+  donationAmount: number;
+  recipientBalanceBefore?: number;
+  probabilityTier?: string;
+  selectedMultiplier?: number;
+  giftAmount?: number;
+  senderBalanceBefore: number;
+  senderBalanceAfter: number;
+  recipientBalanceAfter?: number;
+  remainingGiftsToday?: number;
+  status: "pending" | "opened";
+  openedAt?: string;
+  createdAt: string;
+}
+
+export interface TalentDonationStatus {
+  donationCountToday: number;
+  remainingGiftsToday: number;
+  giftedRecipientIds: string[];
+}
+
+export interface TalentDonationHistory {
+  id: string;
+  senderId: string;
+  senderName: string;
+  recipientId: string;
+  recipientName: string;
+  message: string;
+  donationAmount: number;
+  status: "pending" | "opened";
+  recipientBalanceBefore?: number;
+  probabilityTier?: string;
+  selectedMultiplier?: number;
+  giftAmount: number;
+  senderBalanceBefore: number;
+  senderBalanceAfter: number;
+  recipientBalanceAfter?: number;
+  donationDate: string;
+  openedAt?: string;
+  createdAt: string;
+}
+
+export interface TalentDonationRanking {
+  studentId: string;
+  studentName: string;
+  classId: string;
+  grade?: number;
+  donatedAmount: number;
+}
+
 export interface Season {
   id: string;
   label: string;
@@ -160,4 +216,3 @@ export interface TodayQT {
   verse: string;
   content: string;
 }
-

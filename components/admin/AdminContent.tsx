@@ -4,18 +4,20 @@ import { Gift, Megaphone, Plus, Sparkles, Target, X } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { koreaDate, addDays } from "@/lib/korea-date";
 import type { MissionAdmin, Announcement } from "@/lib/admin-types";
+import { createTalentDonation } from "@/lib/db";
+import { TALENT_DONATION_CONFIG } from "@/lib/talent-donation-config";
 
 type ContentTab = "mission" | "announcement" | "gift";
 
 const probabilityRows = [
-  { range: "0~1,999", chances: [3, 7, 15, 30, 45] },
-  { range: "2,000~3,999", chances: [5, 10, 25, 35, 25] },
-  { range: "4,000~5,999", chances: [10, 20, 35, 25, 10] },
-  { range: "6,000~7,999", chances: [20, 30, 30, 15, 5] },
-  { range: "8,000~9,999", chances: [35, 35, 20, 8, 2] },
-  { range: "10,000~11,999", chances: [50, 30, 15, 4, 1] },
-  { range: "12,000~13,999", chances: [65, 25, 8, 1, 1] },
-  { range: "14,000 이상", chances: [80, 15, 4, 0, 1] },
+  { range: "0~999", chances: [0, 5, 10, 20, 35, 30] },
+  { range: "1,000~1,999", chances: [5, 10, 15, 25, 30, 15] },
+  { range: "2,000~2,999", chances: [10, 15, 25, 25, 20, 5] },
+  { range: "3,000~3,999", chances: [15, 25, 30, 20, 8, 2] },
+  { range: "4,000~5,999", chances: [25, 35, 25, 10, 4, 1] },
+  { range: "6,000~7,999", chances: [40, 40, 15, 4, 1, 0] },
+  { range: "8,000~9,999", chances: [55, 35, 8, 2, 0, 0] },
+  { range: "10,000 이상", chances: [70, 25, 4, 1, 0, 0] },
 ];
 
 export default function AdminContent() {
@@ -25,6 +27,13 @@ export default function AdminContent() {
   const [editId, setEditId] = useState<string | null>(null);
   const [giftOpening, setGiftOpening] = useState(false);
   const [giftResult, setGiftResult] = useState<{ amount: number; before: number; after: number } | null>(null);
+  const [testSenderId, setTestSenderId] = useState("");
+  const [testRecipientId, setTestRecipientId] = useState("");
+  const [testGiftAmount, setTestGiftAmount] = useState("100");
+  const [testGiftMessage, setTestGiftMessage] = useState("관리자 테스트 선물입니다.");
+  const [testGiftSending, setTestGiftSending] = useState(false);
+  const [testGiftResult, setTestGiftResult] = useState<string>("");
+  const [testGiftError, setTestGiftError] = useState("");
 
   const [missionForm, setMissionForm] = useState({
     title: "",
@@ -60,6 +69,22 @@ export default function AdminContent() {
     const result = await awardGiftDraw();
     setGiftResult(result);
     setGiftOpening(false);
+  }
+
+  async function sendTestGift() {
+    const amount = Number(testGiftAmount);
+    if (!testSenderId || !testRecipientId || !Number.isInteger(amount)) return;
+    setTestGiftSending(true);
+    setTestGiftResult("");
+    setTestGiftError("");
+    try {
+      const result = await createTalentDonation(testSenderId, testRecipientId, amount, testGiftMessage);
+      setTestGiftResult(`${result.senderName} → ${result.recipientName} ${result.donationAmount.toLocaleString()}D 선물을 생성했습니다.`);
+    } catch (e: any) {
+      setTestGiftError(e?.message || "테스트 선물 생성에 실패했습니다.");
+    } finally {
+      setTestGiftSending(false);
+    }
   }
 
   function submitMission() {
@@ -241,6 +266,84 @@ export default function AdminContent() {
       {/* Gift draw tab */}
       {tab === "gift" && (
         <div className="space-y-4">
+          <section className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-neutral-800">테스트 선물 보내기</h3>
+                <p className="mt-0.5 text-[11px] text-neutral-400">받은 선물함 열람과 랜덤 지급을 테스트합니다.</p>
+              </div>
+              <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600">실제 차감</span>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <label className="text-[11px] font-bold text-neutral-500">
+                보낸 사람
+                <select
+                  value={testSenderId}
+                  onChange={e => setTestSenderId(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800"
+                >
+                  <option value="">선택</option>
+                  {students.filter(s => s.active !== false).map(s => (
+                    <option key={s.id} value={s.id}>{s.name} · {s.mileage.toLocaleString()}D</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-[11px] font-bold text-neutral-500">
+                받는 사람
+                <select
+                  value={testRecipientId}
+                  onChange={e => setTestRecipientId(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800"
+                >
+                  <option value="">선택</option>
+                  {students.filter(s => s.active !== false && s.id !== testSenderId).map(s => (
+                    <option key={s.id} value={s.id}>{s.name} · {s.mileage.toLocaleString()}D</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-neutral-500">기부할 달란트</label>
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-extrabold text-amber-700">{Number(testGiftAmount).toLocaleString()}D</span>
+              </div>
+              <div className="mt-2 rounded-2xl bg-neutral-50 px-3 py-4">
+                <input
+                  type="range"
+                  min={TALENT_DONATION_CONFIG.minDonation}
+                  max={TALENT_DONATION_CONFIG.maxDonation}
+                  step={10}
+                  value={testGiftAmount}
+                  onChange={e => setTestGiftAmount(e.target.value)}
+                  className="h-3 w-full cursor-pointer appearance-none rounded-full bg-neutral-200 accent-amber-500"
+                />
+                <div className="mt-2 flex justify-between text-[10px] font-bold text-neutral-400">
+                  <span>10D</span>
+                  <span>50D</span>
+                  <span>100D</span>
+                </div>
+              </div>
+            </div>
+            <textarea
+              value={testGiftMessage}
+              maxLength={160}
+              onChange={e => setTestGiftMessage(e.target.value)}
+              rows={2}
+              className="mt-3 w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm"
+              placeholder="선물 메시지"
+            />
+            {testGiftError && <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600">{testGiftError}</p>}
+            {testGiftResult && <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">{testGiftResult}</p>}
+            <button
+              onClick={sendTestGift}
+              disabled={!testSenderId || !testRecipientId || testGiftSending}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-white disabled:bg-neutral-300"
+            >
+              <Gift size={16} />
+              {testGiftSending ? "생성 중..." : "테스트 선물 보내기"}
+            </button>
+          </section>
+
           <section className="overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-indigo-50 shadow-sm">
             <div className="relative px-5 py-6 text-center">
               <div className={`mx-auto grid h-24 w-24 place-items-center rounded-3xl bg-amber-400 text-white shadow-lg shadow-amber-200 transition ${giftOpening ? "gift-shake" : ""}`}>
@@ -287,7 +390,7 @@ export default function AdminContent() {
                 <thead className="bg-neutral-50 text-[11px] text-neutral-500">
                   <tr>
                     <th className="px-3 py-2 font-bold">현재 포인트</th>
-                    {["+100P", "+300P", "+500P", "+700P", "+1,000P"].map(label => (
+                    {["50%", "100%", "200%", "300%", "500%", "1000%"].map(label => (
                       <th key={label} className="px-3 py-2 text-right font-bold">{label}</th>
                     ))}
                   </tr>

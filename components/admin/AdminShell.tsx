@@ -36,6 +36,7 @@ const navGroups: NavGroup[] = [
       { id: "students", label: "학생 관리", icon: Users },
       { id: "content", label: "콘텐츠 관리", icon: FileText },
       { id: "management", label: "시스템 관리", icon: Settings },
+      { id: "donations", label: "선물 감사", icon: Gift },
       { id: "database", label: "DB 관리", icon: DatabaseIcon },
     ],
   },

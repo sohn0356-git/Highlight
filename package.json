@@ -6,6 +6,7 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
+    "test:donations": "node scripts/test-talent-donation-config.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

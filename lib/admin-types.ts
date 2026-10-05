@@ -216,7 +216,7 @@ export interface AdminSettings {
 }
 
 /* ── Admin Tab Navigation ── */
-export type AdminPageId = "dashboard" | "attendance" | "students" | "content" | "management" | "database";
+export type AdminPageId = "dashboard" | "attendance" | "students" | "content" | "management" | "donations" | "database";
 
 export interface AdminNavItem {
   id: AdminPageId;

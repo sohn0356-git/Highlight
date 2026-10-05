@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Trophy } from "lucide-react";
-import type { SchoolClass } from "@/lib/types";
+import type { SchoolClass, TalentDonationRanking } from "@/lib/types";
 
 type RankTab = "grade" | "personal";
 
@@ -21,11 +21,12 @@ function getGradeFromClass(classId: string): number {
 
 const GRADE_NAMES: Record<number, string> = { 1: "고1", 2: "고2", 3: "고3" };
 
-export default function ClassRankingCard({ classes, myClassId, students, myStudentId }: {
+export default function ClassRankingCard({ classes, myClassId, students, myStudentId, donationRankings }: {
   classes: SchoolClass[];
   myClassId: string;
   students?: { id: string; name: string; classId: string; grade?: number; mileage: number; xp?: number }[];
   myStudentId?: string;
+  donationRankings?: TalentDonationRanking[];
 }) {
   const [tab, setTab] = useState<RankTab>("grade");
 
@@ -59,13 +60,13 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
     .sort((a, b) => b.value - a.value || Number(a.name.replace(/\D/g, "")) - Number(b.name.replace(/\D/g, "")));
   const topGrade = gradeRows[0];
 
-  /* ── 개인별 달란트 랭킹 (최대 10위) ── */
-  const personalRows: RankRow[] = (students || [])
-    .map((s: any) => ({
-      key: s.id,
-      name: s.name || "이름없음",
-      value: Number(s.mileage) || 0,
-      isMine: s.id === myStudentId,
+  /* ── 개인별 기부 랭킹 (최대 10위) ── */
+  const personalRows: RankRow[] = (donationRankings || [])
+    .map((r: TalentDonationRanking) => ({
+      key: r.studentId,
+      name: r.studentName || "이름없음",
+      value: Number(r.donatedAmount) || 0,
+      isMine: r.studentId === myStudentId,
     }))
     .filter(r => r.name !== "이름없음")
     .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, "ko"))
@@ -155,7 +156,7 @@ export default function ClassRankingCard({ classes, myClassId, students, myStude
         </>
       ) : (
         <>
-          <p className="mt-3 text-[10px] text-neutral-400">개인 달란트 기준 TOP 10</p>
+          <p className="mt-3 text-[10px] text-neutral-400">기부한 달란트 기준 TOP 10</p>
           {renderRows(personalRows, topStudent, "D")}
           {/* 개인 1위 메시지 제거 */}
         </>
