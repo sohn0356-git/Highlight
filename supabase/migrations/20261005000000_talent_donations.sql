@@ -4,9 +4,12 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+ALTER TABLE mileage_transactions
+  ALTER COLUMN date TYPE TEXT USING date::TEXT;
+
 CREATE TABLE IF NOT EXISTS talent_donations (
   id TEXT PRIMARY KEY,
-  sender_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  sender_id TEXT REFERENCES students(id) ON DELETE CASCADE,
   recipient_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
   message TEXT NOT NULL DEFAULT '',
   donation_amount INTEGER NOT NULL,
@@ -32,6 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_talent_donations_recipient_status ON talent_donat
 CREATE INDEX IF NOT EXISTS idx_talent_donations_created_at ON talent_donations(created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_talent_donations_sender_recipient_date
   ON talent_donations(sender_id, recipient_id, donation_date);
+ALTER TABLE talent_donations ALTER COLUMN sender_id DROP NOT NULL;
 
 CREATE OR REPLACE FUNCTION create_talent_donation(
   p_sender_id TEXT,
@@ -332,6 +336,89 @@ $$;
 
 GRANT EXECUTE ON FUNCTION create_random_talent_donation(TEXT, INTEGER, TEXT) TO anon, authenticated, service_role;
 
+CREATE OR REPLACE FUNCTION create_admin_talent_gift(
+  p_recipient_id TEXT,
+  p_donation_amount INTEGER,
+  p_message TEXT DEFAULT ''
+)
+RETURNS TABLE (
+  donation_id TEXT,
+  sender_id TEXT,
+  sender_name TEXT,
+  recipient_id TEXT,
+  recipient_name TEXT,
+  message TEXT,
+  donation_amount INTEGER,
+  sender_balance_before INTEGER,
+  sender_balance_after INTEGER,
+  remaining_gifts_today INTEGER,
+  status TEXT,
+  created_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_today DATE := (now() AT TIME ZONE 'Asia/Seoul')::date;
+  v_recipient RECORD;
+  v_donation_id TEXT := 'td_admin_' || replace(gen_random_uuid()::TEXT, '-', '');
+  v_message TEXT := left(coalesce(trim(p_message), ''), 160);
+BEGIN
+  IF p_recipient_id IS NULL OR p_recipient_id = '' THEN
+    RAISE EXCEPTION 'RECIPIENT_REQUIRED';
+  END IF;
+
+  IF p_donation_amount IS NULL OR p_donation_amount <> floor(p_donation_amount) THEN
+    RAISE EXCEPTION 'INVALID_DONATION_AMOUNT';
+  END IF;
+
+  IF p_donation_amount < 10 THEN
+    RAISE EXCEPTION 'DONATION_TOO_SMALL';
+  END IF;
+
+  IF p_donation_amount > 100 THEN
+    RAISE EXCEPTION 'DONATION_TOO_LARGE';
+  END IF;
+
+  SELECT id, name
+    INTO v_recipient
+    FROM students
+   WHERE id = p_recipient_id
+     AND COALESCE(active, true) = true
+   LIMIT 1;
+
+  IF v_recipient.id IS NULL THEN
+    RAISE EXCEPTION 'RECIPIENT_NOT_FOUND';
+  END IF;
+
+  INSERT INTO talent_donations (
+    id, sender_id, recipient_id, message, donation_amount,
+    sender_balance_before, sender_balance_after, donation_date, created_at
+  )
+  VALUES (
+    v_donation_id, NULL, p_recipient_id, v_message, p_donation_amount,
+    0, 0, v_today, now()
+  );
+
+  donation_id := v_donation_id;
+  sender_id := NULL;
+  sender_name := '';
+  recipient_id := p_recipient_id;
+  recipient_name := v_recipient.name;
+  message := v_message;
+  donation_amount := p_donation_amount;
+  sender_balance_before := 0;
+  sender_balance_after := 0;
+  remaining_gifts_today := 0;
+  status := 'pending';
+  created_at := now();
+
+  RETURN NEXT;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION create_admin_talent_gift(TEXT, INTEGER, TEXT) TO anon, authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION open_talent_donation(
   p_recipient_id TEXT,
   p_donation_id TEXT
@@ -466,20 +553,22 @@ BEGIN
          opened_at = now()
    WHERE id = p_donation_id;
 
-  INSERT INTO mileage_transactions (id, student_id, type, description, amount, date, created_at)
-  VALUES (
-    'tx_' || replace(gen_random_uuid()::TEXT, '-', ''),
-    p_recipient_id,
-    '선물받기',
-    coalesce(v_sender_name, '친구') || '에게 받은 랜덤 선물 ' || v_multiplier::TEXT || '%',
-    v_gift_amount,
-    ((now() AT TIME ZONE 'Asia/Seoul')::date)::TEXT,
-    now()
-  );
+  IF v_gift.sender_id IS NOT NULL THEN
+    INSERT INTO mileage_transactions (id, student_id, type, description, amount, date, created_at)
+    VALUES (
+      'tx_' || replace(gen_random_uuid()::TEXT, '-', ''),
+      p_recipient_id,
+      '선물받기',
+      coalesce(v_sender_name, '친구') || '에게 받은 랜덤 선물 ' || v_multiplier::TEXT || '%',
+      v_gift_amount,
+      ((now() AT TIME ZONE 'Asia/Seoul')::date)::TEXT,
+      now()
+    );
+  END IF;
 
   donation_id := v_gift.id;
   sender_id := v_gift.sender_id;
-  sender_name := coalesce(v_sender_name, '');
+  sender_name := coalesce(v_sender_name, '관리자');
   recipient_id := v_gift.recipient_id;
   recipient_name := v_recipient_name;
   message := v_gift.message;

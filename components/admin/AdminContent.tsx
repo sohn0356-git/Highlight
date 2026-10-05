@@ -4,7 +4,7 @@ import { Gift, Megaphone, Plus, Sparkles, Target, X } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { koreaDate, addDays } from "@/lib/korea-date";
 import type { MissionAdmin, Announcement } from "@/lib/admin-types";
-import { createTalentDonation } from "@/lib/db";
+import { createAdminTalentGift } from "@/lib/db";
 import { TALENT_DONATION_CONFIG } from "@/lib/talent-donation-config";
 
 type ContentTab = "mission" | "announcement" | "gift";
@@ -27,7 +27,6 @@ export default function AdminContent() {
   const [editId, setEditId] = useState<string | null>(null);
   const [giftOpening, setGiftOpening] = useState(false);
   const [giftResult, setGiftResult] = useState<{ amount: number; before: number; after: number } | null>(null);
-  const [testSenderId, setTestSenderId] = useState("");
   const [testRecipientId, setTestRecipientId] = useState("");
   const [testGiftAmount, setTestGiftAmount] = useState("100");
   const [testGiftMessage, setTestGiftMessage] = useState("관리자 테스트 선물입니다.");
@@ -73,13 +72,13 @@ export default function AdminContent() {
 
   async function sendTestGift() {
     const amount = Number(testGiftAmount);
-    if (!testSenderId || !testRecipientId || !Number.isInteger(amount)) return;
+    if (!testRecipientId || !Number.isInteger(amount)) return;
     setTestGiftSending(true);
     setTestGiftResult("");
     setTestGiftError("");
     try {
-      const result = await createTalentDonation(testSenderId, testRecipientId, amount, testGiftMessage);
-      setTestGiftResult(`${result.senderName} → ${result.recipientName} ${result.donationAmount.toLocaleString()}D 선물을 생성했습니다.`);
+      const result = await createAdminTalentGift(testRecipientId, amount, testGiftMessage);
+      setTestGiftResult(`${result.recipientName}에게 ${result.donationAmount.toLocaleString()}D 관리자 선물을 생성했습니다.`);
     } catch (e: any) {
       setTestGiftError(e?.message || "테스트 선물 생성에 실패했습니다.");
     } finally {
@@ -274,20 +273,7 @@ export default function AdminContent() {
               </div>
               <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600">실제 차감</span>
             </div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <label className="text-[11px] font-bold text-neutral-500">
-                보낸 사람
-                <select
-                  value={testSenderId}
-                  onChange={e => setTestSenderId(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800"
-                >
-                  <option value="">선택</option>
-                  {students.filter(s => s.active !== false).map(s => (
-                    <option key={s.id} value={s.id}>{s.name} · {s.mileage.toLocaleString()}D</option>
-                  ))}
-                </select>
-              </label>
+            <div className="mt-4">
               <label className="text-[11px] font-bold text-neutral-500">
                 받는 사람
                 <select
@@ -296,7 +282,7 @@ export default function AdminContent() {
                   className="mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-800"
                 >
                   <option value="">선택</option>
-                  {students.filter(s => s.active !== false && s.id !== testSenderId).map(s => (
+                  {students.filter(s => s.active !== false).map(s => (
                     <option key={s.id} value={s.id}>{s.name} · {s.mileage.toLocaleString()}D</option>
                   ))}
                 </select>
@@ -336,7 +322,7 @@ export default function AdminContent() {
             {testGiftResult && <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">{testGiftResult}</p>}
             <button
               onClick={sendTestGift}
-              disabled={!testSenderId || !testRecipientId || testGiftSending}
+              disabled={!testRecipientId || testGiftSending}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-white disabled:bg-neutral-300"
             >
               <Gift size={16} />

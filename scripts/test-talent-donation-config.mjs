@@ -61,5 +61,8 @@ assert(sqlSource.includes("GIFT_ALREADY_OPENED"), "RPC must prevent duplicate gi
 assert(sqlSource.includes("status = 'opened'"), "RPC must mark a gift opened after payout");
 assert(sqlSource.includes("create_random_talent_donation"), "Student gift flow must use a server-side random recipient RPC");
 assert(sqlSource.includes("NO_RANDOM_RECIPIENT_AVAILABLE"), "Random recipient RPC must handle exhausted recipient candidates");
+assert(sqlSource.includes("create_admin_talent_gift"), "Admin gift flow must use a dedicated no-sender RPC");
+assert(sqlSource.includes("ALTER COLUMN date TYPE TEXT"), "Mileage transaction date must be normalized to text");
+assert(sqlSource.includes("IF v_gift.sender_id IS NOT NULL THEN"), "Admin gifts must not create mileage transaction logs on open");
 
 console.log("Talent donation configuration and RPC invariants passed.");

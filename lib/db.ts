@@ -811,7 +811,7 @@ function mapTalentDonationResult(r: any): TalentDonationResult {
   return {
     donationId: r.donation_id || r.id || "",
     senderId: r.sender_id || "",
-    senderName: r.sender_name || "",
+    senderName: r.sender_name || "관리자",
     recipientId: r.recipient_id || "",
     recipientName: r.recipient_name || "",
     message: r.message || "",
@@ -893,6 +893,20 @@ export async function createRandomTalentDonation(senderId: string, donationAmoun
   return mapTalentDonationResult(row);
 }
 
+export async function createAdminTalentGift(recipientId: string, donationAmount: number, message: string): Promise<TalentDonationResult> {
+  const s = sb();
+  if (!s) throw new Error("Supabase가 설정되어 있지 않아요.");
+  const { data, error } = await s.rpc("create_admin_talent_gift", {
+    p_recipient_id: recipientId,
+    p_donation_amount: donationAmount,
+    p_message: message,
+  });
+  if (error) throw new Error(donationErrorMessage(error.message));
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("관리자 선물 처리 결과를 확인할 수 없어요.");
+  return mapTalentDonationResult(row);
+}
+
 export async function openTalentDonation(recipientId: string, donationId: string): Promise<TalentDonationResult> {
   const s = sb();
   if (!s) throw new Error("Supabase가 설정되어 있지 않아요.");
@@ -926,7 +940,11 @@ export async function fetchTalentDonationHistory(limit = 200): Promise<TalentDon
   const s = sb();
   if (!s) return [];
   try {
-    const { data, error } = await s.from("talent_donations").select("*").order("created_at", { ascending: false }).limit(limit);
+    const { data, error } = await s.from("talent_donations")
+      .select("*")
+      .not("sender_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(limit);
     if (error || !data) return [];
     return mapTalentDonationRows(data);
   } catch {
@@ -946,7 +964,7 @@ async function mapTalentDonationRows(data: any[]): Promise<TalentDonationHistory
     return data.map((r: any) => ({
       id: r.id,
       senderId: r.sender_id,
-      senderName: nameMap[r.sender_id] || "(알수없음)",
+      senderName: r.sender_id ? (nameMap[r.sender_id] || "(알수없음)") : "관리자",
       recipientId: r.recipient_id,
       recipientName: nameMap[r.recipient_id] || "(알수없음)",
       message: r.message || "",
@@ -969,7 +987,7 @@ export async function fetchTalentDonationRankings(limit = 10): Promise<TalentDon
   const s = sb();
   if (!s) return [];
   try {
-    const { data, error } = await s.from("talent_donations").select("sender_id, donation_amount");
+    const { data, error } = await s.from("talent_donations").select("sender_id, donation_amount").not("sender_id", "is", null);
     if (error || !data) return [];
     const totals: Record<string, number> = {};
     data.forEach((r: any) => {
