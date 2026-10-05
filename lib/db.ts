@@ -987,17 +987,25 @@ export async function fetchTalentDonationRankings(limit = 10): Promise<TalentDon
   const s = sb();
   if (!s) return [];
   try {
-    const { data, error } = await s.from("talent_donations").select("sender_id, donation_amount").not("sender_id", "is", null);
-    if (error || !data) return [];
+    const { data: students, error: studentsError } = await s.from("students")
+      .select("id, name, class_id, role, is_teacher, active")
+      .eq("active", true);
+    if (studentsError || !students) return [];
+
+    const { data, error } = await s.from("talent_donations")
+      .select("sender_id, donation_amount")
+      .not("sender_id", "is", null);
+    if (error) return [];
+
     const totals: Record<string, number> = {};
-    data.forEach((r: any) => {
+    (data || []).forEach((r: any) => {
       if (!r.sender_id) return;
       totals[r.sender_id] = (totals[r.sender_id] || 0) + (Number(r.donation_amount) || 0);
     });
-    const ids = Object.keys(totals);
-    if (!ids.length) return [];
-    const { data: studs } = await s.from("students").select("id, name, class_id").in("id", ids);
-    const rows = (studs || []).map((st: any) => ({
+
+    const rows = students
+      .filter((st: any) => st.is_teacher !== true && (st.role || "student") === "student")
+      .map((st: any) => ({
       studentId: st.id,
       studentName: st.name || "이름없음",
       classId: st.class_id || "",
