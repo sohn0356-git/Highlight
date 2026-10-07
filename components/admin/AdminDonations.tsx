@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Gift, RefreshCw, TrendingUp } from "lucide-react";
+import { Gift, RefreshCw } from "lucide-react";
 import { fetchTalentDonationHistory } from "@/lib/db";
 import { formatKoreaDateTime } from "@/lib/korea-date";
 import type { TalentDonationHistory } from "@/lib/types";
@@ -23,12 +23,12 @@ export default function AdminDonations() {
 
   const stats = useMemo(() => {
     const totalDonation = rows.reduce((sum, r) => sum + r.donationAmount, 0);
-    const totalGift = rows.reduce((sum, r) => sum + r.giftAmount, 0);
+    const openedCount = rows.filter(r => r.status === "opened").length;
     return {
       count: rows.length,
       totalDonation,
-      totalGift,
-      netSystemChange: totalGift - totalDonation,
+      openedCount,
+      pendingCount: rows.length - openedCount,
     };
   }, [rows]);
 
@@ -37,7 +37,7 @@ export default function AdminDonations() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-extrabold text-neutral-900">선물 감사</h2>
-          <p className="text-xs text-neutral-400">달란트 선물 기록과 경제 순증감을 확인합니다.</p>
+          <p className="text-xs text-neutral-400">달란트 선물 기록과 개봉 상태를 확인합니다.</p>
         </div>
         <button
           onClick={load}
@@ -48,11 +48,10 @@ export default function AdminDonations() {
         </button>
       </div>
 
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-3">
         <Stat label="선물 횟수" value={`${stats.count.toLocaleString()}회`} icon={<Gift size={16} />} tone="bg-amber-50 text-amber-600" />
         <Stat label="총 기부액" value={`${stats.totalDonation.toLocaleString()}D`} icon={<Gift size={16} />} tone="bg-neutral-100 text-neutral-700" />
-        <Stat label="총 생성액" value={`${stats.totalGift.toLocaleString()}D`} icon={<TrendingUp size={16} />} tone="bg-emerald-50 text-emerald-600" />
-        <Stat label="순 시스템 변화" value={`${stats.netSystemChange.toLocaleString()}D`} icon={<TrendingUp size={16} />} tone={stats.netSystemChange >= 0 ? "bg-sky-50 text-sky-600" : "bg-rose-50 text-rose-600"} />
+        <Stat label="개봉 상태" value={`${stats.openedCount.toLocaleString()} / ${stats.pendingCount.toLocaleString()}`} icon={<Gift size={16} />} tone="bg-emerald-50 text-emerald-600" />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -64,27 +63,21 @@ export default function AdminDonations() {
                 <th className="px-4 py-3">보낸 사람</th>
                 <th className="px-4 py-3">받은 사람</th>
                 <th className="px-4 py-3 text-right">사용</th>
-                <th className="px-4 py-3 text-right">배율</th>
-                <th className="px-4 py-3 text-right">선물액</th>
                 <th className="px-4 py-3">상태</th>
-                <th className="px-4 py-3">구간</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
               {loading ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-neutral-400">불러오는 중...</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-neutral-400">불러오는 중...</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-neutral-400">아직 선물 기록이 없습니다.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-neutral-400">아직 선물 기록이 없습니다.</td></tr>
               ) : rows.map(row => (
                 <tr key={row.id} className="text-neutral-700">
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-neutral-400">{formatKoreaDateTime(row.createdAt)}</td>
                   <td className="whitespace-nowrap px-4 py-3 font-semibold">{row.senderName}</td>
                   <td className="whitespace-nowrap px-4 py-3 font-semibold">{row.recipientName}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-right">{row.donationAmount.toLocaleString()}D</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-amber-600">{row.selectedMultiplier ? `${row.selectedMultiplier}%` : "-"}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-emerald-600">{row.giftAmount.toLocaleString()}D</td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-neutral-500">{row.status === "opened" ? "개봉" : "미개봉"}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-xs text-neutral-400">{row.probabilityTier || "-"}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Gift, Mailbox, MessageCirclePlus, Send, Sparkles, X } from "lucide-react";
+import { Gift, Mailbox, MessageCirclePlus, Send, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import { useApp } from "@/lib/store-context";
@@ -300,16 +300,10 @@ export default function PraiseContent() {
 
             {!openingGiftId && openGiftResult && (
               <div className="py-8 text-center">
-                <div className={`mx-auto grid h-24 w-24 animate-bounce place-items-center rounded-full ${
-                  (openGiftResult.selectedMultiplier || 0) >= 500 ? "bg-orange-500 text-white shadow-lg shadow-orange-200" : "bg-amber-100 text-amber-600"
-                }`}>
-                  {(openGiftResult.selectedMultiplier || 0) >= 500 ? <Sparkles size={38} /> : <Gift size={38} />}
+                <div className="mx-auto grid h-24 w-24 animate-bounce place-items-center rounded-full bg-amber-100 text-amber-600">
+                  <Gift size={38} />
                 </div>
-                {(openGiftResult.selectedMultiplier || 0) >= 1000 && <p className="mt-5 text-xl font-black text-orange-500">JACKPOT!</p>}
-                <p className="mt-3 text-4xl font-black text-neutral-900">{openGiftResult.selectedMultiplier}%</p>
-                <p className="mt-3 text-lg font-extrabold text-neutral-800">
-                  {openGiftResult.donationAmount.toLocaleString()} 달란트 → {(openGiftResult.giftAmount || 0).toLocaleString()} 달란트!
-                </p>
+                <p className="mt-5 text-2xl font-black text-neutral-900">개봉 완료</p>
                 <p className="mt-2 text-sm text-neutral-500">{openGiftResult.senderName}님의 선물을 열었어요.</p>
                 <button
                   onClick={() => setOpenGiftResult(null)}
@@ -335,7 +329,7 @@ export default function PraiseContent() {
                         <p className="mt-2 text-[10px] text-neutral-400">{formatKoreaDateTime(gift.createdAt)}</p>
                       </div>
                       <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${gift.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-neutral-200 text-neutral-500"}`}>
-                        {gift.status === "pending" ? "미개봉" : `+${gift.giftAmount.toLocaleString()}D`}
+                        {gift.status === "pending" ? "미개봉" : "개봉"}
                       </span>
                     </div>
                     {gift.status === "pending" ? (
@@ -345,11 +339,7 @@ export default function PraiseContent() {
                       >
                         <Gift size={16} /> 열어보기
                       </button>
-                    ) : (
-                      <p className="mt-3 text-xs font-semibold text-neutral-500">
-                        {gift.donationAmount.toLocaleString()}D × {gift.selectedMultiplier}% = {gift.giftAmount.toLocaleString()}D
-                      </p>
-                    )}
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -590,7 +580,7 @@ export default function PraiseContent() {
                       {g.donationAmount.toLocaleString()}D 기부
                     </span>
                     <p className="mt-1 text-[10px] font-semibold text-neutral-400">
-                      {g.status === "opened" ? `${g.selectedMultiplier}% · +${g.giftAmount.toLocaleString()}D` : "미개봉"}
+                      {g.status === "opened" ? "개봉" : "미개봉"}
                     </p>
                   </div>
                 </div>
