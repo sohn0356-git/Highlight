@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ClassRankingCard from "@/components/ClassRankingCard";
 import ActivityCard from "@/components/ActivityCard";
+import AppShell from "@/components/AppShell";
 import { useApp } from "@/lib/store-context";
 import { addMissionComment, deleteMissionComment, fetchMissionComments, fetchTalentDonationRankings, updateMissionComment } from "@/lib/db";
 import { formatKoreaDateTime, koreaDate } from "@/lib/korea-date";
@@ -20,7 +21,7 @@ interface MissionComment {
   createdAt: string;
 }
 
-export default function HomeContent() {
+function HomeContentView({ embedded = false }: { embedded?: boolean } = {}) {
   const {
     student, isLoggedIn, isLoading, classes, activities, season, dailyQuestIds, completeDailyQuest,
     allStudents, refreshActivities, announcements, notifications, unreadCount,
@@ -104,7 +105,7 @@ export default function HomeContent() {
 
   if (!student || !isLoggedIn) return null;
 
-  return (
+  const content = (
     <div>
       <div className="px-5 pt-7">
         <PageHeader
@@ -299,6 +300,12 @@ export default function HomeContent() {
       )}
     </div>
   );
+
+  return embedded ? content : <AppShell active="home">{content}</AppShell>;
+}
+
+export default function HomeContent() {
+  return <HomeContentView />;
 }
 
 function SpecialMissionCard({

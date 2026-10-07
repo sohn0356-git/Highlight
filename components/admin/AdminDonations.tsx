@@ -9,6 +9,8 @@ import type { TalentDonationHistory } from "@/lib/types";
 export default function AdminDonations() {
   const [rows, setRows] = useState<TalentDonationHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 10;
 
   const load = async () => {
     setLoading(true);
@@ -20,6 +22,10 @@ export default function AdminDonations() {
   };
 
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(rows.length / PAGE_SIZE) - 1);
+    setPage(p => Math.min(p, maxPage));
+  }, [rows.length]);
 
   const stats = useMemo(() => {
     const totalDonation = rows.reduce((sum, r) => sum + r.donationAmount, 0);
@@ -31,6 +37,8 @@ export default function AdminDonations() {
       pendingCount: rows.length - openedCount,
     };
   }, [rows]);
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
     <div className="space-y-5">
@@ -71,7 +79,7 @@ export default function AdminDonations() {
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-neutral-400">불러오는 중...</td></tr>
               ) : rows.length === 0 ? (
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-neutral-400">아직 선물 기록이 없습니다.</td></tr>
-              ) : rows.map(row => (
+              ) : pageRows.map(row => (
                 <tr key={row.id} className="text-neutral-700">
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-neutral-400">{formatKoreaDateTime(row.createdAt)}</td>
                   <td className="whitespace-nowrap px-4 py-3 font-semibold">{row.senderName}</td>
@@ -83,6 +91,25 @@ export default function AdminDonations() {
             </tbody>
           </table>
         </div>
+        {rows.length > PAGE_SIZE && (
+          <div className="flex items-center justify-center gap-3 border-t border-neutral-100 px-4 py-3">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40"
+            >
+              ← 이전
+            </button>
+            <span className="text-xs text-neutral-400">{page + 1} / {totalPages}</span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page + 1 >= totalPages}
+              className="rounded-lg bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600 disabled:opacity-40"
+            >
+              다음 →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

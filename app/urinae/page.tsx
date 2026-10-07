@@ -4,11 +4,12 @@ import { MessageCirclePlus, HandHeart, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import PrayerCard from "@/components/PrayerCard";
+import AppShell from "@/components/AppShell";
 import { useApp } from "@/lib/store-context";
 import { fetchAllPrayerData, addPrayerComment, updatePrayerComment, deletePrayerComment } from "@/lib/db";
 import { koreaDate } from "@/lib/korea-date";
 
-export default function WeContent() {
+function WeContentView({ embedded = false }: { embedded?: boolean } = {}) {
   const { student, isLoggedIn, prayers, prayFor, addPrayerRequest, updatePrayerRequest, deletePrayerRequest, dailyQuestIds, completeDailyQuest } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState("");
@@ -23,14 +24,14 @@ export default function WeContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [myFilter, setMyFilter] = useState<"all" | "mine">("all");
   const [page, setPage] = useState(0);
+  const [initialized, setInitialized] = useState(false);
+  const prevCountRef = useRef(prayers.length);
   const PAGE_SIZE = 5;
-
-  if (!student || !isLoggedIn) return null;
 
   // 필터링된 기도 목록
   const filteredPrayers = prayers.filter((p: any) => {
     // 내 글 필터
-    if (myFilter === "mine" && p.studentId !== student.id) return false;
+    if (myFilter === "mine" && p.studentId !== student?.id) return false;
     // 제목(내용) 검색
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
@@ -40,17 +41,16 @@ export default function WeContent() {
   });
 
   const fetchAllData = useCallback(async () => {
+    if (!student) return;
     const today = koreaDate();
     const prayerIds = prayers.map((p: any) => p.id);
     if (!prayerIds.length) { setDataLoaded(true); return; }
-    const { commentsMap, participantsMap, prayedTodayMap } = await fetchAllPrayerData(prayerIds, student!.id, today);
+    const { commentsMap, participantsMap, prayedTodayMap } = await fetchAllPrayerData(prayerIds, student.id, today);
     setCommentsMap(commentsMap);
     setParticipantsMap(participantsMap);
     setPrayedTodayMap(prayedTodayMap);
     setDataLoaded(true);
   }, [prayers.length, student?.id]);
-
-  const [initialized, setInitialized] = useState(false);
   
   useEffect(() => {
     if (prayers.length && !initialized) {
@@ -61,13 +61,14 @@ export default function WeContent() {
   }, [prayers.length, initialized, fetchAllData]);
 
   // prayers.length가 늘어났을 때 (새 글 등록) 데이터 리로드
-  const prevCountRef = useRef(prayers.length);
   useEffect(() => {
     if (prayers.length > prevCountRef.current) {
       fetchAllData();
     }
     prevCountRef.current = prayers.length;
   }, [prayers.length, fetchAllData]);
+
+  if (!student || !isLoggedIn) return null;
 
   const handleAddComment = async (prayerId: string, text: string) => {
     // 낙관적 반영: 즉시 로컬 state 업데이트 (전체 리패치 없음)
@@ -139,7 +140,7 @@ export default function WeContent() {
     setDeleteConfirmId(null);
   };
 
-  return (
+  const view = (
     <div>
       <div className="px-5 pt-7">
         <PageHeader title="기도" showBack subtitle="함께 기도해요" right={<HandHeart size={18} className="text-rose-400" />} />
@@ -259,4 +260,10 @@ export default function WeContent() {
       </section>
     </div>
   );
+
+  return embedded ? view : <AppShell active="we">{view}</AppShell>;
+}
+
+export default function WeContent() {
+  return <WeContentView />;
 }

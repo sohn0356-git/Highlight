@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Gift, Mailbox, MessageCirclePlus, Send, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
+import AppShell from "@/components/AppShell";
 import { useApp } from "@/lib/store-context";
 import { formatKoreaDateTime, koreaDate } from "@/lib/korea-date";
 import {
@@ -29,7 +30,7 @@ interface PraiseRecord {
   created_at: string;
 }
 
-export default function PraiseContent() {
+function PraiseContentView({ embedded = false }: { embedded?: boolean } = {}) {
   const { student, isLoggedIn, allStudents, refreshAll, dailyQuestIds, completeDailyQuest } = useApp();
   const [praises, setPraises] = useState<PraiseRecord[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -51,10 +52,12 @@ export default function PraiseContent() {
   const [giftResult, setGiftResult] = useState<TalentDonationResult | null>(null);
   const [giftError, setGiftError] = useState("");
   const [donationHistory, setDonationHistory] = useState<TalentDonationHistory[]>([]);
+  const [donationHistoryPage, setDonationHistoryPage] = useState(0);
   const [receivedGifts, setReceivedGifts] = useState<TalentDonationHistory[]>([]);
   const [openingGiftId, setOpeningGiftId] = useState("");
   const [openGiftResult, setOpenGiftResult] = useState<TalentDonationResult | null>(null);
   const PAGE_SIZE = 5;
+  const DONATION_HISTORY_PAGE_SIZE = 10;
 
   const [allTargets, setAllTargets] = useState<any[]>([]);
 
@@ -83,8 +86,10 @@ export default function PraiseContent() {
 
   useEffect(() => { validateTalentDonationConfig(); }, []);
   useEffect(() => { if (isLoggedIn) loadPraises(); }, [isLoggedIn, loadPraises]);
-
-  if (!student || !isLoggedIn) return null;
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(donationHistory.length / DONATION_HISTORY_PAGE_SIZE) - 1);
+    setDonationHistoryPage(p => Math.min(p, maxPage));
+  }, [donationHistory.length]);
 
   const classmates = allTargets;
   const filtered = useMemo(() => {
@@ -95,6 +100,13 @@ export default function PraiseContent() {
   const giftAmountValid = Number.isInteger(parsedGiftAmount)
     && parsedGiftAmount >= TALENT_DONATION_CONFIG.minDonation
     && parsedGiftAmount <= TALENT_DONATION_CONFIG.maxDonation;
+  const donationHistoryTotalPages = Math.max(1, Math.ceil(donationHistory.length / DONATION_HISTORY_PAGE_SIZE));
+  const donationHistoryPageItems = donationHistory.slice(
+    donationHistoryPage * DONATION_HISTORY_PAGE_SIZE,
+    (donationHistoryPage + 1) * DONATION_HISTORY_PAGE_SIZE
+  );
+
+  if (!student || !isLoggedIn) return null;
 
   const handleSubmit = async () => {
     if (!praisedId || !reason.trim() || hasPraisedToday || submitting) return;
@@ -239,7 +251,7 @@ export default function PraiseContent() {
     }
   };
 
-  return (
+  const content = (
     <div>
       <div className="px-5 pt-7">
         <PageHeader
@@ -565,7 +577,7 @@ export default function PraiseContent() {
               <Card className="text-center">
                 <p className="py-4 text-sm text-neutral-400">아직 선물 기록이 없어요.</p>
               </Card>
-            ) : donationHistory.map(g => (
+            ) : donationHistoryPageItems.map(g => (
               <Card key={g.id} className="!p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -586,9 +598,34 @@ export default function PraiseContent() {
                 </div>
               </Card>
             ))}
+            {donationHistory.length > DONATION_HISTORY_PAGE_SIZE && (
+              <div className="mt-2 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setDonationHistoryPage(p => Math.max(0, p - 1))}
+                  disabled={donationHistoryPage === 0}
+                  className="rounded-lg bg-amber-100/70 px-3 py-1.5 text-xs font-bold text-amber-600 disabled:opacity-40"
+                >
+                  ← 이전
+                </button>
+                <span className="text-xs text-neutral-400">{donationHistoryPage + 1}/{donationHistoryTotalPages}</span>
+                <button
+                  onClick={() => setDonationHistoryPage(p => Math.min(donationHistoryTotalPages - 1, p + 1))}
+                  disabled={donationHistoryPage + 1 >= donationHistoryTotalPages}
+                  className="rounded-lg bg-amber-100/70 px-3 py-1.5 text-xs font-bold text-amber-600 disabled:opacity-40"
+                >
+                  다음 →
+                </button>
+              </div>
+            )}
           </div>
         </section>
       )}
     </div>
   );
+
+  return embedded ? content : <AppShell active="praise">{content}</AppShell>;
+}
+
+export default function PraiseContent() {
+  return <PraiseContentView />;
 }

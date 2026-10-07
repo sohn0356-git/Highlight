@@ -5,10 +5,11 @@ import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import ProgressBar from "@/components/ProgressBar";
 import BadgeCard from "@/components/BadgeCard";
+import AppShell from "@/components/AppShell";
 import { useApp, useViewMode } from "@/lib/store-context";
 import { getStudentLevel, getNextLevelXp, fetchStudentBadgesWithProgress } from "@/lib/db";
 
-export default function MyContent() {
+function MyContentView({ embedded = false }: { embedded?: boolean } = {}) {
   const {
     student, isLoggedIn, classes, logout, missions, completedMissionIds, completeMission,
     dailyQuests, dailyQuestIds, completeDailyQuest, badgeRefreshKey, teachers,
@@ -50,7 +51,7 @@ export default function MyContent() {
     // Admin function - not implemented here
   };
 
-  return (
+  const content = (
     <div>
       <div className="px-5 pt-7">
         <PageHeader
@@ -277,6 +278,12 @@ export default function MyContent() {
       )}
     </div>
   );
+
+  return embedded ? content : <AppShell active="my">{content}</AppShell>;
+}
+
+export default function MyContent() {
+  return <MyContentView />;
 }
 
 function NotificationToggle({

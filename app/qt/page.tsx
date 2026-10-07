@@ -4,10 +4,11 @@ import { BookOpen, CheckCircle, ChevronDown, Share2, X, Calendar, Copy } from "l
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import SharedQTFeed from "@/components/SharedQTFeed";
+import AppShell from "@/components/AppShell";
 import { useApp } from "@/lib/store-context";
 import { koreaDate } from "@/lib/korea-date";
 
-export default function QTContent() {
+function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
   const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, unshareQT, sharedQTDates } = useApp();
   const [remembered, setRemembered] = useState("");
   const [application, setApplication] = useState("");
@@ -112,7 +113,7 @@ export default function QTContent() {
     deleteQT(id);
   };
 
-  return (
+  const content = (
     <div>
       <div className="px-5 pt-7">
         <PageHeader title="오늘의 QT" showBack subtitle={qtToday.date} right={<BookOpen size={18} className="text-indigo-400" />} />
@@ -323,4 +324,10 @@ export default function QTContent() {
       </div>
     </div>
   );
+
+  return embedded ? content : <AppShell active="qt">{content}</AppShell>;
+}
+
+export default function QTContent() {
+  return <QTContentView />;
 }

@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import BottomNavigation from "./BottomNavigation";
 import AdminApp from "./admin/AdminApp";
 import { onTabChange } from "@/lib/tab";
 import { useViewMode } from "@/lib/store-context";
@@ -40,12 +39,5 @@ export default function MainApp() {
 
   const ActiveContent = tabComponents[active];
 
-  return (
-    <div className="min-h-dvh pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
-      <div className="page-enter" style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 16px)" }}>
-        <ActiveContent />
-      </div>
-      <BottomNavigation active={active} onNavigate={setActive} />
-    </div>
-  );
+  return <ActiveContent />;
 }
