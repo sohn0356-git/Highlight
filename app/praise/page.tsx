@@ -82,7 +82,7 @@ function PraiseContentView({ embedded = false }: { embedded?: boolean } = {}) {
       setReceivedGifts(await fetchReceivedTalentDonations(student.id, 50));
     }
     setLoading(false);
-  }, [student?.id]);
+  }, [student?.id, allStudents]);
 
   useEffect(() => { validateTalentDonationConfig(); }, []);
   useEffect(() => { if (isLoggedIn) loadPraises(); }, [isLoggedIn, loadPraises]);
