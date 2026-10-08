@@ -196,11 +196,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Shared posts
       setSharedPosts(posts as SharedQTPost[]);
-      // Load comments for all shared posts
-      for (const p of posts) {
-        const comments = await db.fetchComments(p.id);
-        setQtComments(prev => ({ ...prev, [p.id]: comments }));
-      }
+      setQtComments(await db.fetchCommentsForPosts(posts.map((p: any) => p.id)));
 
       // Completed missions
       const cm = await db.fetchCompletedMissions(student.id);
@@ -219,8 +215,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (updatedStudent) {
         // Sync teacher role from teachers table
         if (updatedStudent.isTeacher) {
-          const teachers = await db.fetchTeachers();
-          const matchedTeacher = teachers.find((t: any) => t.id === student.id);
+          const matchedTeacher = (tch || []).find((t: any) => t.id === student.id);
           if (matchedTeacher && matchedTeacher.role !== updatedStudent.role) {
             updatedStudent.role = matchedTeacher.role as any;
             await db.updateStudentField(student.id, "role", matchedTeacher.role);

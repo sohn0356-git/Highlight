@@ -1502,6 +1502,30 @@ export async function fetchComments(postId: string) {
   }));
 }
 
+export async function fetchCommentsForPosts(postIds: string[]) {
+  const s = sb();
+  const commentsMap: Record<string, any[]> = {};
+  postIds.forEach(id => { commentsMap[id] = []; });
+  if (!s || postIds.length === 0) return commentsMap;
+
+  const { data, error } = await s.from("qt_comments")
+    .select("*")
+    .in("post_id", postIds)
+    .order("created_at", { ascending: true });
+  if (error || !data) return commentsMap;
+
+  data.forEach((r: any) => {
+    const postId = r.post_id;
+    if (!commentsMap[postId]) commentsMap[postId] = [];
+    commentsMap[postId].push({
+      id: r.id, postId, studentId: r.student_id,
+      studentName: r.student_name || "", content: r.content || "",
+      createdAt: r.created_at || "",
+    });
+  });
+  return commentsMap;
+}
+
 export async function addComment(comment: any) {
   const s = sb();
   if (!s) return;

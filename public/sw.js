@@ -1,4 +1,4 @@
-const CACHE = "mileage-app-v4";
+const CACHE = "mileage-app-v5";
 const BASE = "/Highlight";
 const ASSETS = [
   BASE + "/",
@@ -34,11 +34,18 @@ self.addEventListener("fetch", function (event) {
   var url = new URL(event.request.url);
   if (url.origin !== location.origin) return;
   if (event.request.method !== "GET") return;
+  var cacheablePath = ASSETS.indexOf(url.pathname) >= 0 ||
+    url.pathname.indexOf(BASE + "/_next/static/") === 0 ||
+    url.pathname.indexOf(BASE + "/icons/") === 0 ||
+    url.pathname === BASE + "/manifest.json" ||
+    url.pathname === BASE + "/site.webmanifest";
   event.respondWith(
     fetch(event.request)
       .then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (cache) { cache.put(event.request, copy); });
+        if (cacheablePath && res.ok) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (cache) { cache.put(event.request, copy); });
+        }
         return res;
       })
       .catch(function () {

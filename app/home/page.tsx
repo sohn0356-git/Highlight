@@ -24,7 +24,7 @@ interface MissionComment {
 function HomeContentView({ embedded = false }: { embedded?: boolean } = {}) {
   const {
     student, isLoggedIn, isLoading, classes, activities, season, dailyQuestIds, completeDailyQuest,
-    allStudents, refreshActivities, announcements, notifications, unreadCount,
+    allStudents, announcements, notifications, unreadCount,
     missions,
     markNotificationRead, markAllNotificationsRead,
   } = useApp();
@@ -36,7 +36,6 @@ function HomeContentView({ embedded = false }: { embedded?: boolean } = {}) {
   const adminMissions = missions;
   const adminMissionIdsKey = adminMissions.map((m: any) => m.id).join("|");
 
-  useEffect(() => { refreshActivities(); }, [refreshActivities]);
   useEffect(() => { fetchTalentDonationRankings(10).then(setDonationRankings); }, []);
   useEffect(() => {
     if (!student || isLoading || !isLoggedIn || dailyQuestIds.includes("d8")) return;
