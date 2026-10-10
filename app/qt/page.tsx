@@ -263,16 +263,6 @@ function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
         )}
       </div>
 
-      {!selectedIsToday && (
-        <section className="mt-4 px-5">
-          <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
-            <p className="text-xs font-semibold leading-relaxed text-amber-800">
-              이전 날짜는 포인트 획득이 아니라 공유된 QT 기록 확인용입니다.
-            </p>
-          </div>
-        </section>
-      )}
-
       {selectedIsToday && (
       <section className="mt-3 px-5">
         <Card>
