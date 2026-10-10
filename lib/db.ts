@@ -1448,7 +1448,7 @@ export async function addActivity(type: string, message: string) {
 export async function fetchSharedPosts() {
   const s = sb();
   if (!s) return [];
-  const { data, error } = await s.from("shared_qt_posts").select("*").order("created_at", { ascending: false }).limit(50);
+  const { data, error } = await s.from("shared_qt_posts").select("*").order("created_at", { ascending: false }).limit(1000);
   if (error || !data) return [];
   return data.map((r: any) => ({
     id: r.id, studentId: r.student_id, studentName: r.student_name || "",

@@ -5,27 +5,37 @@ import { MessageCircle, Share2, Pencil, Trash2 } from "lucide-react";
 import Card from "./Card";
 import { useApp } from "@/lib/store-context";
 
-export default function SharedQTFeed({ limit = 20 }: { limit?: number }) {
+export default function SharedQTFeed({ limit = 20, date, showEmpty = false }: { limit?: number; date?: string; showEmpty?: boolean }) {
   const { student, sharedPosts, addComment, updateComment, deleteComment, fetchPostComments } = useApp();
   const [openPostId, setOpenPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [editCommentId, setEditCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState("");
 
-  const today = koreaDate();
-  const todayPosts = sharedPosts.filter((p) => p.date === today);
-  if (!todayPosts.length) return null;
+  const targetDate = date || koreaDate();
+  const isToday = targetDate === koreaDate();
+  const datePosts = sharedPosts.filter((p) => p.date === targetDate);
+  if (!datePosts.length && !showEmpty) return null;
 
   return (
     <section className="px-5 pb-4">
       <div className="flex items-center gap-2">
         <Share2 size={16} className="text-indigo-500" />
-        <h2 className="text-base font-bold text-neutral-900">친구들의 QT 공유</h2>
+        <h2 className="text-base font-bold text-neutral-900">{isToday ? "친구들의 QT 공유" : "QT 공유내역"}</h2>
       </div>
-      <p className="mt-1 text-xs text-neutral-500">앱 사용자들이 공유한 오늘의 말씀을 보고 응원해주세요.</p>
+      <p className="mt-1 text-xs text-neutral-500">
+        {isToday ? "앱 사용자들이 공유한 오늘의 말씀을 보고 응원해주세요." : `${targetDate}에 공유된 QT 기록입니다.`}
+      </p>
+
+      {!datePosts.length && (
+        <Card className="mt-3 border-dashed border-neutral-200 bg-white/70 text-center">
+          <p className="text-sm font-bold text-neutral-700">공유된 QT가 없습니다.</p>
+          <p className="mt-1 text-xs text-neutral-500">달력에서 공유내역이 있는 날짜를 선택해 주세요.</p>
+        </Card>
+      )}
 
       <div className="mt-3 flex flex-col gap-3">
-        {todayPosts.slice(0, limit).map(post => {
+        {datePosts.slice(0, limit).map(post => {
           const comments = fetchPostComments(post.id);
           const isOpen = openPostId === post.id;
           return (

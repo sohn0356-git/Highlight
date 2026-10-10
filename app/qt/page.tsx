@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { BookOpen, CheckCircle, ChevronDown, Share2, X, Calendar, Copy } from "lucide-react";
+import { useMemo, useState } from "react";
+import { BookOpen, CheckCircle, ChevronDown, Share2, CalendarDays, Copy, ChevronLeft, ChevronRight } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Card from "@/components/Card";
 import SharedQTFeed from "@/components/SharedQTFeed";
@@ -8,13 +8,127 @@ import AppShell from "@/components/AppShell";
 import { useApp } from "@/lib/store-context";
 import { koreaDate } from "@/lib/korea-date";
 
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+function formatDisplayDate(date: string) {
+  const d = new Date(`${date}T00:00:00`);
+  return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short" }).format(d);
+}
+
+function monthTitle(month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return `${year}년 ${monthNumber}월`;
+}
+
+function addMonths(month: string, diff: number) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const d = new Date(year, monthNumber - 1 + diff, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function buildCalendarDays(month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const first = new Date(year, monthNumber - 1, 1);
+  const start = new Date(first);
+  start.setDate(1 - first.getDay());
+  return Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { date, day: d.getDate(), inMonth: d.getMonth() === monthNumber - 1 };
+  });
+}
+
+function QTCalendar({
+  activeDates,
+  selectedDate,
+  visibleMonth,
+  onMonthChange,
+  onSelectDate,
+}: {
+  activeDates: Set<string>;
+  selectedDate: string;
+  visibleMonth: string;
+  onMonthChange: (month: string) => void;
+  onSelectDate: (date: string) => void;
+}) {
+  const today = koreaDate();
+  const days = buildCalendarDays(visibleMonth);
+
+  return (
+    <div className="absolute left-5 right-5 top-14 z-20 rounded-2xl border border-neutral-200 bg-white p-4 shadow-xl shadow-neutral-200/70">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => onMonthChange(addMonths(visibleMonth, -1))}
+          className="grid h-9 w-9 place-items-center rounded-full bg-neutral-50 text-neutral-500 transition active:scale-95"
+          aria-label="이전 달"
+        >
+          <ChevronLeft size={17} />
+        </button>
+        <p className="text-sm font-bold text-neutral-900">{monthTitle(visibleMonth)}</p>
+        <button
+          onClick={() => onMonthChange(addMonths(visibleMonth, 1))}
+          className="grid h-9 w-9 place-items-center rounded-full bg-neutral-50 text-neutral-500 transition active:scale-95"
+          aria-label="다음 달"
+        >
+          <ChevronRight size={17} />
+        </button>
+      </div>
+
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center">
+        {WEEKDAYS.map((day) => (
+          <div key={day} className="py-1 text-[11px] font-bold text-neutral-400">{day}</div>
+        ))}
+        {days.map(({ date, day, inMonth }) => {
+          const isActive = activeDates.has(date);
+          const isSelected = selectedDate === date;
+          const isToday = today === date;
+          return (
+            <button
+              key={date}
+              onClick={() => isActive && onSelectDate(date)}
+              disabled={!isActive}
+              className={`relative grid aspect-square place-items-center rounded-xl text-sm font-bold transition ${
+                isSelected
+                  ? "bg-indigo-500 text-white shadow-md shadow-indigo-200"
+                  : isActive
+                    ? "bg-indigo-50 text-indigo-700 active:scale-95"
+                    : "text-neutral-300"
+              } ${!inMonth ? "opacity-35" : ""}`}
+            >
+              {day}
+              {isToday && <span className={`absolute bottom-1 h-1 w-1 rounded-full ${isSelected ? "bg-white" : "bg-indigo-500"}`} />}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3">
+        <p className="text-[11px] font-semibold text-neutral-500">공유내역이 있는 날짜만 선택할 수 있어요.</p>
+        <button
+          onClick={() => {
+            onMonthChange(today.slice(0, 7));
+            onSelectDate(today);
+          }}
+          className="rounded-full bg-neutral-900 px-3 py-1.5 text-[11px] font-bold text-white transition active:scale-95"
+        >
+          오늘
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
-  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, sharedTodayQT, shareQT, unshareQT, sharedQTDates } = useApp();
+  const { student, isLoggedIn, qtToday, isQTDoneToday, completeQT, updateQT, deleteQT, qtRecords, shareQT, unshareQT, sharedQTDates, sharedPosts } = useApp();
   const [remembered, setRemembered] = useState("");
   const [application, setApplication] = useState("");
   const [justCompleted, setJustCompleted] = useState(false);
   const [sharedMsg, setSharedMsg] = useState("");
   const [sharing, setSharing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(koreaDate());
+  const [visibleMonth, setVisibleMonth] = useState(koreaDate().slice(0, 7));
+  const [showCalendar, setShowCalendar] = useState(false);
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
   const [editRecordId, setEditRecordId] = useState<string | null>(null);
@@ -23,7 +137,10 @@ function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
   const [recordsPage, setRecordsPage] = useState(0);
   const [locallySharedDates, setLocallySharedDates] = useState<Set<string>>(new Set());
   const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set());
+  const [copied, setCopied] = useState(false);
   const PAGE_SIZE = 5;
+  const today = koreaDate();
+  const activeDates = useMemo(() => new Set([today, ...sharedPosts.map((post) => post.date).filter(Boolean)]), [sharedPosts, today]);
 
   // 절 파싱: 숫자로 시작하는 줄을 절로 간주
   const parseVerses = (content: string): string[] => {
@@ -51,8 +168,7 @@ function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
 
   if (!student || !isLoggedIn) return null;
 
-  const today = koreaDate();
-  const sharedToday = sharedQTDates.includes(today) || locallySharedDates.has(today);
+  const selectedIsToday = selectedDate === today;
 
   const handleShare = async (date?: string) => {
     if (sharing) return;
@@ -85,8 +201,6 @@ function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
     }
   };
 
-  const [copied, setCopied] = useState(false);
-
   const handleComplete = () => {
     if (!remembered.trim() || !application.trim()) return;
     completeQT(remembered.trim(), application.trim());
@@ -116,9 +230,50 @@ function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
   const content = (
     <div>
       <div className="px-5 pt-7">
-        <PageHeader title="오늘의 QT" showBack subtitle={qtToday.date} right={<BookOpen size={18} className="text-indigo-400" />} />
+        <PageHeader title={selectedIsToday ? "오늘의 QT" : "QT 공유내역"} showBack right={<BookOpen size={18} className="text-indigo-400" />} />
       </div>
 
+      <div className="relative px-5">
+        <button
+          onClick={() => setShowCalendar((open) => !open)}
+          className="flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left shadow-sm transition active:scale-[0.99]"
+        >
+          <span>
+            <span className="block text-[11px] font-bold text-neutral-400">{selectedIsToday ? "오늘 말씀" : "과거 공유 기록"}</span>
+            <span className="mt-0.5 block text-sm font-bold text-neutral-900">{formatDisplayDate(selectedDate)}</span>
+          </span>
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-indigo-50 text-indigo-500">
+            <CalendarDays size={18} />
+          </span>
+        </button>
+
+        {showCalendar && (
+          <QTCalendar
+            activeDates={activeDates}
+            selectedDate={selectedDate}
+            visibleMonth={visibleMonth}
+            onMonthChange={setVisibleMonth}
+            onSelectDate={(date) => {
+              setSelectedDate(date);
+              setShowCalendar(false);
+              setExpandedRecord(null);
+              setEditRecordId(null);
+            }}
+          />
+        )}
+      </div>
+
+      {!selectedIsToday && (
+        <section className="mt-4 px-5">
+          <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+            <p className="text-xs font-semibold leading-relaxed text-amber-800">
+              이전 날짜는 포인트 획득이 아니라 공유된 QT 기록 확인용입니다.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {selectedIsToday && (
       <section className="mt-3 px-5">
         <Card>
           <div className="flex items-center gap-2">
@@ -162,8 +317,9 @@ function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
           )}
         </Card>
       </section>
+      )}
 
-      {!isQTDoneToday && !justCompleted ? (
+      {selectedIsToday && (!isQTDoneToday && !justCompleted ? (
         <section className="mt-5 px-5">
           <div className="space-y-3">
             <label className="block">
@@ -195,14 +351,14 @@ function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
           </Card>
 
         </section>
-      )}
+      ))}
 
       {/* QT 기록 보기 */}
-      {qtRecords.length > 0 && (
+      {selectedIsToday && qtRecords.length > 0 && (
         <section className="mt-5 px-5">
           <button onClick={() => setShowRecordModal(true)}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white py-3 text-sm font-bold text-neutral-600 transition active:scale-[0.98]">
-            <Calendar size={16} /> QT 기록 ({qtRecords.length}개)
+            <CalendarDays size={16} /> QT 기록 ({qtRecords.length}개)
           </button>
         </section>
       )}
@@ -320,7 +476,7 @@ function QTContentView({ embedded = false }: { embedded?: boolean } = {}) {
       )}
 
       <div className="mt-2 pb-6">
-        <SharedQTFeed />
+        <SharedQTFeed date={selectedDate} showEmpty />
       </div>
     </div>
   );
