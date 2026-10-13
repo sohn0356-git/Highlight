@@ -1,13 +1,22 @@
 "use client";
-import { useState } from "react";
-import { Gift, Megaphone, Plus, Sparkles, Target, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Gift, Lock, Megaphone, MessageCircle, Plus, Sparkles, Target, X } from "lucide-react";
 import { useAdmin } from "@/lib/admin-context";
 import { koreaDate, addDays } from "@/lib/korea-date";
 import type { MissionAdmin, Announcement } from "@/lib/admin-types";
-import { createAdminTalentGift } from "@/lib/db";
+import { createAdminTalentGift, fetchMissionComments } from "@/lib/db";
 import { TALENT_DONATION_CONFIG } from "@/lib/talent-donation-config";
 
 type ContentTab = "mission" | "announcement" | "gift";
+type MissionComment = {
+  id: string;
+  missionId: string;
+  studentId: string;
+  studentName: string;
+  content: string;
+  private?: boolean;
+  createdAt?: string;
+};
 
 const probabilityRows = [
   { range: "0~999", chances: [0, 5, 10, 20, 35, 30] },
@@ -33,6 +42,9 @@ export default function AdminContent() {
   const [testGiftSending, setTestGiftSending] = useState(false);
   const [testGiftResult, setTestGiftResult] = useState<string>("");
   const [testGiftError, setTestGiftError] = useState("");
+  const [expandedMissionId, setExpandedMissionId] = useState<string | null>(null);
+  const [missionComments, setMissionComments] = useState<Record<string, MissionComment[]>>({});
+  const [commentsLoading, setCommentsLoading] = useState(false);
 
   const [missionForm, setMissionForm] = useState({
     title: "",
@@ -59,6 +71,39 @@ export default function AdminContent() {
   ];
 
   const currentMileage = students.find(s => s.id === currentUser?.id)?.mileage ?? 0;
+
+  useEffect(() => {
+    if (tab !== "mission" || missions.length === 0) {
+      setMissionComments({});
+      setCommentsLoading(false);
+      return;
+    }
+    let ignore = false;
+    async function loadMissionComments() {
+      setCommentsLoading(true);
+      const comments = await fetchMissionComments(missions.map(m => m.id));
+      if (!ignore) {
+        setMissionComments(comments);
+        setCommentsLoading(false);
+      }
+    }
+    loadMissionComments();
+    return () => {
+      ignore = true;
+    };
+  }, [tab, missions]);
+
+  function formatCommentTime(value?: string) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("ko-KR", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 
   async function openGift() {
     if (giftOpening) return;
@@ -192,22 +237,73 @@ export default function AdminContent() {
 
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50">
             {missions.length === 0 && <p className="py-8 text-center text-xs text-neutral-400">등록된 미션이 없습니다.</p>}
-            {missions.map(m => (
-              <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="text-xl">{m.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-neutral-800 truncate">{m.title}</p>
-                  <p className="text-[11px] text-neutral-400">{m.type === "weekly" ? "주간" : m.type === "special" ? "스페셜" : m.type === "event" ? "이벤트" : "반별"} · {m.reward}D</p>
+            {missions.map(m => {
+              const comments = missionComments[m.id] || [];
+              const expanded = expandedMissionId === m.id;
+              return (
+              <div key={m.id}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setExpandedMissionId(expanded ? null : m.id)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setExpandedMissionId(expanded ? null : m.id);
+                    }
+                  }}
+                  className="flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:bg-neutral-50"
+                >
+                  <span className="text-xl">{m.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-neutral-800 truncate">{m.title}</p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-neutral-400">
+                      <span>{m.type === "weekly" ? "주간" : m.type === "special" ? "스페셜" : m.type === "event" ? "이벤트" : "반별"} · {m.reward}D</span>
+                      <span className="inline-flex items-center gap-1 text-neutral-500">
+                        <MessageCircle size={11} /> {comments.length}
+                      </span>
+                    </div>
+                  </div>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${m.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
+                    {m.active ? "활성" : "비활성"}
+                  </span>
+                  <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => startEditMission(m)} className="rounded-lg bg-neutral-100 px-2 py-1.5 text-[10px] font-bold text-neutral-600 hover:bg-neutral-200">수정</button>
+                    <button onClick={() => deleteMission(m.id)} className="rounded-lg bg-rose-50 px-2 py-1.5 text-[10px] font-bold text-rose-500 hover:bg-rose-100">삭제</button>
+                  </div>
+                  <ChevronDown size={16} className={`shrink-0 text-neutral-400 transition ${expanded ? "rotate-180" : ""}`} />
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${m.active ? "bg-emerald-50 text-emerald-600" : "bg-neutral-100 text-neutral-500"}`}>
-                  {m.active ? "활성" : "비활성"}
-                </span>
-                <div className="flex gap-1">
-                  <button onClick={() => startEditMission(m)} className="rounded-lg bg-neutral-100 px-2 py-1.5 text-[10px] font-bold text-neutral-600 hover:bg-neutral-200">수정</button>
-                  <button onClick={() => deleteMission(m.id)} className="rounded-lg bg-rose-50 px-2 py-1.5 text-[10px] font-bold text-rose-500 hover:bg-rose-100">삭제</button>
-                </div>
+
+                {expanded && (
+                  <div className="border-t border-neutral-50 bg-neutral-50/80 px-4 py-3">
+                    {commentsLoading ? (
+                      <p className="py-3 text-center text-xs text-neutral-400">댓글을 불러오는 중입니다.</p>
+                    ) : comments.length === 0 ? (
+                      <p className="py-3 text-center text-xs text-neutral-400">아직 달린 댓글이 없습니다.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {comments.map(comment => (
+                          <div key={comment.id} className="rounded-lg border border-neutral-200 bg-white px-3 py-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex min-w-0 items-center gap-1.5">
+                                <p className="truncate text-xs font-bold text-neutral-700">{comment.studentName || "이름 없음"}</p>
+                                {comment.private && (
+                                  <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                                    <Lock size={9} /> 비밀
+                                  </span>
+                                )}
+                              </div>
+                              {comment.createdAt && <span className="shrink-0 text-[10px] text-neutral-400">{formatCommentTime(comment.createdAt)}</span>}
+                            </div>
+                            <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-neutral-700">{comment.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            ))}
+            );})}
           </div>
         </>
       )}
