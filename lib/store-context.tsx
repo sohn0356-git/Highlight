@@ -195,8 +195,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSharedQTDates([...new Set(myShared)]);
 
       // Shared posts
-      setSharedPosts(posts as SharedQTPost[]);
-      setQtComments(await db.fetchCommentsForPosts(posts.map((p: any) => p.id)));
+      const commentsByPost = await db.fetchCommentsForPosts(posts.map((p: any) => p.id));
+      setSharedPosts(posts.map((p: any) => ({
+        ...p,
+        commentCount: commentsByPost[p.id]?.length ?? p.commentCount ?? 0,
+      })) as SharedQTPost[]);
+      setQtComments(commentsByPost);
 
       // Completed missions
       const cm = await db.fetchCompletedMissions(student.id);
@@ -270,6 +274,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .on("postgres_changes", { event: "*", schema: "public", table: "daily_quests" }, () => { refreshAll(); })
           .on("postgres_changes", { event: "*", schema: "public", table: "prayer_requests" }, () => { refreshAll(); })
           .on("postgres_changes", { event: "*", schema: "public", table: "shared_qt_posts" }, () => { refreshAll(); })
+          .on("postgres_changes", { event: "*", schema: "public", table: "qt_comments" }, () => { refreshAll(); })
           .on("postgres_changes", { event: "*", schema: "public", table: "missions" }, () => { refreshAll(); })
           .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${student.id}` }, (payload: any) => {
             const r = payload.new;
@@ -581,6 +586,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadComments = useCallback(async (postId: string) => {
     const comments = await db.fetchComments(postId);
     setQtComments(prev => ({ ...prev, [postId]: comments }));
+    setSharedPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: comments.length } : p));
+    return comments;
   }, []);
 
   const addComment = useCallback(async (postId: string, content: string) => {
@@ -593,8 +600,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await db.addComment(comment);
     // Load comments from DB to get accurate count
     await loadComments(postId);
-    // Update post comment count locally
-    setSharedPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p));
     // Award quest if commenting on others' post
     const post = sharedPosts.find(p => p.id === postId);
     const postOwner = post?.studentId;
@@ -632,7 +637,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteComment = useCallback(async (commentId: string, postId: string) => {
     await db.deleteComment(commentId, postId);
     await loadComments(postId);
-    setSharedPosts(prev => prev.map(p => p.id === postId ? { ...p, commentCount: Math.max(0, (p.commentCount || 1) - 1) } : p));
   }, [loadComments]);
 
   const fetchPostComments = useCallback((postId: string): QTComment[] => {

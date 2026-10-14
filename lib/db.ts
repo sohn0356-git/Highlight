@@ -1526,19 +1526,26 @@ export async function fetchCommentsForPosts(postIds: string[]) {
   return commentsMap;
 }
 
+async function syncCommentCount(postId: string) {
+  const s = sb();
+  if (!s) return;
+  const { count, error } = await s
+    .from("qt_comments")
+    .select("id", { count: "exact", head: true })
+    .eq("post_id", postId);
+  if (error || count == null) return;
+  await s.from("shared_qt_posts").update({ comment_count: count }).eq("id", postId);
+}
+
 export async function addComment(comment: any) {
   const s = sb();
   if (!s) return;
-  await s.from("qt_comments").insert([{
+  const { error } = await s.from("qt_comments").insert([{
     id: comment.id, post_id: comment.postId, student_id: comment.studentId,
     student_name: comment.studentName || "", content: comment.content || "",
     created_at: comment.createdAt || new Date().toISOString(),
   }]);
-  // Increment comment_count
-  try {
-    const { data: post } = await s.from("shared_qt_posts").select("comment_count").eq("id", comment.postId).single();
-    await s.from("shared_qt_posts").update({ comment_count: ((post?.comment_count || 0) + 1) }).eq("id", comment.postId);
-  } catch {}
+  if (!error) await syncCommentCount(comment.postId);
 }
 
 export async function updateComment(commentId: string, content: string) {
@@ -1550,11 +1557,8 @@ export async function updateComment(commentId: string, content: string) {
 export async function deleteComment(commentId: string, postId: string) {
   const s = sb();
   if (!s) return;
-  await s.from("qt_comments").delete().eq("id", commentId);
-  try {
-    const { data: post } = await s.from("shared_qt_posts").select("comment_count").eq("id", postId).single();
-    await s.from("shared_qt_posts").update({ comment_count: Math.max(0, (post?.comment_count || 0) - 1) }).eq("id", postId);
-  } catch {}
+  const { error } = await s.from("qt_comments").delete().eq("id", commentId);
+  if (!error) await syncCommentCount(postId);
 }
 
 /* ── All Mileage Transactions (for admin audit) ── */
