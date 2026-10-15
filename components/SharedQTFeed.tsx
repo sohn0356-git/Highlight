@@ -65,7 +65,7 @@ export default function SharedQTFeed({ limit = 20, date, showEmpty = false }: { 
                   className="flex items-center gap-1.5 text-xs font-semibold text-neutral-500 active:scale-95 transition"
                 >
                   <MessageCircle size={15} />
-                  댓글 {post.commentCount}
+                  댓글 {comments.length}
                 </button>
               </div>
 
@@ -128,3 +128,4 @@ export default function SharedQTFeed({ limit = 20, date, showEmpty = false }: { 
     </section>
   );
 }
+

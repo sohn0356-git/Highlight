@@ -1491,38 +1491,46 @@ export async function unshareQT(studentId: string, date: string) {
 
 /* ── QT Comments ── */
 export async function fetchComments(postId: string) {
-  const s = sb();
-  if (!s) return [];
-  const { data, error } = await s.from("qt_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true });
-  if (error || !data) return [];
-  return data.map((r: any) => ({
-    id: r.id, postId: r.post_id, studentId: r.student_id,
-    studentName: r.student_name || "", content: r.content || "",
-    createdAt: r.created_at || "",
-  }));
+  const comments = await fetchCommentsForPosts([postId]);
+  return comments[postId] || [];
 }
 
 export async function fetchCommentsForPosts(postIds: string[]) {
   const s = sb();
   const commentsMap: Record<string, any[]> = {};
-  postIds.forEach(id => { commentsMap[id] = []; });
-  if (!s || postIds.length === 0) return commentsMap;
+  const uniquePostIds = [...new Set(postIds)];
+  uniquePostIds.forEach(id => { commentsMap[id] = []; });
+  if (!s || uniquePostIds.length === 0) return commentsMap;
 
-  const { data, error } = await s.from("qt_comments")
-    .select("*")
-    .in("post_id", postIds)
-    .order("created_at", { ascending: true });
-  if (error || !data) return commentsMap;
+  // Bound IN-filter URLs and page through every result; the Data API caps
+  // unpaginated responses, even when the requested posts have more comments.
+  for (let batch = 0; batch < uniquePostIds.length; batch += 100) {
+    const ids = uniquePostIds.slice(batch, batch + 100);
+    let offset = 0;
+    while (true) {
+      const { data, error } = await s.from("qt_comments")
+        .select("*")
+        .in("post_id", ids)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + 499);
+      // Never turn a failed/partial query into a successful empty comment list.
+      if (error) throw error;
+      if (!data) throw new Error("QT comment query returned no data");
+      if (data.length === 0) break;
 
-  data.forEach((r: any) => {
-    const postId = r.post_id;
-    if (!commentsMap[postId]) commentsMap[postId] = [];
-    commentsMap[postId].push({
-      id: r.id, postId, studentId: r.student_id,
-      studentName: r.student_name || "", content: r.content || "",
-      createdAt: r.created_at || "",
-    });
-  });
+      data.forEach((r: any) => {
+        commentsMap[r.post_id].push({
+          id: r.id, postId: r.post_id, studentId: r.student_id,
+          studentName: r.student_name || "", content: r.content || "",
+          createdAt: r.created_at || "",
+        });
+      });
+      // Advance by the actual response size, including when the server's
+      // configured row cap is smaller than the requested page size.
+      offset += data.length;
+    }
+  }
   return commentsMap;
 }
 
@@ -2111,3 +2119,4 @@ export async function processAttendanceRewardsForWeek(year: number, week: number
     return { attended: 0, awarded: 0, skipped: 0, awardedIds: [] };
   }
 }
+
