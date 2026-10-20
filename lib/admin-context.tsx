@@ -73,6 +73,7 @@ interface AdminState {
   allTransactions: any[];
 
   rewards: Reward[];
+  refreshRewards: () => Promise<void>;
   addReward: (r: Reward) => Promise<void>;
   updateReward: (id: string, patch: Partial<Reward>) => Promise<void>;
   redemptions: RewardRedemption[];
@@ -610,6 +611,16 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, []);
 
+  const refreshRewards = useCallback(async () => {
+    const rwData = await db.fetchAllRewards();
+          setRewards(rwData.map((r: any) => ({
+            id: r.id, name: r.name, description: r.description || "",
+            mileageCost: r.mileage_cost || 0, inventory: r.inventory || 0,
+            active: r.active !== false, redemptionLimit: r.redemption_limit || 1,
+            category: r.category || "", type: r.type || "buy",
+          })));
+  }, []);
+
   /* ── Rewards (DB-backed) ── */
   const addReward = useCallback(async (r: Reward) => {
     await db.insertReward(r);
@@ -732,7 +743,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       prayers, updatePrayerStatus,
       announcements, addAnnouncement, updateAnnouncement,
       awardsMileage, awardGiftDraw, resetAllTalents, allTransactions: allTx,
-      rewards, addReward, updateReward, redemptions, refreshRedemptions, updateRedemption,
+      rewards, refreshRewards, addReward, updateReward, redemptions, refreshRedemptions, updateRedemption,
       season, updateSeason,
       badges, addBadge, updateBadge, studentBadges, earnBadge,
       auditLogs, addAuditLog,
