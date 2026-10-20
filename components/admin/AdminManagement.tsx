@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, ArrowUp, ArrowDown, Trash2, RefreshCw, Database as DatabaseIcon, QrCode } from "lucide-react";
-import { fetchStoreSections, addStoreSection, deleteStoreSection, reorderStoreSections } from "@/lib/db";
+import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, ArrowUp, ArrowDown, Trash2, Pencil, RefreshCw, Database as DatabaseIcon, QrCode } from "lucide-react";
+import { fetchStoreSections, addStoreSection, deleteStoreSection, reorderStoreSections, renameStoreSection } from "@/lib/db";
 import QRCodeModal from "./QRCodeModal";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
@@ -71,6 +71,29 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     setSavingSection(true); setSectionError("");
     try { await addStoreSection(name); setSavedSections(await fetchStoreSections()); setSectionName(""); }
     catch (e) { setSectionError(e instanceof Error ? e.message : "섹션 추가에 실패했습니다."); }
+    finally { setSavingSection(false); }
+  }
+
+  async function editSection(name: string) {
+    if (savingSection || name === "미분류") return;
+    const entered = window.prompt("새 섹션 제목을 입력해주세요.", name);
+    if (entered === null) return;
+    const nextName = entered.trim();
+    if (nextName === name) return;
+    if (!nextName || nextName === "미분류") { setSectionError("섹션 제목을 입력해주세요. 미분류는 기본 섹션입니다."); return; }
+    if (sections.includes(nextName)) { setSectionError("이미 존재하는 섹션입니다."); return; }
+    setSavingSection(true); setSectionError("");
+    try {
+      await renameStoreSection(name, nextName);
+      await refreshRewards();
+      setSavedSections(await fetchStoreSections());
+      setCollapsed(prev => {
+        const next = { ...prev, [nextName]: prev[name] };
+        delete next[name];
+        return next;
+      });
+      setRewardForm(prev => prev.category === name ? { ...prev, category: nextName } : prev);
+    } catch (e) { setSectionError(e instanceof Error ? e.message : "섹션 제목 수정에 실패했습니다."); }
     finally { setSavingSection(false); }
   }
 
@@ -363,6 +386,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                   <span className="truncate">{section} ({rewards.filter(r => r.active && (r.category || "미분류") === section).length})</span>
                 </button>
                 {section !== "미분류" && <div className="flex shrink-0 items-center gap-1">
+                  <button onClick={() => editSection(section)} disabled={savingSection} aria-label={`${section} 섹션 제목 수정`} title="제목 수정" className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-200 disabled:opacity-25"><Pencil size={16} /></button>
                   <button onClick={() => moveSection(section, -1)} disabled={savingSection || savedSections.indexOf(section) <= 0} aria-label={`${section} 섹션 위로 이동`} title="위로 이동" className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-200 disabled:opacity-25"><ArrowUp size={16} /></button>
                   <button onClick={() => moveSection(section, 1)} disabled={savingSection || savedSections.indexOf(section) < 0 || savedSections.indexOf(section) >= savedSections.length - 1} aria-label={`${section} 섹션 아래로 이동`} title="아래로 이동" className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-200 disabled:opacity-25"><ArrowDown size={16} /></button>
                   <button onClick={() => removeSection(section)} disabled={savingSection} aria-label={`${section} 섹션 삭제`} title="섹션 삭제" className="rounded-lg p-2 text-rose-500 hover:bg-rose-50 disabled:opacity-25"><Trash2 size={16} /></button>

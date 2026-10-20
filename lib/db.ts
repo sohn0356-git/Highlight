@@ -1350,6 +1350,13 @@ async function manageStoreSections(action: string, name?: string, names?: string
 
 export const addStoreSection = (name: string) => manageStoreSections("add", name);
 export const deleteStoreSection = (name: string) => manageStoreSections("delete", name);
+export async function renameStoreSection(oldName: string, newName: string) {
+  const s = sb();
+  if (!s) throw new Error("데이터베이스에 연결할 수 없습니다.");
+  const { error } = await s.rpc("rename_store_section", { p_old_name: oldName, p_new_name: newName });
+  if (error) throw new Error(error.message);
+}
+
 export const reorderStoreSections = (names: string[]) => manageStoreSections("reorder", undefined, names);
 
 export async function updateRedemption(id: string, status: string) {
