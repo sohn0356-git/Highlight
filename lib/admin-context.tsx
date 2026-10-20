@@ -17,6 +17,15 @@ function toAdminStudent(s: any): AdminStudent {
   };
 }
 
+function toRedemption(r: any): RewardRedemption {
+  return {
+    id: r.id, studentId: r.student_id, studentName: r.student_name || "",
+    rewardId: r.product_id || r.reward_id, rewardName: r.product_name || r.reward_name || "",
+    mileageCost: Number(r.mileage_cost) || 0, status: r.status || "requested",
+    createdAt: r.created_at || "",
+  };
+}
+
 interface AdminState {
   currentUser: { id: string; name: string; role: string; assignedClassIds?: string[] } | null;
   setCurrentUser: (user: { id: string; name: string; role: string; assignedClassIds?: string[] }) => void;
@@ -67,6 +76,7 @@ interface AdminState {
   addReward: (r: Reward) => Promise<void>;
   updateReward: (id: string, patch: Partial<Reward>) => Promise<void>;
   redemptions: RewardRedemption[];
+  refreshRedemptions: () => Promise<void>;
   updateRedemption: (id: string, status: string) => void;
 
   season: SeasonAdmin;
@@ -221,12 +231,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         // Redemptions
         let rdData: any[] = [];
         try { rdData = await db.fetchRedemptions(); } catch {}
-        if (rdData.length) setRedemptions(rdData.map((r: any) => ({
-          id: r.id, studentId: r.student_id, studentName: r.student_name || "",
-          rewardId: r.reward_id, rewardName: r.reward_name || "",
-          mileageCost: r.mileage_cost || 0, status: r.status || "requested",
-          createdAt: r.created_at || "",
-        })));
+        setRedemptions(rdData.map(toRedemption));
 
         // Badges
         const bData = await db.fetchBadges();
@@ -629,6 +634,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setRewards(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
   }, []);
 
+  const refreshRedemptions = useCallback(async () => {
+    const rows = await db.fetchRedemptions();
+    setRedemptions(rows.map(toRedemption));
+  }, []);
+
   const updateRedemption = useCallback(async (id: string, status: string) => {
     setRedemptions(prev => prev.map(r => r.id === id ? { ...r, status: status as any } : r));
     await db.updateRedemption(id, status);
@@ -722,7 +732,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       prayers, updatePrayerStatus,
       announcements, addAnnouncement, updateAnnouncement,
       awardsMileage, awardGiftDraw, resetAllTalents, allTransactions: allTx,
-      rewards, addReward, updateReward, redemptions, updateRedemption,
+      rewards, addReward, updateReward, redemptions, refreshRedemptions, updateRedemption,
       season, updateSeason,
       badges, addBadge, updateBadge, studentBadges, earnBadge,
       auditLogs, addAuditLog,

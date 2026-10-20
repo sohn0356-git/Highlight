@@ -13,7 +13,7 @@ type MgmtTab = "mileage" | "rewards" | "badges" | "stats" | "audit" | "settings"
 export default function AdminManagement({ onNavigate }: { onNavigate: (page: AdminPageId) => void }) {
   const {
     students, teachers,
-    rewards, addReward, updateReward, redemptions, updateRedemption,
+    rewards, addReward, updateReward, redemptions, refreshRedemptions, updateRedemption,
     badges, addBadge, updateBadge,
     allTransactions, awardsMileage, resetAllTalents,
     auditLogs, addAuditLog,
@@ -21,6 +21,14 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   } = useAdmin();
   const { classes } = useApp();
   const [tab, setTab] = useState<MgmtTab>("mileage");
+  useEffect(() => {
+    if (tab !== "rewards") return;
+    const refresh = () => { void refreshRedemptions(); };
+    refresh();
+    const timer = window.setInterval(refresh, 15000);
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, [tab, refreshRedemptions]);
   const [auditFilter, setAuditFilter] = useState<"points" | "system">("points");
 
   const tabs: { id: MgmtTab; label: string; icon: typeof Coins }[] = [
@@ -372,11 +380,17 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
               <h3 className="text-sm font-bold text-neutral-800">신청 내역</h3>
             </div>
             <div className="max-h-52 overflow-y-auto divide-y divide-neutral-50">
+              {redemptions.length === 0 && <p className="px-4 py-6 text-center text-xs text-neutral-400">아직 구매·판매 내역이 없습니다.</p>}
               {redemptions.map(r => (
                 <div key={r.id} className="flex items-center justify-between px-4 py-2.5">
                   <div>
-                    <p className="text-sm text-neutral-700">{r.studentName} · {r.rewardName}</p>
-                    <p className="text-[11px] text-neutral-400">{new Date(r.createdAt).toLocaleDateString("ko-KR")}</p>
+                    <p className="text-sm font-semibold text-neutral-800">{r.studentName || students.find(s => s.id === r.studentId)?.name || "알 수 없는 계정"}</p>
+                    <p className="mt-0.5 text-sm text-neutral-700">
+                      {r.rewardName || rewards.find(p => p.id === r.rewardId)?.name || "삭제된 상품"} · {r.mileageCost < 0 ? "판매" : "구매"}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-neutral-400">
+                      {Math.abs(r.mileageCost).toLocaleString()}D · {r.createdAt ? new Date(r.createdAt).toLocaleString("ko-KR") : ""}
+                    </p>
                   </div>
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                     r.status === "completed" ? "bg-emerald-50 text-emerald-600"
