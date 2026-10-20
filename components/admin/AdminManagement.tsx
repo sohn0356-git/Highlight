@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, RefreshCw, Database as DatabaseIcon, QrCode } from "lucide-react";
-import { fetchStoreSections, addStoreSection } from "@/lib/db";
+import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, ArrowUp, ArrowDown, Trash2, RefreshCw, Database as DatabaseIcon, QrCode } from "lucide-react";
+import { fetchStoreSections, addStoreSection, deleteStoreSection, reorderStoreSections } from "@/lib/db";
 import QRCodeModal from "./QRCodeModal";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
@@ -13,7 +13,7 @@ type MgmtTab = "mileage" | "rewards" | "badges" | "stats" | "audit" | "settings"
 export default function AdminManagement({ onNavigate }: { onNavigate: (page: AdminPageId) => void }) {
   const {
     students, teachers,
-    rewards, addReward, updateReward, redemptions, refreshRedemptions, updateRedemption,
+    rewards, refreshRewards, addReward, updateReward, redemptions, refreshRedemptions, updateRedemption,
     badges, addBadge, updateBadge,
     allTransactions, awardsMileage, resetAllTalents,
     auditLogs, addAuditLog,
@@ -62,15 +62,44 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   const [savingSection, setSavingSection] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   useEffect(() => { fetchStoreSections().then(setSavedSections).catch(e => setSectionError(e.message)); }, []);
-  const sections = [...new Set([...savedSections, ...rewards.filter(r => r.active).map(r => r.category || "미분류")])];
+  const namedSections = [...new Set([...savedSections, ...rewards.filter(r => r.active && r.category).map(r => r.category)])];
+  const sections = [...namedSections, ...(rewards.some(r => r.active && !r.category) ? ["미분류"] : [])];
   async function createSection() {
     const name = sectionName.trim();
     if (!name || savingSection) return;
     if (sections.includes(name)) { setSectionError("이미 존재하는 섹션입니다."); return; }
     setSavingSection(true); setSectionError("");
-    try { await addStoreSection(name); setSavedSections(prev => [...prev, name]); setSectionName(""); }
+    try { await addStoreSection(name); setSavedSections(await fetchStoreSections()); setSectionName(""); }
     catch (e) { setSectionError(e instanceof Error ? e.message : "섹션 추가에 실패했습니다."); }
     finally { setSavingSection(false); }
+  }
+
+  async function removeSection(name: string) {
+    if (savingSection || name === "미분류") return;
+    const count = rewards.filter(r => r.category === name).length;
+    if (!confirm(`"${name}" 섹션을 삭제하시겠습니까? ${count > 0 ? "포함된 상품은 미분류로 이동합니다." : ""}`)) return;
+    setSavingSection(true); setSectionError("");
+    try {
+      await deleteStoreSection(name);
+      await refreshRewards();
+      setSavedSections(await fetchStoreSections());
+    } catch (e) { setSectionError(e instanceof Error ? e.message : "섹션 삭제에 실패했습니다."); }
+    finally { setSavingSection(false); }
+  }
+
+  async function moveSection(name: string, direction: number) {
+    if (savingSection) return;
+    const index = savedSections.indexOf(name);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= savedSections.length) return;
+    const next = [...savedSections];
+    [next[index], next[target]] = [next[target], next[index]];
+    setSavingSection(true); setSectionError("");
+    try { await reorderStoreSections(next); setSavedSections(await fetchStoreSections()); }
+    catch (e) {
+      setSectionError(e instanceof Error ? e.message : "순서 저장에 실패했습니다.");
+      try { setSavedSections(await fetchStoreSections()); } catch {}
+    } finally { setSavingSection(false); }
   }
 
   // Badge form state
@@ -328,10 +357,17 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
 
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50">
             {sections.map(section => <div key={section}>
-              <button onClick={() => setCollapsed(prev => ({ ...prev, [section]: !prev[section] }))} aria-expanded={!collapsed[section]} className="flex w-full items-center justify-between bg-neutral-50 px-4 py-3 text-sm font-bold">
-                {section} ({rewards.filter(r => r.active && (r.category || "미분류") === section).length})
-                <ChevronDown size={16} className={collapsed[section] ? "-rotate-90" : ""} />
-              </button>
+              <div className="flex items-center gap-1 bg-neutral-50 px-3">
+                <button onClick={() => setCollapsed(prev => ({ ...prev, [section]: !prev[section] }))} aria-expanded={!collapsed[section]} className="flex min-w-0 flex-1 items-center gap-2 py-3 text-left text-sm font-bold">
+                  <ChevronDown size={16} className={collapsed[section] ? "shrink-0 -rotate-90" : "shrink-0"} />
+                  <span className="truncate">{section} ({rewards.filter(r => r.active && (r.category || "미분류") === section).length})</span>
+                </button>
+                {section !== "미분류" && <div className="flex shrink-0 items-center gap-1">
+                  <button onClick={() => moveSection(section, -1)} disabled={savingSection || savedSections.indexOf(section) <= 0} aria-label={`${section} 섹션 위로 이동`} title="위로 이동" className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-200 disabled:opacity-25"><ArrowUp size={16} /></button>
+                  <button onClick={() => moveSection(section, 1)} disabled={savingSection || savedSections.indexOf(section) < 0 || savedSections.indexOf(section) >= savedSections.length - 1} aria-label={`${section} 섹션 아래로 이동`} title="아래로 이동" className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-200 disabled:opacity-25"><ArrowDown size={16} /></button>
+                  <button onClick={() => removeSection(section)} disabled={savingSection} aria-label={`${section} 섹션 삭제`} title="섹션 삭제" className="rounded-lg p-2 text-rose-500 hover:bg-rose-50 disabled:opacity-25"><Trash2 size={16} /></button>
+                </div>}
+              </div>
               {!collapsed[section] && rewards.filter(r => r.active && (r.category || "미분류") === section).map(r => (
               <div key={r.id} className="flex items-center justify-between px-4 py-3">
                 <button onClick={() => setQrModalReward({ id: r.id, name: r.name, price: r.mileageCost, type: r.type })} className="flex-1 min-w-0 text-left px-1 py-2 -mx-1 rounded-lg hover:bg-indigo-50/50 transition">

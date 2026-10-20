@@ -1334,17 +1334,23 @@ export async function purchaseStoreProduct(studentId: string, productId: string,
 export async function fetchStoreSections(): Promise<string[]> {
   const s = sb();
   if (!s) throw new Error("데이터베이스에 연결할 수 없습니다.");
-  const { data, error } = await s.from("store_sections").select("name").order("name");
+  const { data, error } = await s.from("store_sections").select("name").order("sort_order").order("name");
   if (error) throw new Error(error.message);
   return (data || []).map(r => r.name);
 }
 
-export async function addStoreSection(name: string) {
+async function manageStoreSections(action: string, name?: string, names?: string[]) {
   const s = sb();
   if (!s) throw new Error("데이터베이스에 연결할 수 없습니다.");
-  const { error } = await s.from("store_sections").insert({ name });
+  const { error } = await s.rpc("manage_store_sections", {
+    p_action: action, p_name: name ?? null, p_names: names ?? null,
+  });
   if (error) throw new Error(error.message);
 }
+
+export const addStoreSection = (name: string) => manageStoreSections("add", name);
+export const deleteStoreSection = (name: string) => manageStoreSections("delete", name);
+export const reorderStoreSections = (names: string[]) => manageStoreSections("reorder", undefined, names);
 
 export async function updateRedemption(id: string, status: string) {
   const s = sb();
