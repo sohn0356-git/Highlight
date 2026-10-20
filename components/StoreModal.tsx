@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, ShoppingBag, Check, Loader2, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import { useApp } from "@/lib/store-context";
-import { fetchRewards, insertRedemption, storeTransaction } from "@/lib/db";
+import { fetchRewards, purchaseStoreProduct } from "@/lib/db";
 import { showPointToast } from "./PointToast";
 
 interface Reward {
@@ -24,6 +24,8 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(false);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
+  const busy = useRef(false);
+  const [error, setError] = useState("");
   const [tab, setTab] = useState<Tab>("buy");
 
   useEffect(() => {
@@ -46,39 +48,21 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
 
   const filtered = rewards.filter(r => (tab === "buy" ? r.type === "sell" : r.type === "buy"));
 
-  const handleBuy = async (reward: Reward) => {
-    if (purchasingId) return;
-    if ((student.mileage || 0) < reward.mileage_cost) return;
+  const handleTrade = async (reward: Reward) => {
+    if (busy.current) return;
+    if (reward.type !== "buy" && (student.mileage || 0) < reward.mileage_cost) {
+      setError("달란트가 부족합니다."); return;
+    }
+    busy.current = true;
+    setError("");
     setPurchasingId(reward.id);
     try {
-      // Immediately deduct talents
-      await storeTransaction(student.id, -reward.mileage_cost, `상점 구매: ${reward.name}`, "store_buy", reward.id);
-      await insertRedemption({
-        id: `rdm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        studentId: student.id, studentName: student.name,
-        rewardId: reward.id, rewardName: reward.name,
-        mileageCost: reward.mileage_cost,
-      });
-      showPointToast(`🛒 ${reward.name} 구매 완료! -${reward.mileage_cost}D`);
+      const tx = await purchaseStoreProduct(student.id, reward.id, crypto.randomUUID());
+      showPointToast(`${tx.name} · ${tx.amount >= 0 ? "+" : ""}${tx.amount}D`);
       await refreshAll();
-    } catch { /* ignore */ } finally { setPurchasingId(null); }
-  };
-
-  const handleSell = async (reward: Reward) => {
-    if (purchasingId) return;
-    setPurchasingId(reward.id);
-    try {
-      // Immediately credit talents
-      await storeTransaction(student.id, reward.mileage_cost, `상점 판매: ${reward.name}`, "store_sell", reward.id);
-      await insertRedemption({
-        id: `rdm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        studentId: student.id, studentName: student.name,
-        rewardId: reward.id, rewardName: reward.name,
-        mileageCost: -reward.mileage_cost,
-      });
-      showPointToast(`💰 ${reward.name} 판매 완료! +${reward.mileage_cost}D`);
-      await refreshAll();
-    } catch { /* ignore */ } finally { setPurchasingId(null); }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "거래에 실패했습니다.");
+    } finally { busy.current = false; setPurchasingId(null); }
   };
 
   return (
@@ -98,6 +82,7 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
         </div>
       </div>
 
+      {error && <p role="alert" className="px-5 py-3 text-sm text-rose-600">{error}</p>}
       {/* Tab bar */}
       <div className="flex border-b border-neutral-200">
         <button onClick={() => setTab("buy")} className={`flex-1 py-3 text-sm font-bold transition ${tab === "buy" ? "text-indigo-600 border-b-2 border-indigo-500" : "text-neutral-400"}`}>
@@ -142,8 +127,8 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
                         {isBuy ? `-${r.mileage_cost}D` : `+${r.mileage_cost}D`}
                       </p>
                       <button
-                        onClick={() => isBuy ? handleBuy(r) : handleSell(r)}
-                        disabled={!isBuy ? isProcessing : (!canAfford || isProcessing)}
+                        onClick={() => handleTrade(r)}
+                        disabled={purchasingId !== null || (isBuy && !canAfford)}
                         className={`mt-2 rounded-lg px-3 py-1.5 text-[11px] font-bold text-white transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
                           isBuy ? (canAfford && !isProcessing ? "bg-indigo-500" : "bg-neutral-300") : (!isProcessing ? "bg-green-500" : "bg-neutral-300")
                         }`}
@@ -163,3 +148,4 @@ export default function StoreModal({ open, onClose }: { open: boolean; onClose: 
     </div>
   );
 }
+

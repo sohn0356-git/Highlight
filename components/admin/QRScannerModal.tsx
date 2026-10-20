@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useId } from "react";
 import { X, Camera } from "lucide-react";
 
 interface QRScannerModalProps {
@@ -8,6 +8,9 @@ interface QRScannerModalProps {
 }
 
 export default function QRScannerModal({ onScan, onClose }: QRScannerModalProps) {
+  const regionId = "qr-" + useId().replace(/:/g, "");
+  const callbacks = useRef({ onScan, onClose });
+  callbacks.current = { onScan, onClose };
   const containerRef = useRef<HTMLDivElement>(null);
   const scannerRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,28 +26,35 @@ export default function QRScannerModal({ onScan, onClose }: QRScannerModalProps)
 
   useEffect(() => {
     let mounted = true;
+    let decoded = false;
+    let starting: Promise<unknown> | null = null;
     (async () => {
       try {
         const { Html5Qrcode } = await import("html5-qrcode");
         if (!mounted || !containerRef.current) return;
-        const scanner = new Html5Qrcode("qr-scanner-region");
+        const scanner = new Html5Qrcode(regionId);
         scannerRef.current = scanner;
-        await scanner.start(
+        starting = scanner.start(
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
           (decodedText) => {
-            stopScanner();
-            onScan(decodedText);
+            if (!mounted || decoded) return;
+            decoded = true;
+            void stopScanner();
+            callbacks.current.onScan(decodedText);
           },
           () => {} // ignore errors during scanning
         );
+        await starting;
+        if (!mounted) await stopScanner();
       } catch (err: any) {
         if (mounted) setError(err?.message || "카메라를 시작할 수 없습니다.");
       }
     })();
     return () => {
       mounted = false;
-      stopScanner();
+      if (starting) void starting.then(stopScanner).catch(() => {});
+      else void stopScanner();
     };
   }, []);
 
@@ -67,7 +77,7 @@ export default function QRScannerModal({ onScan, onClose }: QRScannerModalProps)
               <p className="text-sm text-neutral-400">{error}</p>
             </div>
           ) : (
-            <div ref={containerRef} id="qr-scanner-region" className="w-full" style={{ minHeight: "280px" }} />
+            <div ref={containerRef} id={regionId} className="w-full" style={{ minHeight: "280px" }} />
           )}
         </div>
         <div className="px-4 py-3 text-center">
@@ -77,3 +87,4 @@ export default function QRScannerModal({ onScan, onClose }: QRScannerModalProps)
     </div>
   );
 }
+
