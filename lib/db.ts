@@ -1278,23 +1278,21 @@ export async function fetchAllRewards() {
 
 export async function insertReward(r: any) {
   const s = sb();
-  if (!s) return;
-  try {
-    await s.from("store_products").insert([{
-      id: r.id, name: r.name, description: r.description || "",
-      mileage_cost: r.mileageCost || 0, inventory: r.inventory || 0,
-      active: true, redemption_limit: r.redemptionLimit || 1,
-      category: r.category || "", type: r.type || "buy",
-    }]);
-  } catch {}
+  if (!s) throw new Error("데이터베이스에 연결할 수 없습니다.");
+  const { error } = await s.from("store_products").insert({
+    id: r.id, name: r.name, description: r.description || "",
+    mileage_cost: r.mileageCost ?? 0, inventory: r.inventory ?? 0,
+    active: true, redemption_limit: r.redemptionLimit || 1,
+    category: r.category || "", type: r.type || "sell",
+  });
+  if (error) throw new Error(error.message);
 }
 
-export async function updateRewardField(rewardId: string, field: string, value: any) {
+export async function updateRewardFields(rewardId: string, patch: Record<string, unknown>) {
   const s = sb();
-  if (!s) return;
-  try {
-    await s.from("store_products").update({ [field]: value }).eq("id", rewardId);
-  } catch (e) { console.error("Failed to update reward:", e); }
+  if (!s) throw new Error("데이터베이스에 연결할 수 없습니다.");
+  const { data, error } = await s.from("store_products").update(patch).eq("id", rewardId).select("id").single();
+  if (error || !data) throw new Error(error?.message || "상품을 찾을 수 없습니다.");
 }
 
 export async function fetchRedemptions() {
@@ -1321,25 +1319,31 @@ export async function insertRedemption(r: any) {
   } catch { return null; }
 }
 
-export async function storeTransaction(studentId: string, amount: number, reason: string, sourceType: string = "store", sourceId: string = "") {
+// Price and direction are resolved in the database, never from QR data.
+export async function purchaseStoreProduct(studentId: string, productId: string, requestId: string) {
   const s = sb();
-  if (!s) return false;
-  try {
-    // Record in mileage_transactions
-    await s.from("mileage_transactions").insert([{
-      id: "tx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
-      student_id: studentId, amount, type: amount >= 0 ? "store_sale" : "store_purchase",
-      reason, source_type: sourceType, source_id: sourceId, status: "completed",
-      date: new Date().toISOString(),
-    }]);
-    // Update student talents
-    const { data: student } = await s.from("students").select("talents").eq("id", studentId).single();
-    if (student) {
-      const newTalents = Math.max(0, (student.talents || 0) + amount);
-      await s.from("students").update({ talents: newTalents }).eq("id", studentId);
-    }
-    return true;
-  } catch { return false; }
+  if (!s) throw new Error("데이터베이스에 연결할 수 없습니다.");
+  const { data, error } = await s.rpc("process_store_product", {
+    p_student_id: studentId, p_product_id: productId, p_request_id: requestId,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("거래 결과를 확인할 수 없습니다.");
+  return data as { name: string; amount: number; balance: number };
+}
+
+export async function fetchStoreSections(): Promise<string[]> {
+  const s = sb();
+  if (!s) throw new Error("데이터베이스에 연결할 수 없습니다.");
+  const { data, error } = await s.from("store_sections").select("name").order("name");
+  if (error) throw new Error(error.message);
+  return (data || []).map(r => r.name);
+}
+
+export async function addStoreSection(name: string) {
+  const s = sb();
+  if (!s) throw new Error("데이터베이스에 연결할 수 없습니다.");
+  const { error } = await s.from("store_sections").insert({ name });
+  if (error) throw new Error(error.message);
 }
 
 export async function updateRedemption(id: string, status: string) {
@@ -2119,4 +2123,5 @@ export async function processAttendanceRewardsForWeek(year: number, week: number
     return { attended: 0, awarded: 0, skipped: 0, awardedIds: [] };
   }
 }
+
 

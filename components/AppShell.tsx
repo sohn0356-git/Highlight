@@ -1,5 +1,7 @@
 "use client";
 import { ReactNode } from "react";
+import StoreQRButton from "./StoreQRButton";
+import QRScanHandler from "./admin/QRScanHandler";
 import BottomNavigation from "./BottomNavigation";
 import AdminApp from "./admin/AdminApp";
 import { go } from "@/lib/nav";
@@ -27,7 +29,10 @@ export default function AppShell({ active, children }: { active: TabId; children
   return (
     <div className="min-h-dvh pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
       <div className="page-enter pt-[env(safe-area-inset-top)]">{children}</div>
+      <StoreQRButton />
+      <QRScanHandler />
       <BottomNavigation active={active} onNavigate={handleNavigate} />
     </div>
   );
 }
+

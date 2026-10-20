@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Coins, Gift, Award, BarChart3, ScrollText, Settings, Plus, X, ChevronDown, RefreshCw, Database as DatabaseIcon, QrCode } from "lucide-react";
+import { fetchStoreSections, addStoreSection } from "@/lib/db";
 import QRCodeModal from "./QRCodeModal";
 import { useAdmin } from "@/lib/admin-context";
 import { useApp } from "@/lib/store-context";
@@ -43,9 +44,26 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
   const [showRewardForm, setShowRewardForm] = useState(false);
   const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
   const [rewardForm, setRewardForm] = useState({
-    name: "", description: "", mileageCost: 500, inventory: 0, category: "교환권", type: "buy" as "buy" | "sell",
+    name: "", description: "", mileageCost: 500, inventory: 0, category: "", type: "buy" as "buy" | "sell",
   });
   const [qrModalReward, setQrModalReward] = useState<{ id: string; name: string; price: number; type?: string } | null>(null);
+
+  const [savedSections, setSavedSections] = useState<string[]>([]);
+  const [sectionName, setSectionName] = useState("");
+  const [sectionError, setSectionError] = useState("");
+  const [savingSection, setSavingSection] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  useEffect(() => { fetchStoreSections().then(setSavedSections).catch(e => setSectionError(e.message)); }, []);
+  const sections = [...new Set([...savedSections, ...rewards.filter(r => r.active).map(r => r.category || "미분류")])];
+  async function createSection() {
+    const name = sectionName.trim();
+    if (!name || savingSection) return;
+    if (sections.includes(name)) { setSectionError("이미 존재하는 섹션입니다."); return; }
+    setSavingSection(true); setSectionError("");
+    try { await addStoreSection(name); setSavedSections(prev => [...prev, name]); setSectionName(""); }
+    catch (e) { setSectionError(e instanceof Error ? e.message : "섹션 추가에 실패했습니다."); }
+    finally { setSavingSection(false); }
+  }
 
   // Badge form state
   const [showBadgeForm, setShowBadgeForm] = useState(false);
@@ -91,18 +109,24 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       else window.alert("리셋에 실패했습니다. 잠시 후 다시 시도해주세요.");
     });
   }
-  function submitReward() {
-    if (!rewardForm.name) return;
+  const [savingReward, setSavingReward] = useState(false);
+  async function submitReward() {
+    if (savingReward) return;
+    if (!rewardForm.name.trim() || !Number.isSafeInteger(rewardForm.mileageCost) || rewardForm.mileageCost < 0) { alert("상품명과 0 이상의 정수 가격을 입력해주세요."); return; }
+    setSavingReward(true);
+    try {
     if (editingRewardId) {
-      updateReward(editingRewardId, { ...rewardForm });
+      await updateReward(editingRewardId, { ...rewardForm });
     } else {
       const newId = "r_" + Date.now();
-      addReward({ id: newId, ...rewardForm, active: true, redemptionLimit: 2, image: "" });
+      await addReward({ id: newId, ...rewardForm, active: true, redemptionLimit: 2, image: "" });
       setQrModalReward({ id: newId, name: rewardForm.name, price: rewardForm.mileageCost, type: rewardForm.type });
     }
     setShowRewardForm(false);
     setEditingRewardId(null);
-    setRewardForm({ name: "", description: "", mileageCost: 500, inventory: 10, category: "교환권", type: "buy" });
+    setRewardForm({ name: "", description: "", mileageCost: 500, inventory: 10, category: "", type: "buy" });
+    } catch (e) { alert(e instanceof Error ? e.message : "상품 저장에 실패했습니다."); }
+    finally { setSavingReward(false); }
   }
 
   function openRewardForm(r?: any) {
@@ -112,7 +136,7 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       setShowRewardForm(true);
     } else {
       setEditingRewardId(null);
-      setRewardForm({ name: "", description: "", mileageCost: 500, inventory: 10, category: "교환권", type: "buy" });
+      setRewardForm({ name: "", description: "", mileageCost: 500, inventory: 10, category: "", type: "buy" });
       setShowRewardForm(true);
     }
   }
@@ -248,6 +272,14 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
       {/* Rewards tab */}
       {tab === "rewards" && (
         <>
+          <div className="rounded-xl border bg-white p-4 space-y-2">
+            <label className="text-sm font-bold" htmlFor="store-section-name">섹션 추가</label>
+            <div className="flex gap-2">
+              <input id="store-section-name" value={sectionName} onChange={e => setSectionName(e.target.value)} placeholder="섹션 이름" className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm" />
+              <button disabled={savingSection || !sectionName.trim()} onClick={createSection} className="rounded-lg bg-indigo-500 px-4 text-sm font-bold text-white disabled:opacity-40">추가</button>
+            </div>
+            {sectionError && <p role="alert" className="text-xs text-rose-600">{sectionError}</p>}
+          </div>
           <button onClick={() => openRewardForm()} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-3 text-sm font-bold text-indigo-600">
             <Plus size={16} /> 아이템 추가
           </button>
@@ -274,15 +306,27 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                   <button type="button" onClick={() => setRewardForm({ ...rewardForm, type: "buy" })} className={`flex-1 rounded-lg border py-2 text-xs font-bold transition ${rewardForm.type === "buy" ? "border-green-500 bg-green-50 text-green-600" : "border-neutral-200 text-neutral-500"}`}>💰 사는 상품 (달란트 획득)</button>
                 </div>
               </div>
-              <button onClick={submitReward} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editingRewardId ? "수정 완료" : "추가하기"}</button>
+              <div>
+                <label htmlFor="reward-section" className="text-[11px] text-neutral-500">섹션</label>
+                <select id="reward-section" value={rewardForm.category} onChange={e => setRewardForm({ ...rewardForm, category: e.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm">
+                  <option value="">미분류</option>
+                  {[...new Set([...sections.filter(s => s !== "미분류"), ...(rewardForm.category ? [rewardForm.category] : [])])].map(name => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
+              <button disabled={savingReward} onClick={submitReward} className="w-full rounded-lg bg-indigo-500 py-3 text-sm font-bold text-white">{editingRewardId ? "수정 완료" : "추가하기"}</button>
             </div>
             </div>
           )}
 
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-50">
-            {rewards.map(r => (
+            {sections.map(section => <div key={section}>
+              <button onClick={() => setCollapsed(prev => ({ ...prev, [section]: !prev[section] }))} aria-expanded={!collapsed[section]} className="flex w-full items-center justify-between bg-neutral-50 px-4 py-3 text-sm font-bold">
+                {section} ({rewards.filter(r => r.active && (r.category || "미분류") === section).length})
+                <ChevronDown size={16} className={collapsed[section] ? "-rotate-90" : ""} />
+              </button>
+              {!collapsed[section] && rewards.filter(r => r.active && (r.category || "미분류") === section).map(r => (
               <div key={r.id} className="flex items-center justify-between px-4 py-3">
-                <button onClick={() => setQrModalReward({ id: r.id, name: r.name, price: r.mileageCost })} className="flex-1 min-w-0 text-left px-1 py-2 -mx-1 rounded-lg hover:bg-indigo-50/50 transition">
+                <button onClick={() => setQrModalReward({ id: r.id, name: r.name, price: r.mileageCost, type: r.type })} className="flex-1 min-w-0 text-left px-1 py-2 -mx-1 rounded-lg hover:bg-indigo-50/50 transition">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-neutral-800">{r.name}</p>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.type === "sell" ? "bg-indigo-100 text-indigo-600" : "bg-green-100 text-green-600"}`}>{r.type === "sell" ? "파는 상품" : "사는 상품"}</span>
@@ -291,10 +335,12 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
                 </button>
                 <div className="flex shrink-0 items-center gap-2">
                   <button onClick={() => openRewardForm(r)} className="text-[11px] font-bold text-neutral-400">수정</button>
-                  <button onClick={() => { if (confirm(`"${r.name}" 상품을 삭제하시겠습니까?`)) updateReward(r.id, { active: false }); }} className="text-[11px] font-bold text-rose-500">삭제</button>
+                  <button onClick={() => { if (confirm(`"${r.name}" 상품을 삭제하시겠습니까?`)) void updateReward(r.id, { active: false }).catch(e => alert(e.message)); }} className="text-[11px] font-bold text-rose-500">삭제</button>
                 </div>
               </div>
             ))}
+            </div>)}
+            {sections.length === 0 && <p className="p-4 text-sm text-neutral-400">섹션이나 상품을 추가해주세요.</p>}
           </div>
 
           {/* Redemption approvals */}
@@ -563,3 +609,4 @@ export default function AdminManagement({ onNavigate }: { onNavigate: (page: Adm
     </div>
   );
 }
+

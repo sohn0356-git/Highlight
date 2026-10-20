@@ -64,8 +64,8 @@ interface AdminState {
   allTransactions: any[];
 
   rewards: Reward[];
-  addReward: (r: Reward) => void;
-  updateReward: (id: string, patch: Partial<Reward>) => void;
+  addReward: (r: Reward) => Promise<void>;
+  updateReward: (id: string, patch: Partial<Reward>) => Promise<void>;
   redemptions: RewardRedemption[];
   updateRedemption: (id: string, status: string) => void;
 
@@ -607,12 +607,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   /* ── Rewards (DB-backed) ── */
   const addReward = useCallback(async (r: Reward) => {
-    setRewards(prev => [r, ...prev]);
     await db.insertReward(r);
+    setRewards(prev => [r, ...prev]);
   }, []);
 
   const updateReward = useCallback(async (id: string, patch: Partial<Reward>) => {
-    setRewards(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
     const fieldMap: Record<string, string> = {
       name: "name",
       description: "description",
@@ -622,11 +621,12 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       category: "category",
       type: "type",
     };
+    const fields: Record<string, unknown> = {};
     for (const [key, dbField] of Object.entries(fieldMap)) {
-      if (key in patch && (patch as any)[key] !== undefined) {
-        await db.updateRewardField(id, dbField, (patch as any)[key]);
-      }
+      if (key in patch && (patch as any)[key] !== undefined) fields[dbField] = (patch as any)[key];
     }
+    await db.updateRewardFields(id, fields);
+    setRewards(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
   }, []);
 
   const updateRedemption = useCallback(async (id: string, status: string) => {
@@ -732,3 +732,4 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     </AdminCtx.Provider>
   );
 }
+
